@@ -2079,6 +2079,10 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                         }
                     }));
                 }
+                else
+                {
+                    progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Success, {});
+                }
             }
         }
     });
