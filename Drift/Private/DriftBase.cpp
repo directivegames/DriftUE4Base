@@ -1765,7 +1765,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         manager->SetApiKey(GetApiKeyHeader());
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
-        RegisterClient();
+        GetUserInfo();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -1779,6 +1779,44 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
                 context.error = response.GetErrorDescription();
             }
         }
+        onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
+    });
+    request->Dispatch();
+}
+
+
+void FDriftBase::GetUserInfo()
+{
+    auto request = GetGameRequestManager()->Get(cli.drift_url, HttpStatusCodes::Ok);
+    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    {
+        auto currentUser = doc.FindMember(TEXT("current_user"));
+        if (currentUser == doc.MemberEnd() || !currentUser->value.IsObject())
+        {
+            context.error = TEXT("Failed to read user info");
+            return;
+        }
+
+        auto userObject = currentUser->value.GetObject();
+        auto userId = userObject.FindMember(TEXT("user_id"));
+        if (userId == userObject.MemberEnd() || !userId->value.IsUint64())
+        {
+            context.error = TEXT("Failed to read user id");
+            return;
+        }
+
+        if (userId->value.GetUint64() == 0)
+        {
+            context.error = TEXT("User creation failed");
+            return;
+        }
+
+        RegisterClient();
+    });
+    request->OnError.BindLambda([this](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        Reset();
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
     });
     request->Dispatch();
@@ -1860,6 +1898,7 @@ void FDriftBase::GetPlayerEndpoints()
             context.error = L"My player endpoint is empty";
             return;
         }
+
         GetPlayerInfo();
     });
     request->OnError.BindLambda([this](ResponseContext& context)

@@ -155,6 +155,7 @@ public:
 private:
     void GetRootEndpoints(TFunction<void()> onSuccess);
     void InitAuthentication(const FString& credentialType);
+    void GetUserInfo();
     void RegisterClient();
     void GetPlayerEndpoints();
     void GetPlayerInfo();
