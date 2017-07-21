@@ -43,7 +43,7 @@ void FDriftEditor::StartupModule()
     if (SettingsModule != nullptr)
     {
         SettingsModule->RegisterSettings(
-            "Project", "Plugins", "Drift",
+            "Project", "Game", "Drift",
             LOCTEXT("DriftSettingsName", "Drift"),
             LOCTEXT("DriftSettingsDescription", "Drift settings"),
             GetMutableDefault<UDriftProjectSettings>()
@@ -57,7 +57,7 @@ void FDriftEditor::ShutdownModule()
     ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
     if (SettingsModule != nullptr)
     {
-        SettingsModule->UnregisterSettings("Project", "Plugins", "Drift");
+        SettingsModule->UnregisterSettings("Project", "Game", "Drift");
     }
 }
 
