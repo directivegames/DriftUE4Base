@@ -327,3 +327,98 @@ bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValu
 
     return true;
 }
+
+template<>
+bool JsonArchive::SerializeObject<JsonValueWrapper>(JsonValue& jValue, JsonValueWrapper& cValue)
+{
+	return SerializeObject(jValue, cValue.value);
+}
+
+JsonValueWrapper::JsonValueWrapper(const JsonValueWrapper& other)
+{
+	value.CopyFrom(other.value, JsonArchive::Allocator());
+}
+
+JsonValueWrapper::JsonValueWrapper(JsonValueWrapper&& other) :
+	value(std::move(other.value))
+{
+}
+
+JsonValueWrapper::JsonValueWrapper(const JsonValue& other)
+{
+	value.CopyFrom(other, JsonArchive::Allocator());
+}
+
+JsonValueWrapper::JsonValueWrapper(JsonValue&& other) :
+	value(std::move(other))
+{
+}
+
+JsonValueWrapper& JsonValueWrapper::operator=(const JsonValueWrapper& other)
+{
+	if (this != &other)
+	{
+		value.CopyFrom(other.value, JsonArchive::Allocator());
+	}
+
+	return *this;
+}
+
+JsonValueWrapper& JsonValueWrapper::operator=(JsonValueWrapper&& other)
+{
+	if (this != &other)
+	{
+		value = std::move(other.value);
+	}
+
+	return *this;
+}
+
+template<>
+bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue)
+{
+	bool success = false;
+
+	if (mIsLoading)
+	{
+		if (jValue.IsString())
+		{
+			cValue = jValue.GetString();
+			success = true;
+		}
+		else
+		{
+			//AddTypeMismatchError(rapidjson::kStringType, jValue.GetType());
+		}
+	}
+	else
+	{
+		jValue.SetString(cValue.c_str(), mAllocator);
+		success = true;
+	}
+
+	return success;
+}
+
+// use a strange sting so that it won't conflict with other
+static const wchar_t* VERSION_STRING = L"$serialization_version";
+
+void SerializationContext::SetVersion(int version)
+{
+	if (!IsLoading())
+	{
+		SerializeProperty(VERSION_STRING, version);
+	}
+}
+
+int SerializationContext::GetVersion()
+{
+	int version = -1;
+
+	if (value.HasMember(VERSION_STRING))
+	{
+		SerializeProperty(VERSION_STRING, version);
+	}
+
+	return version;
+}
