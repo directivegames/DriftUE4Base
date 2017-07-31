@@ -506,7 +506,7 @@ public:
 		JsonValue temp;
 		if (SaveObject(value, temp))
 		{
-			AddMember(parent, name, temp);
+			AddMember(parent, name, MoveTemp(temp));
 		} 
     }
 
