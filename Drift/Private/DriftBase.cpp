@@ -2106,10 +2106,12 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
             {
                 if (userInfo.user_id == 0)
                 {
+                    DRIFT_LOG(Base, Verbose, TEXT("Identity has no previous user, automatically bind it the the current one"));
                     AssociateNewIdentityWithCurrentUser(progressDelegate);
                 }
                 else if (userInfo.user_id != driftClient.user_id)
                 {
+                    DRIFT_LOG(Base, Verbose, TEXT("Identity is bound to a different user, player needs to decide what to do"));
                     progressDelegate.ExecuteIfBound(
                         EAddPlayerIdentityResult::Progress_IdentityAssociatedWithOtherUser,
                         FDriftPlayerIdentityContinuationDelegate::CreateLambda([this, progressDelegate, userInfo](EPlayerIdentityOverrideOption option)
@@ -2117,6 +2119,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                         switch (option)
                         {
                         case EPlayerIdentityOverrideOption::AssignIdentityToNewUser:
+                            DRIFT_LOG(Base, Verbose, TEXT("User chose to reassign the identity to the current user"));
                             AssociateCurrentUserWithSecondaryIdentity(userInfo, progressDelegate);
                             break;
                         case EPlayerIdentityOverrideOption::DoNotOverrideExistingUserAssociation:
@@ -2130,6 +2133,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                 }
                 else
                 {
+                    DRIFT_LOG(Base, Verbose, TEXT("Identity is already bound to this user, no action taken"));
                     progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Success, {});
                 }
             }
@@ -2147,6 +2151,8 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
 
 void FDriftBase::AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
+    DRIFT_LOG(Base, Log, TEXT("Assigning unbound identity with current user"));
+
     FDriftUserIdentityPayload payload{};
     payload.link_with_user_jti = driftClient.jti;
     payload.link_with_user_id = driftClient.user_id;
@@ -2169,6 +2175,8 @@ void FDriftBase::AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdenti
 
 void FDriftBase::AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
+    DRIFT_LOG(Base, Log, TEXT("Re-assigning identity to a different user"));
+
     FDriftUserIdentityPayload payload{};
     payload.link_with_user_jti = targetUser.jti;
     payload.link_with_user_id = targetUser.user_id;
