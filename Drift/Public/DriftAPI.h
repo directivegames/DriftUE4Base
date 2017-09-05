@@ -26,45 +26,54 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftServerRegisteredDelegate, bool);
 /**
  * Fired when AddMatch() finishes
  * bool - success
+ * int32 - match id
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FDriftMatchAddedDelegate, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftMatchAddedDelegate, bool, int32);
 
 /**
  * Fired when UpdateMatch() finishes
  * bool - success
+ * int32 - match id
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FDriftMatchUpdatedDelegate, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftMatchUpdatedDelegate, bool, int32);
 
 /**
  * Fired when AddPlayerToMatch() finishes. Use this when you're not the
  * instigator.
  * bool - success
+ * int32 - match id
  * int32 - player id
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAddedToMatchDelegate, bool, int32);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FDriftPlayerAddedToMatchDelegate, bool, int32, int32);
 
 /**
  * Fired when RemovePlayerFromMatch() finishes. Use this when you're not the
  * instigator.
  * bool - success
+ * int32 - match id
  * int32 - player id
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerRemovedFromMatchDelegate, bool, int32);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FDriftPlayerRemovedFromMatchDelegate, bool, int32, int32);
 
 /**
  * Fired to notify the original caller when AddPlayerToMatch() finishes.
  * bool - success
+ * int32 - match id
+ * int32 - player id
  */
-DECLARE_DELEGATE_OneParam(FDriftPlayerAddedDelegate, bool);
+DECLARE_DELEGATE_ThreeParams(FDriftPlayerAddedDelegate, bool, int32, int32);
 
 /**
  * Fired to notify the original caller when RemovePlayerFromMatch() finishes.
  * bool - success
+ * int32 - match id
+ * int32 - player id
  */
-DECLARE_DELEGATE_OneParam(FDriftPlayerRemovedDelegate, bool);
+DECLARE_DELEGATE_ThreeParams(FDriftPlayerRemovedDelegate, bool, int32, int32);
 
+DECLARE_DELEGATE_TwoParams(FDriftOnMatchAddedDelegate, bool, int32);
 DECLARE_DELEGATE_OneParam(FDriftServerStatusUpdatedDelegate, bool);
-DECLARE_DELEGATE_OneParam(FDriftMatchStatusUpdatedDelegate, bool);
+DECLARE_DELEGATE_TwoParams(FDriftMatchStatusUpdatedDelegate, bool, int32);
 
 struct FAnalyticsEventAttribute;
 class IDriftEvent;
@@ -89,7 +98,8 @@ public:
      * For a match to show up in Drift match making, it needs to be registered.
      */
     virtual void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players) = 0;
-    
+    virtual void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players, const FDriftOnMatchAddedDelegate& delegate) = 0;
+
     /**
     * Update a server to set it's status for the match maker.
     */
@@ -99,7 +109,8 @@ public:
      * Update a match to set it's status for the match maker. A status of "completed" means the match has ended.
      */
     virtual void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
-    
+    virtual void UpdateMatch(int32 match_id, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
+
     /**
      * Get the match ID if currently hosting a match, or 0.
      */
@@ -110,13 +121,15 @@ public:
      * successfully connected to the match.
      */
     virtual void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) = 0;
-    
+    virtual void AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id, const FDriftPlayerAddedDelegate& delegate) = 0;
+
     /**
      * Remove a player from the current match. This should be done if the player disconnects,
      * but the match isn't ending. When the match is set to "completed", players are automatically removed.
      */
     virtual void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) = 0;
-    
+    virtual void RemovePlayerFromMatch(int32 match_id, int32 player_id, const FDriftPlayerRemovedDelegate& delegate) = 0;
+
     /**
      * Modify a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.

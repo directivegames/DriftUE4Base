@@ -38,7 +38,7 @@ UAddMatchProxy::UAddMatchProxy()
 }
 
 
-void UAddMatchProxy::OnCompleted(bool success)
+void UAddMatchProxy::OnCompleted(bool success, int32 match_id)
 {
     FDriftWorldHelper helper{ worldContextObject };
     auto ks = helper.GetInstance();

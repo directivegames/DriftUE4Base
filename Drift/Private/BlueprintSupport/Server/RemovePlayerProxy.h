@@ -29,10 +29,10 @@ public:
 
     ~URemovePlayerProxy();
 
-    int32 player_id;
+    int32 player_id_;
     
-    UObject* worldContextObject;
+    UObject* worldContextObject_;
     
 private:
-    void OnCompleted(bool success);
+    void OnCompleted(bool success, int32 match_id, int32 player_id);
 };

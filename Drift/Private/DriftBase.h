@@ -138,11 +138,15 @@ public:
     bool RegisterServer() override;
     
     void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players) override;
+    void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players, const FDriftOnMatchAddedDelegate& delegate) override;
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    void UpdateMatch(int32 match_id, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
     void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) override;
+    void AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id, const FDriftPlayerAddedDelegate& delegate) override;
     void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) override;
+    void RemovePlayerFromMatch(int32 match_id, int32 player_id, const FDriftPlayerRemovedDelegate& delegate) override;
     void ModifyPlayerCounter(int32 player_id, const FString& counter_name, float value, bool absolute) override;
     bool GetPlayerCounter(int32 player_id, const FString& counter_name, float& value) override;
     
@@ -351,6 +355,7 @@ private:
     TArray<FMatchInvite> matchInvites;
 
     FGetMatchesResponseItem match_info;
+    TMap<int32, FGetMatchesResponseItem> matchInfos;
 
     FString apiKey;
     FString projectName = TEXT("DefaultDriftProject");

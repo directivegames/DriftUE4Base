@@ -11,20 +11,20 @@
 UAddPlayerProxy* UAddPlayerProxy::AddPlayer(UObject* worldContextObject, int32 player_id, int32 team_id)
 {
     auto proxy = NewObject<UAddPlayerProxy>();
-    proxy->player_id = player_id;
-    proxy->team_id = team_id;
-    proxy->worldContextObject = worldContextObject;
+    proxy->player_id_ = player_id;
+    proxy->team_id_ = team_id;
+    proxy->worldContextObject_ = worldContextObject;
     return proxy;
 }
 
 
 void UAddPlayerProxy::Activate()
 {
-    FDriftWorldHelper helper{ worldContextObject };
+    FDriftWorldHelper helper{ worldContextObject_ };
     auto ks = helper.GetInstance();
     if (ks)
     {
-        ks->AddPlayerToMatch(player_id, team_id, FDriftPlayerAddedDelegate::CreateUObject(this, &ThisClass::OnCompleted));
+        ks->AddPlayerToMatch(player_id_, team_id_, FDriftPlayerAddedDelegate::CreateUObject(this, &ThisClass::OnCompleted));
     }
 }
 
@@ -35,7 +35,7 @@ UAddPlayerProxy::~UAddPlayerProxy()
 }
 
 
-void UAddPlayerProxy::OnCompleted(bool success)
+void UAddPlayerProxy::OnCompleted(bool success, int32 match_id, int32 player_id)
 {
     if (success)
     {

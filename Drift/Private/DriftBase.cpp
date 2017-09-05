@@ -1249,6 +1249,7 @@ void FDriftBase::AddAnalyticsEvent(const FString& event_name, const TArray<FAnal
 
 void FDriftBase::AddAnalyticsEvent(TUniquePtr<IDriftEvent> event)
 {
+    // TODO: Handle multiple matches
     if (eventManager.IsValid())
     {
         if (match_info.match_id != 0)
@@ -2438,15 +2439,31 @@ bool FDriftBase::RegisterServer()
 
 void FDriftBase::AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate)
 {
+    // TODO: Deprecate
+    AddPlayerToMatch(match_info.match_id, team_id, player_id, delegate);
+}
+
+
+void FDriftBase::AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id, const FDriftPlayerAddedDelegate & delegate)
+{
     if (state_ != DriftSessionState::Connected)
     {
         /**
          * TODO: Is this the best approach? This should only ever happen in the editor,
          * as in the real game no client can connect before the match has been initialized.
          */
+        delegate.ExecuteIfBound(false, match_id, player_id);
         return;
     }
     
+    auto matchInfo = matchInfos.Find(match_id);
+    if (!matchInfo || matchInfo->matchplayers_url.IsEmpty())
+    {
+        DRIFT_LOG(Base, Error, TEXT("Attempting to add player %i to match %i for which the server has no information"), player_id, match_id);
+        delegate.ExecuteIfBound(false, match_id, player_id);
+        return;
+    }
+
     FString payload;
     if (team_id != 0)
     {
@@ -2457,20 +2474,20 @@ void FDriftBase::AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPl
         payload = FString::Printf(TEXT("{\"player_id\": %i}"), player_id);
     }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Adding player: %i to match %i"), player_id, match_info.match_id);
+    DRIFT_LOG(Base, Verbose, TEXT("Adding player: %i to match %i"), player_id, match_id);
 
-    auto request = GetGameRequestManager()->Post(match_info.matchplayers_url, payload);
-    request->OnResponse.BindLambda([this, player_id, delegate](ResponseContext& context, JsonDocument& doc)
+    auto request = GetGameRequestManager()->Post(matchInfo->matchplayers_url, payload);
+    request->OnResponse.BindLambda([this, match_id, player_id, delegate](ResponseContext& context, JsonDocument& doc)
     {
-        delegate.ExecuteIfBound(true);
-        onPlayerAddedToMatch.Broadcast(true, player_id);
+        delegate.ExecuteIfBound(true, match_id, player_id);
+        onPlayerAddedToMatch.Broadcast(true, match_id, player_id);
     });
-    request->OnError.BindLambda([this, player_id, delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, match_id, player_id, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
 
-        delegate.ExecuteIfBound(false);
-        onPlayerAddedToMatch.Broadcast(false, player_id);
+        delegate.ExecuteIfBound(false, match_id, player_id);
+        onPlayerAddedToMatch.Broadcast(false, match_id, player_id);
     });
     request->Dispatch();
 
@@ -2480,30 +2497,47 @@ void FDriftBase::AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPl
 
 void FDriftBase::RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate)
 {
+    // TODO: Deprecate
+    RemovePlayerFromMatch(match_info.match_id, player_id, delegate);
+}
+
+
+void FDriftBase::RemovePlayerFromMatch(int32 match_id, int32 player_id, const FDriftPlayerRemovedDelegate & delegate)
+{
     if (state_ != DriftSessionState::Connected)
     {
         /**
-         * TODO: Is this the best approach? This should only ever happen in the editor,
-         * as in the real game no client can connect before the match has been initialized.
-         */
+        * TODO: Is this the best approach? This should only ever happen in the editor,
+        * as in the real game no client can connect before the match has been initialized.
+        */
+        delegate.ExecuteIfBound(false, match_id, player_id);
         return;
     }
-    
-    DRIFT_LOG(Base, Verbose, TEXT("Removing player: %i from match %i"), player_id, match_info.match_id);
 
-    FString url = FString::Printf(TEXT("%s/%i"), *match_info.matchplayers_url, player_id);
-    auto request = GetGameRequestManager()->Delete(url);
-    request->OnResponse.BindLambda([this, player_id, delegate](ResponseContext& context, JsonDocument& doc)
+    auto matchInfo = matchInfos.Find(match_id);
+    if (!matchInfo || matchInfo->matchplayers_url.IsEmpty())
     {
-        delegate.ExecuteIfBound(true);
-        onPlayerRemovedFromMatch.Broadcast(true, player_id);
+        DRIFT_LOG(Base, Error, TEXT("Attempting to remove player %i from match %i for which the server has no information"), player_id, match_id);
+        delegate.ExecuteIfBound(false, match_id, player_id);
+        return;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Removing player: %i from match %i"), player_id, match_id);
+
+    // TODO: Don't use hard-coded URL
+    FString url = FString::Printf(TEXT("%s/%i"), *matchInfo->matchplayers_url, player_id);
+    auto request = GetGameRequestManager()->Delete(url);
+    request->OnResponse.BindLambda([this, match_id, player_id, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        delegate.ExecuteIfBound(true, match_id, player_id);
+        onPlayerRemovedFromMatch.Broadcast(true, match_id, player_id);
     });
-    request->OnError.BindLambda([this, player_id, delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, match_id, player_id, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
 
-        delegate.ExecuteIfBound(false);
-        onPlayerRemovedFromMatch.Broadcast(false, player_id);
+        delegate.ExecuteIfBound(false, match_id, player_id);
+        onPlayerRemovedFromMatch.Broadcast(false, match_id, player_id);
     });
     request->Dispatch();
 }
@@ -2511,12 +2545,19 @@ void FDriftBase::RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemove
 
 void FDriftBase::AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players)
 {
+    AddMatch(map_name, game_mode, num_teams, max_players, FDriftOnMatchAddedDelegate{});
+}
+
+
+void FDriftBase::AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players, const FDriftOnMatchAddedDelegate& delegate)
+{
     if (state_ != DriftSessionState::Connected)
     {
         /**
          * TODO: Is this the best approach? This should only ever happen in the editor,
          * as in the real game no client can connect before the match has been initialized.
          */
+        delegate.ExecuteIfBound(false, -1);
         return;
     }
     
@@ -2529,10 +2570,10 @@ void FDriftBase::AddMatch(const FString& map_name, const FString& game_mode, int
     payload.status = TEXT("idle");
     payload.num_teams = num_teams;
 
-    DRIFT_LOG(Base, Verbose, TEXT("Adding match to server: %i map: '%s' mode: '%s' players: %i teams: %i"), drift_server.server_id, *map_name, *game_mode, max_players, num_teams);
+    DRIFT_LOG(Base, Log, TEXT("Adding match to server: %i map: '%s' mode: '%s' players: %i teams: %i"), drift_server.server_id, *map_name, *game_mode, max_players, num_teams);
 
     auto request = GetGameRequestManager()->Post(driftEndpoints.matches, payload);
-    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FAddMatchResponse match;
         if (!JsonArchive::LoadObject(doc, match))
@@ -2544,24 +2585,28 @@ void FDriftBase::AddMatch(const FString& map_name, const FString& game_mode, int
         DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(doc));
         
         auto match_request = GetGameRequestManager()->Get(match.url);
-        match_request->OnResponse.BindLambda([this](ResponseContext& match_context, JsonDocument& match_doc)
+        match_request->OnResponse.BindLambda([this, delegate](ResponseContext& match_context, JsonDocument& match_doc)
         {
-            if (!JsonArchive::LoadObject(match_doc, match_info))
+            FGetMatchesResponseItem matchInfo;
+            if (!JsonArchive::LoadObject(match_doc, matchInfo))
             {
                 match_context.error = L"Failed to parse match info response.";
                 return;
             }
 
+            auto& match = matchInfos.Add(matchInfo.match_id, MoveTemp(matchInfo));
             DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(match_doc));
 
-            onMatchAdded.Broadcast(true);
+            delegate.ExecuteIfBound(true, match.match_id);
+            onMatchAdded.Broadcast(true, match.match_id);
         });
         match_request->Dispatch();
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        onMatchAdded.Broadcast(false);
+        delegate.ExecuteIfBound(false, -1);
+        onMatchAdded.Broadcast(false, -1);
     });
     request->Dispatch();
 }
@@ -2606,16 +2651,36 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
 
 void FDriftBase::UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate)
 {
-    if (state_ != DriftSessionState::Connected || match_info.url.IsEmpty())
+    // TODO: Deprecate
+    UpdateMatch(match_info.match_id, status, reason, delegate);
+}
+
+
+void FDriftBase::UpdateMatch(int32 match_id, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
     {
         /**
          * TODO: Is this the best approach? This should only ever happen in the editor,
          * as in the real game no client can connect before the match has been initialized.
          */
-        delegate.ExecuteIfBound(false);
+        delegate.ExecuteIfBound(false, match_id);
         return;
     }
     
+    auto matchInfo = matchInfos.Find(match_id);
+    if (!matchInfo || matchInfo->url.IsEmpty())
+    {
+        DRIFT_LOG(Base, Error, TEXT("Attempting to update status for match %i for which the server has no information"), match_id);
+        delegate.ExecuteIfBound(false, match_id);
+        return;
+    }
+/* TODO: Is this the right place?
+    if (status == TEXT("completed"))
+    {
+        matchInfos.Remove(match_id);
+    }
+*/
     DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *status);
     
     JsonValue payload{ rapidjson::kObjectType };
@@ -2627,16 +2692,16 @@ void FDriftBase::UpdateMatch(const FString& status, const FString& reason, const
         JsonArchive::AddMember(payload, TEXT("details"), details);
     }
 
-    auto request = GetGameRequestManager()->Put(match_info.url, payload);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    auto request = GetGameRequestManager()->Put(matchInfo->url, payload);
+    request->OnResponse.BindLambda([this, match_id, delegate](ResponseContext& context, JsonDocument& doc)
     {
-        delegate.ExecuteIfBound(true);
-        onMatchUpdated.Broadcast(true);
+        delegate.ExecuteIfBound(true, match_id);
+        onMatchUpdated.Broadcast(true, match_id);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, match_id, delegate](ResponseContext& context)
     {
-        delegate.ExecuteIfBound(false);
-        onMatchUpdated.Broadcast(false);
+        delegate.ExecuteIfBound(false, match_id);
+        onMatchUpdated.Broadcast(false, match_id);
         context.errorHandled = true;
     });
     request->Dispatch();
@@ -2645,6 +2710,7 @@ void FDriftBase::UpdateMatch(const FString& status, const FString& reason, const
 
 int32 FDriftBase::GetMatchID() const
 {
+    // TODO: Handle multiple matches
     return match_info.url.IsEmpty() ? 0 : match_info.match_id;
 }
 

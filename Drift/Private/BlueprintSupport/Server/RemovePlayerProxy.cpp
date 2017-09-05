@@ -11,19 +11,19 @@
 URemovePlayerProxy* URemovePlayerProxy::RemovePlayer(UObject* worldContextObject, int32 player_id)
 {
     auto proxy = NewObject<URemovePlayerProxy>();
-    proxy->player_id = player_id;
-    proxy->worldContextObject = worldContextObject;
+    proxy->player_id_ = player_id;
+    proxy->worldContextObject_ = worldContextObject;
     return proxy;
 }
 
 
 void URemovePlayerProxy::Activate()
 {
-    FDriftWorldHelper helper{ worldContextObject };
+    FDriftWorldHelper helper{ worldContextObject_ };
     auto ks = helper.GetInstance();
     if (ks)
     {
-        ks->RemovePlayerFromMatch(player_id, FDriftPlayerRemovedDelegate::CreateUObject(this, &ThisClass::OnCompleted));
+        ks->RemovePlayerFromMatch(player_id_, FDriftPlayerRemovedDelegate::CreateUObject(this, &ThisClass::OnCompleted));
     }
 }
 
@@ -34,7 +34,7 @@ URemovePlayerProxy::~URemovePlayerProxy()
 }
 
 
-void URemovePlayerProxy::OnCompleted(bool success)
+void URemovePlayerProxy::OnCompleted(bool success, int32 match_id, int32 player_id)
 {
     if (success)
     {

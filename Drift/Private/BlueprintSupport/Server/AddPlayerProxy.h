@@ -28,11 +28,11 @@ public:
 
     ~UAddPlayerProxy();
 
-    int32 player_id;
-    int32 team_id;
+    int32 player_id_;
+    int32 team_id_;
     
 private:
-    void OnCompleted(bool success);
+    void OnCompleted(bool success, int32 match_id, int32 player_id);
     
-    UObject* worldContextObject;
+    UObject* worldContextObject_;
 };

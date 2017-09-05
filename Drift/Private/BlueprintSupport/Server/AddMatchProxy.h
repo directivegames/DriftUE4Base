@@ -37,7 +37,7 @@ public:
     int32 num_teams;
     
 private:
-    void OnCompleted(bool success);
+    void OnCompleted(bool success, int32 match_id);
     
     UObject* worldContextObject;
 
