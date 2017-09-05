@@ -23,6 +23,7 @@ class FDriftProvider : public IDriftProvider
 {
 public:
     FDriftProvider();
+    virtual ~FDriftProvider() {}
 
     IDriftAPI* GetInstance(const FName& identifier) override;
     void DestroyInstance(const FName& identifier) override;

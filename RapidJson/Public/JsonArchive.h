@@ -275,7 +275,7 @@ public:
         else
         {
             jValue.SetObject();
-            for (auto& itr : cValue)
+            for (const auto& itr : cValue)
             {
                 JsonValue key, value;
                 if (SerializeObject(key, itr.Key) && SerializeObject(value, itr.Value))

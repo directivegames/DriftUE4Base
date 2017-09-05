@@ -14,7 +14,7 @@
 class APlayerController;
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FKaleoSetPlayerNameResult
 {
     GENERATED_BODY()
