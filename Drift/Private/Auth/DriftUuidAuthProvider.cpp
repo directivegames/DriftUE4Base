@@ -43,7 +43,16 @@ FString FDriftUuidAuthProvider::ToString() const
 
 void FDriftUuidAuthProvider::GetDeviceIDCredentials()
 {
-    FString keyIndex = instanceIndex_ == 0 ? TEXT("") : FString::Printf(TEXT("_%d"), instanceIndex_);
+    auto instanceIndex = instanceIndex_;
+    if (instanceIndex == 0)
+    {
+        FString instanceIndexString;
+        if (FParse::Value(FCommandLine::Get(), TEXT("-uuid_index="), instanceIndexString))
+        {
+            instanceIndex = FCString::Atoi(*instanceIndexString);
+        }
+    }
+    FString keyIndex = instanceIndex == 0 ? TEXT("") : FString::Printf(TEXT("_%d"), instanceIndex);
     FString deviceIDKey = FString::Printf(TEXT("device_id%s"), *keyIndex);
     FString devicePasswordKey = FString::Printf(TEXT("device_password%s"), *keyIndex);
     FString deviceID;
