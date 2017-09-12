@@ -36,3 +36,38 @@ bool FGetMatchesResponseItem::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, matchplayers_url)
         && SERIALIZE_PROPERTY(context, ref);
 }
+
+
+bool FMatchTeamResponseItem::Serialize(SerializationContext& context)
+{
+    return SERIALIZE_PROPERTY(context, create_date)
+        && SERIALIZE_PROPERTY(context, modify_date)
+        && SERIALIZE_PROPERTY(context, match_id)
+        && SERIALIZE_PROPERTY(context, team_id)
+        && SERIALIZE_PROPERTY(context, name)
+        && SERIALIZE_PROPERTY(context, url);
+}
+
+
+bool FGetMatchResponseItem::Serialize(SerializationContext& context)
+{
+    SERIALIZE_PROPERTY(context, start_date);
+    SERIALIZE_PROPERTY(context, end_date);
+
+    return SERIALIZE_PROPERTY(context, create_date)
+        && SERIALIZE_PROPERTY(context, match_id)
+        && SERIALIZE_PROPERTY(context, server_id)
+        && SERIALIZE_PROPERTY(context, game_mode)
+        && SERIALIZE_PROPERTY(context, map_name)
+        && SERIALIZE_PROPERTY(context, num_players)
+        && SERIALIZE_PROPERTY(context, max_players)
+        && SERIALIZE_PROPERTY(context, status)
+        && SERIALIZE_PROPERTY(context, status_date)
+        && SERIALIZE_PROPERTY(context, url)
+        // && SERIALIZE_PROPERTY(context, server)
+        && SERIALIZE_PROPERTY(context, server_url)
+        && SERIALIZE_PROPERTY(context, teams)
+        && SERIALIZE_PROPERTY(context, teams_url)
+        // && SERIALIZE_PROPERTY(context, players)
+        && SERIALIZE_PROPERTY(context, matchplayers_url);
+}

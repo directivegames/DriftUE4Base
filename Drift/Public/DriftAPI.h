@@ -117,6 +117,11 @@ public:
     virtual int32 GetMatchID() const = 0;
     
     /**
+    * Get the team ID for the given team index if currently hosting a match, or 0.
+    */
+    virtual int32 GetTeamID(int32 match_id, int32 team_index) const = 0;
+
+    /**
      * Register a player with the current match. This lets the backend know the player has
      * successfully connected to the match.
      */
@@ -716,6 +721,55 @@ struct FGetMatchesResponseItem
     
     FString matchplayers_url;
     
+    bool Serialize(class SerializationContext& context);
+};
+
+
+struct FMatchTeamResponseItem
+{
+    FDateTime create_date;
+    FDateTime modify_date;
+
+    int32 match_id = 0;
+    int32 team_id = 0;
+
+    FString name;
+
+    FString url;
+
+    bool Serialize(class SerializationContext& context);
+};
+
+
+struct FGetMatchResponseItem
+{
+    FDateTime create_date;
+
+    FDateTime start_date;
+    FDateTime end_date;
+
+    int32 match_id = 0;
+    int32 server_id = 0;
+
+    FString game_mode;
+    FString map_name;
+    int32 num_players;
+    int32 max_players;
+
+    FString status;
+    FDateTime status_date;
+
+    FString url;
+
+    FString server_url;
+    //FMatchServerResponseItem server;
+
+    FString teams_url;
+    TArray<FMatchTeamResponseItem> teams;
+
+    FString matchplayers_url;
+    //TArray<FMatchPlayerResponseItem> players;
+
     bool Serialize(class SerializationContext& context);
 };
 

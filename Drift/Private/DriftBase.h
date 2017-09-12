@@ -143,6 +143,7 @@ public:
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(int32 match_id, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
+    int32 GetTeamID(int32 match_id, int32 team_index) const override;
     void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) override;
     void AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id, const FDriftPlayerAddedDelegate& delegate) override;
     void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) override;
@@ -354,8 +355,8 @@ private:
     EMatchQueueState matchQueueState = EMatchQueueState::Idle;
     TArray<FMatchInvite> matchInvites;
 
-    FGetMatchesResponseItem match_info;
-    TMap<int32, FGetMatchesResponseItem> matchInfos;
+    FGetMatchResponseItem match_info;
+    TMap<int32, FGetMatchResponseItem> matchInfos;
 
     FString apiKey;
     FString projectName = TEXT("DefaultDriftProject");

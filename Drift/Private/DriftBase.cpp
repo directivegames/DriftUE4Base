@@ -2587,7 +2587,7 @@ void FDriftBase::AddMatch(const FString& map_name, const FString& game_mode, int
         auto match_request = GetGameRequestManager()->Get(match.url);
         match_request->OnResponse.BindLambda([this, delegate](ResponseContext& match_context, JsonDocument& match_doc)
         {
-            FGetMatchesResponseItem matchInfo;
+            FGetMatchResponseItem matchInfo;
             if (!JsonArchive::LoadObject(match_doc, matchInfo))
             {
                 match_context.error = L"Failed to parse match info response.";
@@ -2712,6 +2712,19 @@ int32 FDriftBase::GetMatchID() const
 {
     // TODO: Handle multiple matches
     return match_info.url.IsEmpty() ? 0 : match_info.match_id;
+}
+
+
+int32 FDriftBase::GetTeamID(int32 match_id, int32 team_index) const
+{
+    if (auto matchInfo = matchInfos.Find(match_id))
+    {
+        if (team_index < matchInfo->teams.Num())
+        {
+            return matchInfo->teams[team_index].team_id;
+        }
+    }
+    return 0;
 }
 
 
