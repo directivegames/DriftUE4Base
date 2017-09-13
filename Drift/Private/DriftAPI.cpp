@@ -51,8 +51,8 @@ bool FMatchTeamResponseItem::Serialize(SerializationContext& context)
 
 bool FGetMatchResponseItem::Serialize(SerializationContext& context)
 {
-    SERIALIZE_PROPERTY(context, start_date);
-    SERIALIZE_PROPERTY(context, end_date);
+    SERIALIZE_OPTIONAL_PROPERTY(context, start_date);
+    SERIALIZE_OPTIONAL_PROPERTY(context, end_date);
 
     return SERIALIZE_PROPERTY(context, create_date)
         && SERIALIZE_PROPERTY(context, match_id)

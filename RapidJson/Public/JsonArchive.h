@@ -47,6 +47,9 @@ public:
     template<typename T>
     bool SerializeProperty(const wchar_t* propertyName, T& property);
     
+    template<typename T>
+    bool SerializeOptionalProperty(const wchar_t* propertyName, T& property);
+
 private:
     JsonArchive& archive;
     JsonValue& value;
@@ -57,6 +60,7 @@ private:
 * Serialize a named C++ property with the corresponding json value
 */
 #define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(L###propertyName, propertyName)
+#define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(L###propertyName, propertyName)
 
 
 class RAPIDJSON_API JsonArchive
@@ -319,7 +323,7 @@ public:
         
         return success;
     }
-    
+
     bool IsLoading() const { return mIsLoading; }
     
     static rapidjson::CrtAllocator& Allocator() { return mAllocator; }
@@ -406,5 +410,17 @@ template<typename T>
 bool SerializationContext::SerializeProperty(const wchar_t* propertyName, T& property)
 {
     return archive.SerializeProperty(value, propertyName, property);
+}
+
+template<typename T>
+bool SerializationContext::SerializeOptionalProperty(const wchar_t* propertyName, T& property)
+{
+    auto member = value.FindMember(propertyName);
+    if (member != value.MemberEnd() && !member->value.IsNull())
+    {
+        return archive.SerializeProperty(value, propertyName, property);
+    }
+
+    return true;
 }
 
