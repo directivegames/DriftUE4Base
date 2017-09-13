@@ -304,7 +304,8 @@ private:
     const FString instanceDisplayName_;
     const int32 instanceIndex_;
 
-    float heartbeatDueInSeconds = FLT_MAX;
+    float heartbeatDueInSeconds_{ FLT_MAX };
+    FDateTime heartbeatTimeout_{ FDateTime::MinValue() };
 
     DriftSessionState state_;
 
