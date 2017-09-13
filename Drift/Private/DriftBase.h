@@ -357,6 +357,7 @@ private:
 
     FGetMatchResponseItem match_info;
     TMap<int32, FGetMatchResponseItem> matchInfos;
+    mutable FCriticalSection matchInfoMutex;
 
     FString apiKey;
     FString projectName = TEXT("DefaultDriftProject");

@@ -2456,8 +2456,17 @@ void FDriftBase::AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id
         return;
     }
     
-    auto matchInfo = matchInfos.Find(match_id);
-    if (!matchInfo || matchInfo->matchplayers_url.IsEmpty())
+    FString url;
+    {
+        FScopeLock lock{ &matchInfoMutex };
+        auto matchInfo = matchInfos.Find(match_id);
+        if (matchInfo)
+        {
+            url = matchInfo->matchplayers_url;
+        }
+    }
+
+    if (url.IsEmpty())
     {
         DRIFT_LOG(Base, Error, TEXT("Attempting to add player %i to match %i for which the server has no information"), player_id, match_id);
         delegate.ExecuteIfBound(false, match_id, player_id);
@@ -2476,7 +2485,7 @@ void FDriftBase::AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id
 
     DRIFT_LOG(Base, Verbose, TEXT("Adding player: %i to match %i"), player_id, match_id);
 
-    auto request = GetGameRequestManager()->Post(matchInfo->matchplayers_url, payload);
+    auto request = GetGameRequestManager()->Post(url, payload);
     request->OnResponse.BindLambda([this, match_id, player_id, delegate](ResponseContext& context, JsonDocument& doc)
     {
         delegate.ExecuteIfBound(true, match_id, player_id);
@@ -2514,8 +2523,17 @@ void FDriftBase::RemovePlayerFromMatch(int32 match_id, int32 player_id, const FD
         return;
     }
 
-    auto matchInfo = matchInfos.Find(match_id);
-    if (!matchInfo || matchInfo->matchplayers_url.IsEmpty())
+    FString url;
+    {
+        FScopeLock lock{ &matchInfoMutex };
+        auto matchInfo = matchInfos.Find(match_id);
+        if (matchInfo)
+        {
+            url = matchInfo->matchplayers_url;
+        }
+    }
+
+    if (url.IsEmpty())
     {
         DRIFT_LOG(Base, Error, TEXT("Attempting to remove player %i from match %i for which the server has no information"), player_id, match_id);
         delegate.ExecuteIfBound(false, match_id, player_id);
@@ -2525,8 +2543,8 @@ void FDriftBase::RemovePlayerFromMatch(int32 match_id, int32 player_id, const FD
     DRIFT_LOG(Base, Verbose, TEXT("Removing player: %i from match %i"), player_id, match_id);
 
     // TODO: Don't use hard-coded URL
-    FString url = FString::Printf(TEXT("%s/%i"), *matchInfo->matchplayers_url, player_id);
-    auto request = GetGameRequestManager()->Delete(url);
+    FString player_url = FString::Printf(TEXT("%s/%i"), *url, player_id);
+    auto request = GetGameRequestManager()->Delete(player_url);
     request->OnResponse.BindLambda([this, match_id, player_id, delegate](ResponseContext& context, JsonDocument& doc)
     {
         delegate.ExecuteIfBound(true, match_id, player_id);
@@ -2594,11 +2612,15 @@ void FDriftBase::AddMatch(const FString& map_name, const FString& game_mode, int
                 return;
             }
 
-            auto& match = matchInfos.Add(matchInfo.match_id, MoveTemp(matchInfo));
             DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(match_doc));
 
-            delegate.ExecuteIfBound(true, match.match_id);
-            onMatchAdded.Broadcast(true, match.match_id);
+            {
+                FScopeLock lock{ &matchInfoMutex };
+                auto& match = matchInfos.Add(matchInfo.match_id, MoveTemp(matchInfo));
+
+                delegate.ExecuteIfBound(true, match.match_id);
+                onMatchAdded.Broadcast(true, match.match_id);
+            }
         });
         match_request->Dispatch();
     });
@@ -2667,9 +2689,18 @@ void FDriftBase::UpdateMatch(int32 match_id, const FString& status, const FStrin
         delegate.ExecuteIfBound(false, match_id);
         return;
     }
-    
-    auto matchInfo = matchInfos.Find(match_id);
-    if (!matchInfo || matchInfo->url.IsEmpty())
+
+    FString url;
+    {
+        FScopeLock lock{ &matchInfoMutex };
+        auto matchInfo = matchInfos.Find(match_id);
+        if (matchInfo)
+        {
+            url = matchInfo->url;
+        }
+    }
+
+    if (url.IsEmpty())
     {
         DRIFT_LOG(Base, Error, TEXT("Attempting to update status for match %i for which the server has no information"), match_id);
         delegate.ExecuteIfBound(false, match_id);
@@ -2692,7 +2723,7 @@ void FDriftBase::UpdateMatch(int32 match_id, const FString& status, const FStrin
         JsonArchive::AddMember(payload, TEXT("details"), details);
     }
 
-    auto request = GetGameRequestManager()->Put(matchInfo->url, payload);
+    auto request = GetGameRequestManager()->Put(url, payload);
     request->OnResponse.BindLambda([this, match_id, delegate](ResponseContext& context, JsonDocument& doc)
     {
         delegate.ExecuteIfBound(true, match_id);
@@ -2717,6 +2748,7 @@ int32 FDriftBase::GetMatchID() const
 
 int32 FDriftBase::GetTeamID(int32 match_id, int32 team_index) const
 {
+    FScopeLock lock{ &matchInfoMutex };
     if (auto matchInfo = matchInfos.Find(match_id))
     {
         if (team_index < matchInfo->teams.Num())
