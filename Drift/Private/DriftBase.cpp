@@ -185,21 +185,46 @@ void FDriftBase::TickHeartbeat(float deltaTime)
         return;
     }
 
-    heartbeatDueInSeconds -= deltaTime;
-    if (heartbeatDueInSeconds > 0.0)
+    if (heartbeatTimeout_ != FDateTime::MinValue() && FDateTime::UtcNow() >= (heartbeatTimeout_ - FTimespan::FromSeconds(5.0)))
+    {
+        state_ = DriftSessionState::Timedout;
+        BroadcastConnectionStateChange(state_);
+        Reset();
+        return;
+    }
+    
+    heartbeatDueInSeconds_ -= deltaTime;
+    if (heartbeatDueInSeconds_ > 0.0)
     {
         return;
     }
-    heartbeatDueInSeconds = FLT_MAX; // Prevent re-entrancy
+    heartbeatDueInSeconds_ = FLT_MAX; // Prevent re-entrancy
 
     DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat..."), *FDateTime::UtcNow().ToString());
+
+    struct FDriftHeartBeatResponse
+    {
+        int32 next_heartbeat_seconds;
+        FDateTime heartbeat_timeout;
+        
+        bool Serialize(SerializationContext& context)
+        {
+            return SERIALIZE_PROPERTY(context, next_heartbeat_seconds)
+                && SERIALIZE_PROPERTY(context, heartbeat_timeout);
+        }
+    };
 
     auto request = GetGameRequestManager()->Put(hearbeatUrl, FString());
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        heartbeatDueInSeconds = doc[TEXT("next_heartbeat_seconds")].GetInt();
+        FDriftHeartBeatResponse response;
+        if (JsonUtils::ParseResponse(context.response, response))
+        {
+            heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
+            heartbeatTimeout_ = response.heartbeat_timeout;
+        }
 
-        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs"), *FDateTime::UtcNow().ToString(), heartbeatDueInSeconds);
+        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs"), *FDateTime::UtcNow().ToString(), heartbeatDueInSeconds_);
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -285,7 +310,6 @@ void FDriftBase::Disconnect()
 
     auto finalizeDisconnect = [this]()
     {
-        state_ = DriftSessionState::Disconnected;
         Reset();
         onPlayerDisconnected.Broadcast();
         BroadcastConnectionStateChange(state_);
@@ -336,7 +360,9 @@ void FDriftBase::Disconnect()
 void FDriftBase::Reset()
 {
     DRIFT_LOG(Base, Verbose, TEXT("Resetting all internal state"));
-    
+
+    state_ = DriftSessionState::Disconnected;
+
     authenticatedRequestManager.Reset();
     secondaryIdentityRequestManager_.Reset();
 
@@ -1858,7 +1884,7 @@ void FDriftBase::RegisterClient()
             return;
         }
         hearbeatUrl = driftClient.url;
-        heartbeatDueInSeconds = driftClient.next_heartbeat_seconds;
+        heartbeatDueInSeconds_ = driftClient.next_heartbeat_seconds;
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(driftClient.jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->SetApiKey(GetApiKeyHeader());
@@ -2393,7 +2419,7 @@ void FDriftBase::InitServerInfo(const FString& server_url)
                 return;
             }
             hearbeatUrl = drift_server.heartbeat_url;
-            heartbeatDueInSeconds = -1.0;
+            heartbeatDueInSeconds_ = -1.0;
             state_ = DriftSessionState::Connected;
             onServerRegistered.Broadcast(true);
             UpdateServer(TEXT("ready"), TEXT(""), FDriftServerStatusUpdatedDelegate{});
