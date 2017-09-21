@@ -186,7 +186,7 @@ void HttpRequest::BroadcastError(ResponseContext &context)
 void HttpRequest::LogError(ResponseContext& context)
 {
     FString errorMessage;
-
+    
     auto error = MakeShared<FJsonObject>();
     error->SetNumberField(L"elapsed", (FDateTime::UtcNow() - sent_).GetTotalSeconds());
     error->SetBoolField(L"error_handled", context.errorHandled);
@@ -199,13 +199,13 @@ void HttpRequest::LogError(ResponseContext& context)
     {
         error->SetStringField(L"error", context.error);
     }
-
+    
     auto requestData = MakeShared<FJsonObject>();
     requestData->SetStringField(L"method", wrappedRequest_->GetVerb());
     requestData->SetStringField(L"url", wrappedRequest_->GetURL());
-
+    
     auto allHeaders = MakeShared<FJsonObject>();
-
+    
     auto requestHeaders = context.request->GetAllHeaders();
     if (requestHeaders.Num() > 0)
     {
@@ -216,7 +216,7 @@ void HttpRequest::LogError(ResponseContext& context)
             allHeaders->SetStringField(key, value);
         }
     }
-
+    
     if (context.response.IsValid())
     {
         GenericRequestErrorResponse response;
@@ -259,15 +259,39 @@ void HttpRequest::LogError(ResponseContext& context)
             errorMessage = L"HTTP request timeout";
         }
     }
-
+    
     if (allHeaders->Values.Num() > 0)
     {
         requestData->SetObjectField("headers", allHeaders);
     }
+    
+    if (errorMessage.IsEmpty())
+    {
+        /**
+         * This pattern cannot be static, some internal smart pointer will crash on shutdown.
+         * Since it's only used when there's an error, the cost of on-demand creation is acceptable.
+         */
+        FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
 
+        FString normalizedUrl = wrappedRequest_->GetURL();
+        TArray<TSharedPtr<FJsonValue>> params;
+        
+        int index = 0;
+        FRegexMatcher matcher{ urlNormalizationPattern, normalizedUrl };
+        while (matcher.FindNext())
+        {
+            normalizedUrl = FString::Printf(L"%s{%d}%s", *normalizedUrl.Left(matcher.GetCaptureGroupBeginning(1)), index, *normalizedUrl.Mid(matcher.GetCaptureGroupEnding(1)));
+            params.Add(MakeShared<FJsonValueString>(matcher.GetCaptureGroup(1)));
+            matcher = FRegexMatcher{ urlNormalizationPattern, normalizedUrl };
+            ++index;
+        }
+        
+        errorMessage = FString::Printf(TEXT("HTTP request failed: %s %s"), *wrappedRequest_->GetVerb(), *normalizedUrl);
+        
+        error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+    }
     error->SetObjectField("request", requestData);
-    IErrorReporter::Get()->AddError(L"LogHttpClient",
-        errorMessage.IsEmpty() ? L"HTTP request failed" : *errorMessage, error);
+    IErrorReporter::Get()->AddError(L"LogHttpClient", *errorMessage, error);
 }
 
 
