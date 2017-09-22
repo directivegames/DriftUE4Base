@@ -382,7 +382,10 @@ void FDriftBase::Reset()
     hearbeatUrl.Empty();
 
     userIdentities = FDriftCreatePlayerGroupResponse{};
-    
+
+    heartbeatDueInSeconds_ = FLT_MAX;
+    heartbeatTimeout_ = FDateTime::MinValue();
+
     countersLoaded = false;
     playerGameStateInfosLoaded = false;
     userIdentitiesLoaded = false;
