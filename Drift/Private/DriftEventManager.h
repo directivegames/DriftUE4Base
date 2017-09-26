@@ -39,10 +39,16 @@ public:
     void SetEventsUrl(const FString& newEventsUrl);
 
 private:
+    void InitDefaultTags();
+    void AddTags(const TUniquePtr<IDriftEvent>& event);
+
+private:
     TWeakPtr<JsonRequestManager> requestManager;
     FString eventsUrl;
 
     TArray<TUniquePtr<IDriftEvent>> pendingEvents;
     int eventSequenceIndex = 0;
     float flushEventsInSeconds = FLT_MAX;
+
+    TMap<FString, FString> tags_;
 };

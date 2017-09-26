@@ -6,6 +6,10 @@
 #include "DriftSchemas.h"
 #include "JsonArchive.h"
 
+#if PLATFORM_IOS
+#include "Apple/AppleUtility.h"
+#endif // PLATFORM_IOS
+
 
 DEFINE_LOG_CATEGORY(LogDriftEvent);
 
@@ -15,6 +19,7 @@ static const float FLUSH_EVENTS_INTERVAL = 10.0f;
 
 FDriftEventManager::FDriftEventManager()
 {
+    InitDefaultTags();
 }
 
 
@@ -23,6 +28,7 @@ void FDriftEventManager::AddEvent(TUniquePtr<IDriftEvent> event)
     UE_LOG(LogDriftEvent, Verbose, TEXT("Adding event: %s"), *event->GetName());
 
     event->Add(TEXT("sequence"), ++eventSequenceIndex);
+    AddTags(event);
     pendingEvents.Add(MoveTemp(event));
 }
 
@@ -87,4 +93,32 @@ void FDriftEventManager::SetEventsUrl(const FString& newEventsUrl)
 {
     eventsUrl = newEventsUrl;
     flushEventsInSeconds = FLUSH_EVENTS_INTERVAL;
+}
+
+
+void FDriftEventManager::InitDefaultTags()
+{
+    tags_.FindOrAdd(TEXT("device_model")) = FPlatformMisc::GetDefaultDeviceProfileName();
+
+    FString gameVersion;
+    GConfig->GetString(L"/Script/DriftEditor.DriftProjectSettings", L"GameVersion", gameVersion, GGameIni);
+    tags_.FindOrAdd(L"client_version") = gameVersion;
+    FString gameBuild;
+    GConfig->GetString(L"/Script/DriftEditor.DriftProjectSettings", L"GameBuild", gameBuild, GGameIni);
+    tags_.FindOrAdd(L"client_build") = gameBuild;
+
+#if PLATFORM_IOS
+    tags_.FindOrAdd(L"os_version") = IOSUtility::GetIOSVersion();
+    tags_.FindOrAdd(L"os_build") = IOSUtility::GetIOSBuild();
+    tags_.FindOrAdd(L"device_model_id") = IOSUtility::GetHardwareModel();
+#endif // PLATFORM_IOS
+}
+
+
+void FDriftEventManager::AddTags(const TUniquePtr<IDriftEvent>& event)
+{
+    for (const auto& tag : tags_)
+    {
+        event->Add(tag.Key, tag.Value);
+    }
 }
