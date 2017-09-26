@@ -35,8 +35,12 @@ class IOSUtility
 {
 public:
     static const FString& GetIOSVersion() { return iOSVersion; }
+    static const FString& GetIOSBuild();
+    static const FString& GetHardwareModel();
     
 private:
     static const FString iOSVersion;
+    static FString iOSBuild;
+    static FString hardwareModel;
 };
 #endif
