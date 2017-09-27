@@ -2064,7 +2064,7 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
         {
             DRIFT_LOG(Base, Warning, TEXT("Failed to aquire credentials from %s"), *provider->GetProviderName());
 
-            progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Error_FailedToAquireCredentials, {});
+            progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAquireCredentials, FString{} }, {});
         }
     });
 }
@@ -2116,7 +2116,7 @@ void FDriftBase::AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAdd
                 context.error = response.GetErrorDescription();
             }
         }
-        progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Error_FailedToAuthenticate, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
@@ -2142,7 +2142,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                 {
                     DRIFT_LOG(Base, Verbose, TEXT("Identity is bound to a different user, player needs to decide what to do"));
                     progressDelegate.ExecuteIfBound(
-                        EAddPlayerIdentityResult::Progress_IdentityAssociatedWithOtherUser,
+                        FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Progress_IdentityAssociatedWithOtherUser, userInfo.player_name },
                         FDriftPlayerIdentityContinuationDelegate::CreateLambda([this, progressDelegate, userInfo](EPlayerIdentityOverrideOption option)
                     {
                         switch (option)
@@ -2163,7 +2163,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                 else
                 {
                     DRIFT_LOG(Base, Verbose, TEXT("Identity is already bound to this user, no action taken"));
-                    progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Success, {});
+                    progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
                 }
             }
         }
@@ -2171,7 +2171,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Error_FailedToBindNewIdentity, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToBindNewIdentity, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
@@ -2188,14 +2188,14 @@ void FDriftBase::AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdenti
     auto request = secondaryIdentityRequestManager_->Post(driftEndpoints.user_identities, payload);
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
-        progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Success, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         // Could happen if the user already has an association with a different id from the same provider
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Error_UserAlreadyBoundToSameIdentityType, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
@@ -2213,13 +2213,13 @@ void FDriftBase::AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoR
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
         // TODO: Switch player
-        progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Success, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(EAddPlayerIdentityResult::Error_FailedToBindNewIdentity, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToBindNewIdentity, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();

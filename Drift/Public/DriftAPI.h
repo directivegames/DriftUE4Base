@@ -319,7 +319,7 @@ enum class EPlayerIdentityOverrideOption : uint8
 };
 
 
-enum class EAddPlayerIdentityResult : uint8
+enum class EAddPlayerIdentityStatus : uint8
 {
     Success,
     Progress_IdentityAssociatedWithOtherUser,
@@ -328,6 +328,13 @@ enum class EAddPlayerIdentityResult : uint8
     Error_FailedToBindNewIdentity,
     Error_UserAlreadyBoundToSameIdentityType,
     Error_Failed
+};
+
+
+struct FDriftAddPlayerIdentityProgress
+{
+    EAddPlayerIdentityStatus status;
+    FString owningIdentityPlayerName;
 };
 
 
@@ -347,7 +354,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
 DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityContinuationDelegate, EPlayerIdentityOverrideOption);
-DECLARE_DELEGATE_TwoParams(FDriftAddPlayerIdentityProgressDelegate, EAddPlayerIdentityResult, const FDriftPlayerIdentityContinuationDelegate&);
+DECLARE_DELEGATE_TwoParams(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&, const FDriftPlayerIdentityContinuationDelegate&);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftGameVersionMismatchDelegate, const FString&);
 
