@@ -2135,11 +2135,22 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
             {
                 if (userInfo.user_id == 0)
                 {
+                    /**
+                     * Since we don't auto-create new accounts for additional identities, if the user_id == 0 here,
+                     * it means this identity has never been assigned to a user, and we can assign it immediately.
+                     */
                     DRIFT_LOG(Base, Verbose, TEXT("Identity has no previous user, automatically bind it the the current one"));
                     AssociateNewIdentityWithCurrentUser(progressDelegate);
                 }
                 else if (userInfo.user_id != driftClient.user_id)
                 {
+                    /**
+                     * The user_id for the new identity is not the same as the current user's, which means
+                     * we need to give the player the option to not bind with the new identity, effectively
+                     * staying with the current player, dropping the new identity assignment, or to switch
+                     * the game to the new identity's user. Switching will most likely cause the current user
+                     * to be lost forever as it will no longer have any identities pointing to it.
+                     */
                     DRIFT_LOG(Base, Verbose, TEXT("Identity is bound to a different user, player needs to decide what to do"));
                     progressDelegate.ExecuteIfBound(
                         FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Progress_IdentityAssociatedWithOtherUser, userInfo.player_name },
@@ -2162,6 +2173,10 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                 }
                 else
                 {
+                    /**
+                     * The new user identity has the same user_id as the current user, so the identity
+                     * assignment was already done in the past. No need to do anything more, but signal success.
+                     */
                     DRIFT_LOG(Base, Verbose, TEXT("Identity is already bound to this user, no action taken"));
                     progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
                 }
