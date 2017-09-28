@@ -2212,7 +2212,7 @@ void FDriftBase::AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdenti
     {
         // Could happen if the user already has an association with a different id from the same provider
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType, myPlayer.player_name }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
