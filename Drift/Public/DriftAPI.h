@@ -321,11 +321,13 @@ enum class EPlayerIdentityOverrideOption : uint8
 
 enum class EAddPlayerIdentityStatus : uint8
 {
-    Success,
+    Success_NewIdentityAddedToExistingUser,
+    Success_NoChange,
+    Success_OldIdentityMovedToNewUser,
     Progress_IdentityAssociatedWithOtherUser,
     Error_FailedToAquireCredentials,
     Error_FailedToAuthenticate,
-    Error_FailedToBindNewIdentity,
+    Error_FailedToReAssignOldIdentity,
     Error_UserAlreadyBoundToSameIdentityType,
     Error_Failed
 };

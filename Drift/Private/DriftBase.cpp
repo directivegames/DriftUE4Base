@@ -2146,10 +2146,12 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                 {
                     /**
                      * The user_id for the new identity is not the same as the current user's, which means
-                     * we need to give the player the option to not bind with the new identity, effectively
-                     * staying with the current player, dropping the new identity assignment, or to switch
-                     * the game to the new identity's user. Switching will most likely cause the current user
-                     * to be lost forever as it will no longer have any identities pointing to it.
+                     * we need to give the player the choice of:
+                     * 1) Do not bind with the new identity, effectively staying with the current player,
+                     * dropping the new identity assignment.
+                     * 2) Switch the current identity to point to the new identity's user. Switching will
+                     * most likely cause the current user to be lost forever as it will no longer have any
+                     * identities pointing to it.
                      */
                     DRIFT_LOG(Base, Verbose, TEXT("Identity is bound to a different user, player needs to decide what to do"));
                     progressDelegate.ExecuteIfBound(
@@ -2178,7 +2180,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
                      * assignment was already done in the past. No need to do anything more, but signal success.
                      */
                     DRIFT_LOG(Base, Verbose, TEXT("Identity is already bound to this user, no action taken"));
-                    progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
+                    progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NoChange, FString{} }, {});
                 }
             }
         }
@@ -2186,7 +2188,7 @@ void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate&
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToBindNewIdentity, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
@@ -2203,7 +2205,7 @@ void FDriftBase::AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdenti
     auto request = secondaryIdentityRequestManager_->Post(driftEndpoints.user_identities, payload);
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NewIdentityAddedToExistingUser, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
@@ -2228,13 +2230,13 @@ void FDriftBase::AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoR
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
         // TODO: Switch player
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_OldIdentityMovedToNewUser, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToBindNewIdentity, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToReAssignOldIdentity, FString{} }, {});
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
