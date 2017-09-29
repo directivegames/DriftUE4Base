@@ -2169,7 +2169,8 @@ void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAd
                  */
                 DRIFT_LOG(Base, Verbose, TEXT("Identity is bound to a different user, player needs to decide what to do"));
                 FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Progress_IdentityAssociatedWithOtherUser };
-                progress.owningIdentityPlayerName = userInfo.player_name;
+                progress.localUserPlayerName = myPlayer.player_name;
+                progress.newIdentityUserPlayerName = userInfo.player_name;
                 progress.newIdentityName = newIdentityName;
                 progress.overrideDelegate = FDriftPlayerIdentityOverrideContinuationDelegate::CreateLambda([this, progressDelegate, userInfo](EPlayerIdentityOverrideOption option)
                 {
@@ -2236,7 +2237,7 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
      * Give the user a chance to confirm before making the association.
      */
     FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Progress_IdentityCanBeAssociatedWithUser };
-    progress.owningIdentityPlayerName = myPlayer.player_name;
+    progress.localUserPlayerName = myPlayer.player_name;
     progress.newIdentityName = newIdentityName;
     progress.assignDelegate = FDriftPlayerIdentityAssignContinuationDelegate::CreateLambda([this, progressDelegate](EPlayerIdentityAssignOption option)
     {
@@ -2271,7 +2272,7 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
                     context.errorHandled = true;
                     // TODO: Check if this is broken or if there's a previous association
                     FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
-                    progress.owningIdentityPlayerName = myPlayer.player_name;
+                    progress.localUserPlayerName = myPlayer.player_name;
                     progressDelegate.ExecuteIfBound(progress);
                     secondaryIdentityRequestManager_.Reset();
                 });

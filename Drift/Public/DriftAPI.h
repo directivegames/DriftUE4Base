@@ -357,8 +357,9 @@ struct FDriftAddPlayerIdentityProgress
     {}
 
     EAddPlayerIdentityStatus status;
-    FString owningIdentityPlayerName;
+    FString localUserPlayerName;
     FString newIdentityName;
+    FString newIdentityUserPlayerName;
     FDriftPlayerIdentityAssignContinuationDelegate assignDelegate;
     FDriftPlayerIdentityOverrideContinuationDelegate overrideDelegate;
 };
