@@ -71,9 +71,9 @@ struct FUserPassAuthenticationPayload
  */
 struct FDriftUserInfoResponse
 {
-    int32 user_id;
-    int32 player_id;
-    int32 identity_id;
+    int32 user_id = 0;
+    int32 player_id = 0;
+    int32 identity_id = 0;
     FString user_name;
     FString player_name;
     FString jti;
