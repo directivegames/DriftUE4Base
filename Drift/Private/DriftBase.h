@@ -163,13 +163,13 @@ private:
     void AuthenticatePlayer(IDriftAuthProvider* provider);
 
     void AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
-    void BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void BindUserIdentity(const FString& newIdentityName, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
 
     /**
      * Associate the new identity with the current user.
      * This allows us to log in with either identity for this user in the future.
      */
-    void AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void ConnectNewIdentityToCurrentUser(const FString& newIdentityName, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
 
     /**
      * Disassociate the current identity with its user, and associate it with the user tied to the new identity.
@@ -179,7 +179,7 @@ private:
      * The previous user will no longer be associated with this identity and might not be recoverable unless there
      * are additional identities tied to it.
      */
-    void AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
 
     void InitServerRootInfo();
     void InitServerAuthentication();

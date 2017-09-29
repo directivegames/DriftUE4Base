@@ -312,6 +312,13 @@ enum class EDriftConnectionState : uint8
 };
 
 
+enum class EPlayerIdentityAssignOption : uint8
+{
+    DoNotAssignIdentityToUser,
+    AssignIdentityToExistingUser
+};
+
+
 enum class EPlayerIdentityOverrideOption : uint8
 {
     DoNotOverrideExistingUserAssociation,
@@ -321,9 +328,11 @@ enum class EPlayerIdentityOverrideOption : uint8
 
 enum class EAddPlayerIdentityStatus : uint8
 {
+    Unknown,
     Success_NewIdentityAddedToExistingUser,
     Success_NoChange,
     Success_OldIdentityMovedToNewUser,
+    Progress_IdentityCanBeAssociatedWithUser,
     Progress_IdentityAssociatedWithOtherUser,
     Error_FailedToAquireCredentials,
     Error_FailedToAuthenticate,
@@ -333,10 +342,25 @@ enum class EAddPlayerIdentityStatus : uint8
 };
 
 
+DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityAssignContinuationDelegate, EPlayerIdentityAssignOption);
+DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityOverrideContinuationDelegate, EPlayerIdentityOverrideOption);
+
+
 struct FDriftAddPlayerIdentityProgress
 {
+    FDriftAddPlayerIdentityProgress()
+    : FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus::Unknown)
+    {}
+
+    FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus inStatus)
+    : status{inStatus}
+    {}
+
     EAddPlayerIdentityStatus status;
     FString owningIdentityPlayerName;
+    FString newIdentityName;
+    FDriftPlayerIdentityAssignContinuationDelegate assignDelegate;
+    FDriftPlayerIdentityOverrideContinuationDelegate overrideDelegate;
 };
 
 
@@ -355,8 +379,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
-DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityContinuationDelegate, EPlayerIdentityOverrideOption);
-DECLARE_DELEGATE_TwoParams(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&, const FDriftPlayerIdentityContinuationDelegate&);
+DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftGameVersionMismatchDelegate, const FString&);
 

@@ -2046,6 +2046,13 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
         return;
     }
 
+    if (!progressDelegate.IsBound())
+    {
+        UE_LOG(LogDriftBase, Error, TEXT("Caller must listen for progress, delegate is not bound"));
+
+        return;
+    }
+
     TSharedPtr<IDriftAuthProvider> provider = MakeShareable(MakeAuthProvider(credentialType).Release());
     if (!provider.IsValid())
     {
@@ -2064,7 +2071,7 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
         {
             DRIFT_LOG(Base, Warning, TEXT("Failed to aquire credentials from %s"), *provider->GetProviderName());
 
-            progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAquireCredentials, FString{} }, {});
+            progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAquireCredentials });
         }
     });
 }
@@ -2082,7 +2089,7 @@ void FDriftBase::AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAdd
     DRIFT_LOG(Base, Verbose, TEXT("Adding player identity: %s"), *provider->ToString());
 
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
-    request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, progressDelegate, provider](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
         auto member = doc.FindMember(TEXT("jti"));
@@ -2103,7 +2110,7 @@ void FDriftBase::AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAdd
         manager->SetApiKey(GetApiKeyHeader());
         secondaryIdentityRequestManager_ = manager;
 
-        BindUserIdentity(progressDelegate);
+        BindUserIdentity(provider->GetNickname(), progressDelegate);
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
@@ -2116,104 +2123,165 @@ void FDriftBase::AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAdd
                 context.error = response.GetErrorDescription();
             }
         }
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate });
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
 }
 
 
-void FDriftBase::BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
+void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
+    /**
+     * Get the user details, if any, associated with the new identity.
+     */
     auto request = secondaryIdentityRequestManager_->Get(driftEndpoints.root);
-    request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, progressDelegate, newIdentityName](ResponseContext& context, JsonDocument& doc)
     {
-        if (doc.HasMember(TEXT("current_user")))
+        if (state_ != DriftSessionState::Connected || !secondaryIdentityRequestManager_.IsValid())
         {
-            FDriftUserInfoResponse userInfo;
-            if (JsonArchive::LoadObject(doc[TEXT("current_user")], userInfo))
+            // Connection was reset somewhere along the way, no point in continuing
+            return;
+        }
+
+        FDriftUserInfoResponse userInfo;
+        if (doc.HasMember(TEXT("current_user")) && JsonArchive::LoadObject(doc[TEXT("current_user")], userInfo))
+        {
+            if (userInfo.user_id == 0)
             {
-                if (userInfo.user_id == 0)
-                {
-                    /**
-                     * Since we don't auto-create new accounts for additional identities, if the user_id == 0 here,
-                     * it means this identity has never been assigned to a user, and we can assign it immediately.
-                     */
-                    AssociateNewIdentityWithCurrentUser(progressDelegate);
-                }
-                else if (userInfo.user_id != driftClient.user_id)
-                {
-                    /**
-                     * The user_id for the new identity is not the same as the current user's, which means
-                     * we need to give the player the choice of:
-                     * 1) Do not bind with the new identity, effectively staying with the current player,
-                     * dropping the new identity assignment.
-                     * 2) Switch the current identity to point to the new identity's user. Switching will
-                     * most likely cause the current user to be lost forever as it will no longer have any
-                     * identities pointing to it.
-                     */
-                    progressDelegate.ExecuteIfBound(
-                        FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Progress_IdentityAssociatedWithOtherUser, userInfo.player_name },
-                        FDriftPlayerIdentityContinuationDelegate::CreateLambda([this, progressDelegate, userInfo](EPlayerIdentityOverrideOption option)
-                    {
-                        switch (option)
-                        {
-                        case EPlayerIdentityOverrideOption::AssignIdentityToNewUser:
-                            AssociateCurrentUserWithSecondaryIdentity(userInfo, progressDelegate);
-                            break;
-                        case EPlayerIdentityOverrideOption::DoNotOverrideExistingUserAssociation:
-                            DRIFT_LOG(Base, Verbose, TEXT("User skipped identity association"));
-                            secondaryIdentityRequestManager_.Reset();
-                            break;
-                        default:
-                            check(false);
-                        }
-                    }));
-                }
-                else
-                {
-                    /**
-                     * The new user identity has the same user_id as the current user, so the identity
-                     * assignment was already done in the past. No need to do anything more, but signal success.
-                     */
-                    progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NoChange, FString{} }, {});
-                }
+                /**
+                 * Since we don't auto-create new accounts for additional identities, if the user_id == 0 here,
+                 * it means this identity has never been assigned to a user, and we can assign it immediately.
+                 */
+                ConnectNewIdentityToCurrentUser(newIdentityName, progressDelegate);
             }
+            else if (userInfo.user_id != driftClient.user_id)
+            {
+                /**
+                 * The user_id for the new identity is not the same as the current user's, which means
+                 * we need to give the player the choice of:
+                 * 1) Do not bind with the new identity, effectively staying with the current player,
+                 * dropping the new identity assignment.
+                 * 2) Switch the current identity to point to the new identity's user. Switching will
+                 * most likely cause the current user to be lost forever as it will no longer have any
+                 * identities pointing to it.
+                 */
+                FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Progress_IdentityAssociatedWithOtherUser };
+                progress.owningIdentityPlayerName = userInfo.player_name;
+                progress.newIdentityName = newIdentityName;
+                progress.overrideDelegate = FDriftPlayerIdentityOverrideContinuationDelegate::CreateLambda([this, progressDelegate, userInfo](EPlayerIdentityOverrideOption option)
+                {
+                    if (state_ != DriftSessionState::Connected || !secondaryIdentityRequestManager_.IsValid())
+                    {
+                        // Connection was reset somewhere along the way, no point in continuing
+                        return;
+                    }
+
+                    switch (option)
+                    {
+                    case EPlayerIdentityOverrideOption::AssignIdentityToNewUser:
+                        MoveCurrentIdentityToUserOfNewIdentity(userInfo, progressDelegate);
+                        break;
+                    case EPlayerIdentityOverrideOption::DoNotOverrideExistingUserAssociation:
+                        DRIFT_LOG(Base, Verbose, TEXT("User skipped identity association"));
+                        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NoChange });
+                        secondaryIdentityRequestManager_.Reset();
+                        break;
+                    default:
+                        check(false);
+                    }
+                });
+                progressDelegate.ExecuteIfBound(progress);
+            }
+            else
+            {
+                /**
+                 * The new user identity has the same user_id as the current user, so the identity
+                 * assignment was already done in the past. No need to do anything more.
+                 */
+                progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NoChange });
+                secondaryIdentityRequestManager_.Reset();
+            }
+        }
+        else
+        {
+            DRIFT_LOG(Base, Error, TEXT("Failed to get current_user details from root using secondary identity."));
+
+            progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_Failed });
+            secondaryIdentityRequestManager_.Reset();
         }
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate });
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
 }
 
 
-void FDriftBase::AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
+void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
-    FDriftUserIdentityPayload payload{};
-    payload.link_with_user_jti = driftClient.jti;
-    payload.link_with_user_id = driftClient.user_id;
-    auto request = secondaryIdentityRequestManager_->Post(driftEndpoints.user_identities, payload);
-    request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
+    if (state_ != DriftSessionState::Connected || !secondaryIdentityRequestManager_.IsValid())
     {
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NewIdentityAddedToExistingUser, FString{} }, {});
-        secondaryIdentityRequestManager_.Reset();
-    });
-    request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
+        // Connection was reset somewhere along the way, no point in continuing
+        return;
+    }
+
+    /**
+     * Give the user a chance to confirm before making the association.
+     */
+    FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Progress_IdentityCanBeAssociatedWithUser };
+    progress.owningIdentityPlayerName = myPlayer.player_name;
+    progress.newIdentityName = newIdentityName;
+    progress.assignDelegate = FDriftPlayerIdentityAssignContinuationDelegate::CreateLambda([this, progressDelegate](EPlayerIdentityAssignOption option)
     {
-        // Could happen if the user already has an association with a different id from the same provider
-        context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType, myPlayer.player_name }, {});
-        secondaryIdentityRequestManager_.Reset();
+        if (state_ != DriftSessionState::Connected || !secondaryIdentityRequestManager_.IsValid())
+        {
+            // Connection was reset, possibly while we waited for player input, no point in continuing
+            return;
+        }
+
+        switch (option)
+        {
+        case EPlayerIdentityAssignOption::DoNotAssignIdentityToUser:
+            progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NoChange } );
+            secondaryIdentityRequestManager_.Reset();
+            break;
+        case EPlayerIdentityAssignOption::AssignIdentityToExistingUser:
+            {
+                FDriftUserIdentityPayload payload{};
+                payload.link_with_user_jti = driftClient.jti;
+                payload.link_with_user_id = driftClient.user_id;
+                auto request = secondaryIdentityRequestManager_->Post(driftEndpoints.user_identities, payload);
+                request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
+                {
+                    progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NewIdentityAddedToExistingUser } );
+                    secondaryIdentityRequestManager_.Reset();
+                });
+                request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
+                {
+                    // Could happen if the user already has an association with a different id from the same provider
+                    context.errorHandled = true;
+                    // TODO: Check if this is broken or if there's a previous association
+                    FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
+                    progress.owningIdentityPlayerName = myPlayer.player_name;
+                    progressDelegate.ExecuteIfBound(progress);
+                    secondaryIdentityRequestManager_.Reset();
+                });
+                request->Dispatch();
+            }
+            break;
+        default:
+            check(false);
+        }
     });
-    request->Dispatch();
+    progressDelegate.ExecuteIfBound(progress);
 }
 
 
-void FDriftBase::AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
+void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
     FDriftUserIdentityPayload payload{};
     payload.link_with_user_jti = targetUser.jti;
@@ -2221,14 +2289,13 @@ void FDriftBase::AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoR
     auto request = GetGameRequestManager()->Post(driftEndpoints.user_identities, payload);
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
-        // TODO: Switch player
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_OldIdentityMovedToNewUser, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_OldIdentityMovedToNewUser });
         secondaryIdentityRequestManager_.Reset();
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
         context.errorHandled = true;
-        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToReAssignOldIdentity, FString{} }, {});
+        progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToReAssignOldIdentity });
         secondaryIdentityRequestManager_.Reset();
     });
     request->Dispatch();
