@@ -2065,7 +2065,7 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
     {
         if (credentialSuccess)
         {
-            AddPlayerIdentity(provider.Get(), progressDelegate);
+            AddPlayerIdentity(provider, progressDelegate);
         }
         else
         {
@@ -2077,7 +2077,7 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
 }
 
 
-void FDriftBase::AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
+void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
     FUserPassAuthenticationPayload payload{};
     payload.provider = provider->GetProviderName();
