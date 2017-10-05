@@ -14,7 +14,7 @@
 class APlayerController;
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FDriftAuthenticatePlayerResult
 {
     GENERATED_BODY()

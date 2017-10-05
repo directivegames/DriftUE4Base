@@ -687,7 +687,7 @@ struct FBlueprintMatchQueueStatus
 };
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FBlueprintLeaderboardEntry
 {
     GENERATED_BODY()
