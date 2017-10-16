@@ -360,7 +360,7 @@ void FDriftBase::Disconnect()
 void FDriftBase::Reset()
 {
     DRIFT_LOG(Base, Verbose, TEXT("Resetting all internal state"));
-
+    
     state_ = DriftSessionState::Disconnected;
 
     authenticatedRequestManager.Reset();
@@ -382,7 +382,7 @@ void FDriftBase::Reset()
     hearbeatUrl.Empty();
 
     userIdentities = FDriftCreatePlayerGroupResponse{};
-
+    
     heartbeatDueInSeconds_ = FLT_MAX;
     heartbeatTimeout_ = FDateTime::MinValue();
 
@@ -2153,6 +2153,7 @@ void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAd
                  * Since we don't auto-create new accounts for additional identities, if the user_id == 0 here,
                  * it means this identity has never been assigned to a user, and we can assign it immediately.
                  */
+                DRIFT_LOG(Base, Verbose, TEXT("Identity has no previous user, automatically bind it the the current one"));
                 ConnectNewIdentityToCurrentUser(newIdentityName, progressDelegate);
             }
             else if (userInfo.user_id != driftClient.user_id)
@@ -2166,6 +2167,7 @@ void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAd
                  * most likely cause the current user to be lost forever as it will no longer have any
                  * identities pointing to it.
                  */
+                DRIFT_LOG(Base, Verbose, TEXT("Identity is bound to a different user, player needs to decide what to do"));
                 FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Progress_IdentityAssociatedWithOtherUser };
                 progress.localUserPlayerName = myPlayer.player_name;
                 progress.newIdentityUserPlayerName = userInfo.player_name;
@@ -2200,6 +2202,7 @@ void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAd
                  * The new user identity has the same user_id as the current user, so the identity
                  * assignment was already done in the past. No need to do anything more.
                  */
+                DRIFT_LOG(Base, Verbose, TEXT("Identity is already bound to this user, no action taken"));
                 progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Success_NoChange });
                 secondaryIdentityRequestManager_.Reset();
             }
@@ -2252,6 +2255,8 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
             break;
         case EPlayerIdentityAssignOption::AssignIdentityToExistingUser:
             {
+                DRIFT_LOG(Base, Log, TEXT("Assigning unbound identity with current user"));
+
                 FDriftUserIdentityPayload payload{};
                 payload.link_with_user_jti = driftClient.jti;
                 payload.link_with_user_id = driftClient.user_id;
@@ -2284,6 +2289,8 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
 
 void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
+    DRIFT_LOG(Base, Log, TEXT("Re-assigning identity to a different user"));
+
     FDriftUserIdentityPayload payload{};
     payload.link_with_user_jti = targetUser.jti;
     payload.link_with_user_id = targetUser.user_id;
