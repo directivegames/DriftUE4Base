@@ -1493,108 +1493,12 @@ void FDriftBase::LoadFriendsList(const FDriftFriendsListLoadedDelegate& delegate
     if (state_ != DriftSessionState::Connected)
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to load friends list without being connected"));
-        
+
         delegate.ExecuteIfBound(false);
         return;
     }
-    
-    if (driftEndpoints.my_player_groups.IsEmpty())
-    {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to load friends list before the player session has been initialized"));
-        
-        delegate.ExecuteIfBound(false);
-        return;
-    }
-    
-    FDriftCreatePlayerGroupPayload payload;
-    payload.player_ids.Add(myPlayer.player_id);
-    for (const auto& id : externalFriendIDs)
-    {
-        payload.identity_names.Add(id);
-    }
 
-#if !UE_BUILD_SHIPPING
-    {
-        FString fakeFriendsArgument;
-        FParse::Value(FCommandLine::Get(), TEXT("-friends="), fakeFriendsArgument, false);
-        TArray<FString> fakeFriends;
-        fakeFriendsArgument.ParseIntoArray(fakeFriends, TEXT(","));
-
-        auto addAndLog = [this, &payload](int32 id)
-        {
-            if (id)
-            {
-                payload.player_ids.Add(id);
-            
-                DRIFT_LOG(Base, Warning, TEXT("Adding fake friend ID: %d"), id);
-            }
-        };
-
-        for (auto fakeFriend : fakeFriends)
-        {
-            if (fakeFriend.Find(TEXT("-")) != INDEX_NONE)
-            {
-                FString low, high;
-                if (fakeFriend.Split(TEXT("-"), &low, &high))
-                {
-                    auto lowID = FCString::Atoi(*low);
-                    auto highID = FCString::Atoi(*high);
-                    
-                    for (int32 fakeFriendID = lowID; fakeFriendID <= highID; ++fakeFriendID)
-                    {
-                        addAndLog(fakeFriendID);
-                    }
-                }
-            }
-            else
-            {
-                addAndLog(FCString::Atoi(*fakeFriend));
-            }
-        }
-    }
-#endif // !UE_BUILD_SHIPPING
-
-    DRIFT_LOG(Base, Verbose, TEXT("Mapping %d third party friend IDs to Drift counterparts"), payload.identity_names.Num());
-    
-    auto url = driftEndpoints.my_player_groups.Replace(TEXT("{group_name}"), TEXT("friends"));
-    auto request = GetGameRequestManager()->Put(url, payload);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
-    {
-        if  (!JsonArchive::LoadObject(doc, userIdentities))
-        {
-            context.error = TEXT("Failed to parse player identity response");
-            return;
-        }
-
-        DRIFT_LOG(Base, Verbose, TEXT("Created player group 'friends' with %d of %d mappable IDs"), userIdentities.players.Num(), externalFriendIDs.Num());
-
-        if (UE_LOG_ACTIVE(LogDriftBase, VeryVerbose))
-        {
-            for (const auto& entry : userIdentities.players)
-            {
-                DRIFT_LOG(Base, VeryVerbose, TEXT("Friend: %d - %s [%s]"), entry.player_id, *entry.player_name, *entry.identity_name);
-            }
-        }
-
-        auto event = MakeEvent(TEXT("drift.player_group_created"));
-        event->Add(TEXT("external_ids"), userIdentities.players.Num());
-        event->Add(TEXT("mapped_ids"), externalFriendIDs.Num());
-        event->Add(TEXT("group_name"), TEXT("friends"));
-        event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
-        AddAnalyticsEvent(MoveTemp(event));
-
-        CacheFriendInfos([this, delegate](bool success)
-        {
-            userIdentitiesLoaded = success;
-            delegate.ExecuteIfBound(success);
-        });
-    });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
-    {
-        context.errorHandled = true;
-        delegate.ExecuteIfBound(false);
-    });
-    request->Dispatch();
+    LoadDriftFriends(delegate);
 }
 
 
@@ -1644,6 +1548,103 @@ FString FDriftBase::GetFriendName(int32 friendID)
         return info->player_name;
     }
     return TEXT("");
+}
+
+
+bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get a friend request token without being connected"));
+
+        return false;
+    }
+
+    if (driftEndpoints.my_friends.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get a friends request token before the player session has been initialized"));
+
+        return false;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Fetching a friend request token"));
+
+    auto request = GetGameRequestManager()->Post(driftEndpoints.friend_invites, FString{});
+    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        FString token;
+        auto member = doc.FindMember(TEXT("token"));
+        if (member != doc.MemberEnd() && member->value.IsString())
+        {
+            token = member->value.GetString();
+        }
+        if (token.IsEmpty()) 
+        {
+            context.error = L"Response 'token' missing.";
+            return;
+        }
+
+        DRIFT_LOG(Base, Verbose, TEXT("Got friend request token: %s"), *token);
+
+        LoadFriendsList({});
+
+        delegate.ExecuteIfBound(true, token);
+    });
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false, {});
+    });
+    request->Dispatch();
+    return true;
+}
+
+
+bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to accept a friend request without being connected"));
+
+        return false;
+    }
+
+    if (driftEndpoints.my_friends.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to accept a friends request before the player session has been initialized"));
+
+        return false;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Accepting a friend request with token %s"), *token);
+
+    JsonValue payload{ rapidjson::kObjectType };
+    JsonArchive::AddMember(payload, TEXT("token"), *token);
+    auto request = GetGameRequestManager()->Post(driftEndpoints.my_friends, payload);
+    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        int32 friend_id{ 0 };
+        auto member = doc.FindMember(TEXT("friend_id"));
+        if (member != doc.MemberEnd() && member->value.IsString())
+        {
+            friend_id = member->value.GetInt();
+        }
+
+        if (friend_id == 0)
+        {
+            context.error = TEXT("Friend ID is not valid");
+            return;
+        }
+
+        delegate.ExecuteIfBound(true, friend_id);
+    });
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false, 0);
+    });
+    request->Dispatch();
+    return true;
 }
 
 
@@ -2821,7 +2822,167 @@ void FDriftBase::CachePlayerInfo(int32 player_id)
 }
 
 
-void FDriftBase::CacheFriendInfos(TFunction<void(bool)> delegate)
+void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegate)
+{
+    if (driftEndpoints.my_friends.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to load friends list before the player session has been initialized"));
+
+        delegate.ExecuteIfBound(false);
+        return;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Fetching Drift friends"));
+
+    auto request = GetGameRequestManager()->Get(driftEndpoints.my_friends);
+    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        if (!JsonArchive::LoadObject(doc, driftFriends))
+        {
+            context.error = TEXT("Failed to parse friends response");
+            return;
+        }
+
+        DRIFT_LOG(Base, Verbose, TEXT("Loaded %d Drift managed friends"), driftFriends.Num());
+
+        if (UE_LOG_ACTIVE(LogDriftBase, VeryVerbose))
+        {
+            for (const auto& entry : driftFriends)
+            {
+                DRIFT_LOG(Base, VeryVerbose, TEXT("Friend: %d"), entry.friend_id);
+            }
+        }
+
+        auto event = MakeEvent(TEXT("drift.friends_loaded"));
+        event->Add(TEXT("friends"), driftFriends.Num());
+        event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
+        AddAnalyticsEvent(MoveTemp(event));
+        MakeFriendsGroup(delegate);
+    });
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false);
+    });
+    request->Dispatch();
+}
+
+
+void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to map third party friends without being connected"));
+
+        return;
+    }
+
+    if (driftEndpoints.my_player_groups.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to load third party friends list before the player session has been initialized"));
+
+        delegate.ExecuteIfBound(false);
+        return;
+    }
+
+    FDriftCreatePlayerGroupPayload payload;
+    payload.player_ids.Add(myPlayer.player_id);
+    for (const auto& entry : driftFriends)
+    {
+        payload.player_ids.Add(entry.friend_id);
+    }
+    for (const auto& id : externalFriendIDs)
+    {
+        payload.identity_names.Add(id);
+    }
+
+#if !UE_BUILD_SHIPPING
+    {
+        FString fakeFriendsArgument;
+        FParse::Value(FCommandLine::Get(), TEXT("-friends="), fakeFriendsArgument, false);
+        TArray<FString> fakeFriends;
+        fakeFriendsArgument.ParseIntoArray(fakeFriends, TEXT(","));
+
+        auto addAndLog = [this, &payload](int32 id)
+        {
+            if (id)
+            {
+                payload.player_ids.Add(id);
+
+                DRIFT_LOG(Base, Warning, TEXT("Adding fake friend ID: %d"), id);
+            }
+        };
+
+        for (auto fakeFriend : fakeFriends)
+        {
+            if (fakeFriend.Find(TEXT("-")) != INDEX_NONE)
+            {
+                FString low, high;
+                if (fakeFriend.Split(TEXT("-"), &low, &high))
+                {
+                    auto lowID = FCString::Atoi(*low);
+                    auto highID = FCString::Atoi(*high);
+
+                    for (int32 fakeFriendID = lowID; fakeFriendID <= highID; ++fakeFriendID)
+                    {
+                        addAndLog(fakeFriendID);
+                    }
+                }
+            }
+            else
+            {
+                addAndLog(FCString::Atoi(*fakeFriend));
+            }
+        }
+    }
+#endif // !UE_BUILD_SHIPPING
+
+    DRIFT_LOG(Base, Verbose, TEXT("Mapping %d third party friend IDs to Drift counterparts"), payload.identity_names.Num());
+
+    auto url = driftEndpoints.my_player_groups.Replace(TEXT("{group_name}"), TEXT("friends"));
+    auto request = GetGameRequestManager()->Put(url, payload);
+    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        if (!JsonArchive::LoadObject(doc, userIdentities))
+        {
+            context.error = TEXT("Failed to parse player identity response");
+            return;
+        }
+
+        DRIFT_LOG(Base, Verbose, TEXT("Created player group 'friends' with %d of %d mappable IDs"), userIdentities.players.Num(), externalFriendIDs.Num());
+
+        if (UE_LOG_ACTIVE(LogDriftBase, VeryVerbose))
+        {
+            for (const auto& entry : userIdentities.players)
+            {
+                DRIFT_LOG(Base, VeryVerbose, TEXT("Friend: %d - %s [%s]"), entry.player_id, *entry.player_name, *entry.identity_name);
+            }
+        }
+
+        auto event = MakeEvent(TEXT("drift.player_group_created"));
+        event->Add(TEXT("external_ids"), userIdentities.players.Num());
+        event->Add(TEXT("mapped_ids"), externalFriendIDs.Num());
+        event->Add(TEXT("friend_ids"), driftFriends.Num());
+        event->Add(TEXT("group_name"), TEXT("friends"));
+        event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
+        AddAnalyticsEvent(MoveTemp(event));
+
+        CacheFriendInfos([this, delegate](bool success)
+        {
+            userIdentitiesLoaded = success;
+            delegate.ExecuteIfBound(success);
+        });
+    });
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false);
+    });
+    request->Dispatch();
+}
+
+
+void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
 {
     auto url = driftEndpoints.players;
     internal::UrlHelper::AddUrlOption(url, TEXT("player_group"), TEXT("friends"));
