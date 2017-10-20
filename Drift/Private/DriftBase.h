@@ -110,6 +110,8 @@ public:
     void UpdateFriendsList() override;
     bool GetFriendsList(TArray<FDriftFriend>& friends) override;
     FString GetFriendName(int32 friendID) override;
+    bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) override;
+    bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
     void FlushCounters() override;
@@ -257,7 +259,9 @@ private:
 
     void CachePlayerInfo(int32 player_id);
 
-    void CacheFriendInfos(TFunction<void(bool)> delegate);
+    void LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegate);
+    void MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegate);
+    void CacheFriendInfos(const TFunction<void(bool)>& delegate);
     void UpdateFriendOnlineInfos();
 
     const FDriftPlayerResponse* GetFriendInfo(int32 player_id) const;
@@ -340,6 +344,7 @@ private:
 
     TArray<FString> externalFriendIDs;
     
+    TArray<FDriftFriendResponse> driftFriends;
     TMap<int32, FDriftPlayerResponse> friendInfos;
     bool shouldUpdateFriends = false;
     float updateFriendsInSeconds = 0.0f;

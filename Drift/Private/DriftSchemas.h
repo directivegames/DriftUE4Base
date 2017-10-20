@@ -39,8 +39,10 @@ struct FDriftEndpointsResponse
     FString static_data;
     FString user_identities;
     FString users;
-    
+    FString friend_invites;
+
     // Added after authentication
+    FString my_friends;
     FString my_gamestate;
     FString my_gamestates;
     FString my_messages;
@@ -564,5 +566,13 @@ struct FMatchInfo
     
     FString url;
     
+    bool Serialize(class SerializationContext& context);
+};
+
+
+struct FDriftFriendResponse
+{
+    int32 friend_id;
+
     bool Serialize(class SerializationContext& context);
 };

@@ -378,6 +378,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, c
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
+DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
+DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
 DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&);
@@ -573,7 +576,16 @@ public:
      */
     virtual FString GetFriendName(int32 friendID) = 0;
 
-	/**
+    /**
+     * Request a friend request token to be sent to a friend via external means
+     */
+    virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+    /**
+     * Accept a friend request via an external token
+     */
+    virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+    
+    /**
 	* Load the avatar url of the currently logged in player
 	* Fires delegate when finished
 	*/
