@@ -1623,11 +1623,17 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     auto request = GetGameRequestManager()->Post(driftEndpoints.my_friends, payload);
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
-        int32 friend_id;
+        int32 friend_id{ 0 };
         auto member = doc.FindMember(TEXT("friend_id"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             friend_id = member->value.GetInt();
+        }
+
+        if (friend_id == 0)
+        {
+            context.error = TEXT("Friend ID is not valid");
+            return;
         }
 
         delegate.ExecuteIfBound(true, friend_id);
