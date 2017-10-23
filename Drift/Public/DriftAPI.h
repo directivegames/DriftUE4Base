@@ -270,11 +270,20 @@ enum class EDriftPresence : uint8
 };
 
 
+UENUM(BlueprintType)
+enum class EDriftFriendType : uint8
+{
+    Drift,
+    External
+};
+
+
 struct FDriftFriend
 {
     int32 playerID;
     FString name;
     EDriftPresence presence;
+    EDriftFriendType type;
 };
 
 
@@ -380,6 +389,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
 DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -584,7 +594,12 @@ public:
      * Accept a friend request via an external token
      */
     virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
-    
+    /**
+     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
+     * Only supported for friends managed through Drift, i.e. with Type == EDriftFriendType::Drift
+     */
+    virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) = 0;
+
     /**
 	* Load the avatar url of the currently logged in player
 	* Fires delegate when finished
