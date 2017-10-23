@@ -1535,7 +1535,9 @@ bool FDriftBase::GetFriendsList(TArray<FDriftFriend>& friends)
         }
         auto playerInfo = GetFriendInfo(entry.player_id);
         auto presence = (playerInfo && playerInfo->is_online) ? EDriftPresence::Online : EDriftPresence::Offline;
-        friends.Add(FDriftFriend{ entry.player_id, entry.player_name, presence });
+        auto type = (driftFriends.Find(entry.player_id) != nullptr)
+            ? EDriftFriendType::Drift : EDriftFriendType::External;
+        friends.Add(FDriftFriend{ entry.player_id, entry.player_name, presence, type });
     }
     return true;
 }
@@ -1586,8 +1588,6 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
 
         DRIFT_LOG(Base, Verbose, TEXT("Got friend request token: %s"), *token);
 
-        LoadFriendsList({});
-
         delegate.ExecuteIfBound(true, token);
     });
     request->OnError.BindLambda([this, delegate](ResponseContext& context)
@@ -1636,12 +1636,55 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
             return;
         }
 
+        LoadFriendsList({});
+
         delegate.ExecuteIfBound(true, friend_id);
     });
     request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, 0);
+    });
+    request->Dispatch();
+    return true;
+}
+
+
+bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend without being connected"));
+
+        return false;
+    }
+
+    if (driftEndpoints.my_friends.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend before the player session has been initialized"));
+
+        return false;
+    }
+
+    auto friendInfo = driftFriends.Find(friendID);
+    if (friendInfo == nullptr)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend which is not (yet) known to the system"));
+
+        return false;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Removing friend %d"), friendID);
+
+    auto request = GetGameRequestManager()->Delete(friendInfo->friendship_url);
+    request->OnResponse.BindLambda([this, friendID, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        delegate.ExecuteIfBound(true, friendID);
+    });
+    request->OnError.BindLambda([this, friendID, delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false, friendID);
     });
     request->Dispatch();
     return true;
@@ -2834,23 +2877,31 @@ void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegat
 
     DRIFT_LOG(Base, Verbose, TEXT("Fetching Drift friends"));
 
+    driftFriends.Reset();
+
     auto request = GetGameRequestManager()->Get(driftEndpoints.my_friends);
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
-        if (!JsonArchive::LoadObject(doc, driftFriends))
+        TArray<FDriftFriendResponse> friends;
+        if (!JsonArchive::LoadObject(doc, friends))
         {
             context.error = TEXT("Failed to parse friends response");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Loaded %d Drift managed friends"), driftFriends.Num());
+        DRIFT_LOG(Base, Verbose, TEXT("Loaded %d Drift managed friends"), friends.Num());
 
         if (UE_LOG_ACTIVE(LogDriftBase, VeryVerbose))
         {
-            for (const auto& entry : driftFriends)
+            for (const auto& entry : friends)
             {
                 DRIFT_LOG(Base, VeryVerbose, TEXT("Friend: %d"), entry.friend_id);
             }
+        }
+
+        for (const auto& f : friends)
+        {
+            driftFriends.Add(f.friend_id, f);
         }
 
         auto event = MakeEvent(TEXT("drift.friends_loaded"));
@@ -2889,7 +2940,7 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
     payload.player_ids.Add(myPlayer.player_id);
     for (const auto& entry : driftFriends)
     {
-        payload.player_ids.Add(entry.friend_id);
+        payload.player_ids.Add(entry.Value.friend_id);
     }
     for (const auto& id : externalFriendIDs)
     {

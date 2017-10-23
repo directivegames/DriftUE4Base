@@ -452,5 +452,7 @@ bool FDriftUserIdentityPayload::Serialize(SerializationContext & context)
 
 bool FDriftFriendResponse::Serialize(SerializationContext& context)
 {
-    return SERIALIZE_PROPERTY(context, friend_id);
+    return SERIALIZE_PROPERTY(context, friend_id)
+        && SERIALIZE_PROPERTY(context, player_url)
+        && SERIALIZE_PROPERTY(context, friendship_url);
 }

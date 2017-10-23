@@ -573,6 +573,8 @@ struct FMatchInfo
 struct FDriftFriendResponse
 {
     int32 friend_id;
+    FString player_url;
+    FString friendship_url;
 
     bool Serialize(class SerializationContext& context);
 };
