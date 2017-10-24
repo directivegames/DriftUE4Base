@@ -1676,7 +1676,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
 
     DRIFT_LOG(Base, Verbose, TEXT("Removing friend %d"), friendID);
 
-    auto request = GetGameRequestManager()->Delete(friendInfo->friendship_url);
+    auto request = GetGameRequestManager()->Delete(friendInfo->friendship_url, HttpStatusCodes::NoContent);
     request->OnResponse.BindLambda([this, friendID, delegate](ResponseContext& context, JsonDocument& doc)
     {
         delegate.ExecuteIfBound(true, friendID);

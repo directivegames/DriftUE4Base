@@ -41,8 +41,12 @@ const FName DriftModuleName = TEXT("Drift");
 
 
 FDriftWorldHelper::FDriftWorldHelper(UObject* worldContextObject)
-: world_{ GEngine->GetWorldFromContextObject(worldContextObject, EGetWorldErrorMode::Assert) }
+: world_{ nullptr }
 {
+    if (worldContextObject != nullptr && worldContextObject->IsValidLowLevel())
+    {
+        world_ = GEngine->GetWorldFromContextObject(worldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+    }
 }
 
 
