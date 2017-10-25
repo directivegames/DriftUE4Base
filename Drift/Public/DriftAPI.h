@@ -410,6 +410,9 @@ DECLARE_DELEGATE_TwoParams(FDriftPolledMatchQueueDelegate, bool, const FMatchQue
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftRecievedMatchInviteDelegate, const FMatchInvite&);
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendAddedDelegate, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
+
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
 
@@ -663,6 +666,16 @@ public:
     virtual FDriftStaticDataProgressDelegate& OnStaticDataProgress() = 0;
     virtual FDriftGotActiveMatchesDelegate& OnGotActiveMatches() = 0;
     virtual FDriftPlayerNameSetDelegate& OnPlayerNameSet() = 0;
+
+    /**
+     * Fired when another player has accepted a friend request.
+     */
+    virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
+    /**
+     * Fired when a friend has terminated the friendship.
+     */
+    virtual FDriftFriendRemovedDelegate& OnFriendRemoved() = 0;
+
     /**
      * Fired when the root endpoints have been aquired. The user is not yet
      * authenticated at this point.

@@ -131,6 +131,10 @@ public:
     FDriftPlayerGameStateSavedDelegate& OnPlayerGameStateSaved() { return onPlayerGameStateSaved; }
     FDriftGotActiveMatchesDelegate& OnGotActiveMatches() override { return onGotActiveMatches; }
     FDriftPlayerNameSetDelegate& OnPlayerNameSet() override { return onPlayerNameSet; }
+
+    FDriftFriendAddedDelegate& OnFriendAdded() override { return onFriendAdded;  }
+    FDriftFriendRemovedDelegate& OnFriendRemoved() override { return onFriendRemoved; }
+
     FDriftStaticRoutesInitializedDelegate& OnStaticRoutesInitialized() override { return onStaticRoutesInitialized; }
     FDriftPlayerDisconnectedDelegate& OnPlayerDisconnected() override { return onPlayerDisconnected; }
     FDriftGameVersionMismatchDelegate& OnGameVersionMismatch() override { return onGameVersionMismatch; }
@@ -214,6 +218,8 @@ private:
     FDriftPlayerGameStateSavedDelegate onPlayerGameStateSaved;
     FDriftGotActiveMatchesDelegate onGotActiveMatches;
     FDriftPlayerNameSetDelegate onPlayerNameSet;
+    FDriftFriendAddedDelegate onFriendAdded;
+    FDriftFriendRemovedDelegate onFriendRemoved;
     FDriftStaticRoutesInitializedDelegate onStaticRoutesInitialized;
     FDriftPlayerDisconnectedDelegate onPlayerDisconnected;
     FDriftGameVersionMismatchDelegate onGameVersionMismatch;
@@ -249,6 +255,7 @@ private:
     void JoinMatchQueueImpl(const FString& ref, const FString& placement, const FString& token, const FDriftJoinedMatchQueueDelegate& delegate);
 
     void HandleMatchQueueMessage(const FMessageQueueEntry& message);
+    void HandleFriendEventMessage(const FMessageQueueEntry& message);
 
     bool IsPreAuthenticated() const;
     bool IsPreRegistered() const;
