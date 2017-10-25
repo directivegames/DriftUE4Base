@@ -270,11 +270,20 @@ enum class EDriftPresence : uint8
 };
 
 
+UENUM(BlueprintType)
+enum class EDriftFriendType : uint8
+{
+    Drift,
+    External
+};
+
+
 struct FDriftFriend
 {
     int32 playerID;
     FString name;
     EDriftPresence presence;
+    EDriftFriendType type;
 };
 
 
@@ -378,6 +387,10 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, c
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
+DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
+DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
 DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&);
@@ -396,6 +409,9 @@ DECLARE_DELEGATE_OneParam(FDriftLeftMatchQueueDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftPolledMatchQueueDelegate, bool, const FMatchQueueStatus&);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftRecievedMatchInviteDelegate, const FMatchInvite&);
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendAddedDelegate, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
 
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
@@ -573,7 +589,21 @@ public:
      */
     virtual FString GetFriendName(int32 friendID) = 0;
 
-	/**
+    /**
+     * Request a friend request token to be sent to a friend via external means
+     */
+    virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+    /**
+     * Accept a friend request via an external token
+     */
+    virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+    /**
+     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
+     * Only supported for friends managed through Drift, i.e. with Type == EDriftFriendType::Drift
+     */
+    virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) = 0;
+
+    /**
 	* Load the avatar url of the currently logged in player
 	* Fires delegate when finished
 	*/
@@ -636,6 +666,16 @@ public:
     virtual FDriftStaticDataProgressDelegate& OnStaticDataProgress() = 0;
     virtual FDriftGotActiveMatchesDelegate& OnGotActiveMatches() = 0;
     virtual FDriftPlayerNameSetDelegate& OnPlayerNameSet() = 0;
+
+    /**
+     * Fired when another player has accepted a friend request.
+     */
+    virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
+    /**
+     * Fired when a friend has terminated the friendship.
+     */
+    virtual FDriftFriendRemovedDelegate& OnFriendRemoved() = 0;
+
     /**
      * Fired when the root endpoints have been aquired. The user is not yet
      * authenticated at this point.

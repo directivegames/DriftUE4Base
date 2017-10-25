@@ -33,8 +33,10 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, static_data)
         && SERIALIZE_PROPERTY(context, user_identities)
         && SERIALIZE_PROPERTY(context, users)
+        && SERIALIZE_PROPERTY(context, friend_invites)
 
         // Optional
+        && SERIALIZE_PROPERTY(context, my_friends)
         && SERIALIZE_PROPERTY(context, my_gamestate)
         && SERIALIZE_PROPERTY(context, my_gamestates)
         && SERIALIZE_PROPERTY(context, my_messages)
@@ -445,4 +447,12 @@ bool FDriftUserIdentityPayload::Serialize(SerializationContext & context)
 {
     return SERIALIZE_PROPERTY(context, link_with_user_jti)
         && SERIALIZE_PROPERTY(context, link_with_user_id);
+}
+
+
+bool FDriftFriendResponse::Serialize(SerializationContext& context)
+{
+    return SERIALIZE_PROPERTY(context, friend_id)
+        && SERIALIZE_PROPERTY(context, player_url)
+        && SERIALIZE_PROPERTY(context, friendship_url);
 }

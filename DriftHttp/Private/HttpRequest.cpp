@@ -90,7 +90,12 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             else
             {
                 JsonDocument doc;
-                doc.Parse(*response->GetContentAsString());
+                FString content = response->GetContentAsString();
+                if (context.responseCode == (int32)HttpStatusCodes::NoContent)
+                {
+                    content = TEXT("{}");
+                }
+                doc.Parse(*content);
                 if (doc.HasParseError())
                 {
                     context.error = FString::Printf(L"JSON response is broken at position %i. RapidJson error: %i",
