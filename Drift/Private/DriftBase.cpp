@@ -117,6 +117,7 @@ void FDriftBase::CreateMessageQueue()
     messageQueue = MakeUnique<FDriftMessageQueue>();
 
     messageQueue->OnMessageQueueMessage(TEXT("matchqueue")).AddRaw(this, &FDriftBase::HandleMatchQueueMessage);
+    messageQueue->OnMessageQueueMessage(TEXT("friendevent")).AddRaw(this, &FDriftBase::HandleFriendEventMessage);
 }
 
 
@@ -907,6 +908,31 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
 }
 
 
+void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry & message)
+{
+    auto eventIt = message.payload.FindMember(TEXT("event"));
+    if (eventIt == message.payload.MemberEnd() || !(*eventIt).value.IsString())
+    {
+        UE_LOG(LogDriftMessages, Error, TEXT("Friend event message contains no event"));
+
+        return;
+    }
+    FString event = (*eventIt).value.GetString();
+    if (event == TEXT("friend_added"))
+    {
+        UE_LOG(LogDriftMessages, Verbose, TEXT("Got friend added confirmation from player %d"), message.sender_id);
+
+        onFriendAdded.Broadcast(message.sender_id);
+    }
+    else if (event == TEXT("friend_removed"))
+    {
+        UE_LOG(LogDriftMessages, Verbose, TEXT("Friend player %d removed friendship"), message.sender_id);
+
+        onFriendRemoved.Broadcast(message.sender_id);
+    }
+}
+
+
 void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement, const FString& token, const FDriftJoinedMatchQueueDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
@@ -1623,22 +1649,35 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     auto request = GetGameRequestManager()->Post(driftEndpoints.my_friends, payload);
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
-        int32 friend_id{ 0 };
+        int32 friendID{ 0 };
         auto member = doc.FindMember(TEXT("friend_id"));
-        if (member != doc.MemberEnd() && member->value.IsString())
+        if (member != doc.MemberEnd() && member->value.IsInt())
         {
-            friend_id = member->value.GetInt();
+            friendID = member->value.GetInt();
         }
 
-        if (friend_id == 0)
+        if (friendID == 0)
         {
             context.error = TEXT("Friend ID is not valid");
             return;
         }
 
-        LoadFriendsList({});
+        LoadFriendsList(FDriftFriendsListLoadedDelegate::CreateLambda([this, friendID](bool success)
+        {
+            if (state_ != DriftSessionState::Connected)
+            {
+                return;
+            }
+            if (auto f = friendInfos.Find(friendID))
+            {
+                JsonValue message{ rapidjson::kObjectType };
+                JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_added"));
+                auto messageUrlTemplate = f->messagequeue_url;
+                messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
+            }
+        }));
 
-        delegate.ExecuteIfBound(true, friend_id);
+        delegate.ExecuteIfBound(true, friendID);
     });
     request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
@@ -1679,6 +1718,16 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
     auto request = GetGameRequestManager()->Delete(friendInfo->friendship_url, HttpStatusCodes::NoContent);
     request->OnResponse.BindLambda([this, friendID, delegate](ResponseContext& context, JsonDocument& doc)
     {
+        if (auto f = friendInfos.Find(friendID))
+        {
+            JsonValue message{ rapidjson::kObjectType };
+            JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_removed"));
+            auto messageUrlTemplate = f->messagequeue_url;
+            messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
+        }
+
+        LoadFriendsList({});
+
         delegate.ExecuteIfBound(true, friendID);
     });
     request->OnError.BindLambda([this, friendID, delegate](ResponseContext& context)
