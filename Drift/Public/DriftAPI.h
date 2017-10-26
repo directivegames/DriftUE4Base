@@ -240,6 +240,7 @@ struct FPlayerAuthenticatedInfo
 struct FDriftLeaderboardEntry
 {
     FString player_name;
+    int32 player_id;
     float value;
     int32 position;
 };
