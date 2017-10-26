@@ -411,6 +411,7 @@ struct FDriftCreatePlayerGroupResponse
  */
 struct FDriftLeaderboardResponseItem
 {
+    int32 player_id;
     int32 position;
     float total;
     FString player_name;

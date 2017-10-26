@@ -1491,7 +1491,7 @@ void FDriftBase::GetLeaderboardImpl(const FString& counter_name, const TWeakPtr<
         {
             for (const auto& entry : entries)
             {
-                leaderboardPin->rows.Add(FDriftLeaderboardEntry{ entry.player_name, entry.total, entry.position });
+                leaderboardPin->rows.Add(FDriftLeaderboardEntry{ entry.player_name, entry.player_id, entry.total, entry.position });
             }
 
             leaderboardPin->state = ELeaderboardState::Ready;

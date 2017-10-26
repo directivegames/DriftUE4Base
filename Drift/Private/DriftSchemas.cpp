@@ -302,7 +302,8 @@ bool FDriftCreatePlayerGroupResponse::Serialize(SerializationContext &context)
 
 bool FDriftLeaderboardResponseItem::Serialize(SerializationContext& context)
 {
-    return SERIALIZE_PROPERTY(context, player_name)
+    return SERIALIZE_PROPERTY(context, player_id)
+        && SERIALIZE_PROPERTY(context, player_name)
         && SERIALIZE_PROPERTY(context, total)
         && SERIALIZE_PROPERTY(context, position);
 }
