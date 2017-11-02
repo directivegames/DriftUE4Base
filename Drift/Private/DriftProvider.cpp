@@ -35,7 +35,11 @@ IDriftAPI* FDriftProvider::GetInstance(const FName& identifier)
     auto instance = instances.Find(keyName);
     if (instance == nullptr)
     {
-        DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num()));
+        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num()), [](IDriftAPI* instance)
+        {
+            instance->Shutdown();
+            delete instance;
+        });
         instances.Add(keyName, newInstance);
         instance = instances.Find(keyName);
     }
@@ -49,11 +53,6 @@ void FDriftProvider::DestroyInstance(const FName& identifier)
     
     if (const auto instance = instances.Find(keyName))
     {
-        if (instance->IsValid())
-        {
-            (*instance)->Shutdown();
-        }
-
         FScopeLock lock{ &mutex };
         instances.Remove(keyName);
     }
@@ -67,14 +66,13 @@ void FDriftProvider::DestroyInstance(IDriftAPI* instance)
         return;
     }
 
-    // Can't use instances.FindKey() as the temporary key will delete the object
-    for (auto& pair : instances)
+    /**
+     * We must pass in a shared pointer, but we don't have the original one,
+     * so create a temporary which doesn't delete the pointer afterwards.
+     */
+    if (const auto key = instances.FindKey(MakeShareable(instance, [](IDriftAPI*) {})))
     {
-        if (pair.Value.Get() == instance)
-        {
-            DestroyInstance(pair.Key);
-            break;
-        }
+        DestroyInstance(*key);
     }
 }
 
