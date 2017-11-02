@@ -29,7 +29,7 @@ FDriftProvider::FDriftProvider()
 
 IDriftAPI* FDriftProvider::GetInstance(const FName& identifier)
 {
-    FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
+    const FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
 
     FScopeLock lock{ &mutex };
     auto instance = instances.Find(keyName);
@@ -45,9 +45,9 @@ IDriftAPI* FDriftProvider::GetInstance(const FName& identifier)
 
 void FDriftProvider::DestroyInstance(const FName& identifier)
 {
-    FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
+    const FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
     
-    if (auto instance = instances.Find(keyName))
+    if (const auto instance = instances.Find(keyName))
     {
         if (instance->IsValid())
         {
@@ -56,6 +56,25 @@ void FDriftProvider::DestroyInstance(const FName& identifier)
 
         FScopeLock lock{ &mutex };
         instances.Remove(keyName);
+    }
+}
+
+
+void FDriftProvider::DestroyInstance(IDriftAPI* instance)
+{
+    if (instance == nullptr)
+    {
+        return;
+    }
+
+    // Can't use instances.FindKey() as the temporary key will delete the object
+    for (auto& pair : instances)
+    {
+        if (pair.Value.Get() == instance)
+        {
+            DestroyInstance(pair.Key);
+            break;
+        }
     }
 }
 
