@@ -16,7 +16,6 @@ public class DriftHttp : ModuleRules
 {
     public DriftHttp(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
 
         

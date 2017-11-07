@@ -16,7 +16,6 @@ public class RapidJson : ModuleRules
 {
     public RapidJson(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
 
         

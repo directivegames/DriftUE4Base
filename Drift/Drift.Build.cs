@@ -16,7 +16,6 @@ public class Drift : ModuleRules
 {
     public Drift(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
         //PCHUsage = PCHUsageMode.NoSharedPCHs;
 
         
