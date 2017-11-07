@@ -25,4 +25,5 @@ public:
 
     virtual IDriftAPI* GetInstance(const FName& identifier) = 0;
     virtual void DestroyInstance(const FName& identifier) = 0;
+    virtual void DestroyInstance(IDriftAPI* instance) = 0;
 };

@@ -1296,7 +1296,24 @@ void FDriftBase::AddAnalyticsEvent(const FString& event_name, const TArray<FAnal
     auto event = MakeEvent(event_name);
     for (const auto& attribute : attributes)
     {
-        event->Add(attribute.AttrName, attribute.AttrValue);
+        switch (attribute.AttrType)
+        {
+        case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
+            event->Add(attribute.AttrName, attribute.AttrValueBool);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
+            event->Add(attribute.AttrName, attribute.AttrValueString);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::Null:
+            event->Add(attribute.AttrName, nullptr);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::Number:
+            event->Add(attribute.AttrName, attribute.AttrValueNumber);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::String:
+            event->Add(attribute.AttrName, attribute.AttrValueString);
+            break;
+        }
     }
     AddAnalyticsEvent(MoveTemp(event));
 }
