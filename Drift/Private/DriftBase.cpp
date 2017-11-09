@@ -2381,9 +2381,9 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
                     // Could happen if the user already has an association with a different id from the same provider
                     context.errorHandled = true;
                     // TODO: Check if this is broken or if there's a previous association
-                    FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
-                    progress.localUserPlayerName = myPlayer.player_name;
-                    progressDelegate.ExecuteIfBound(progress);
+                    FDriftAddPlayerIdentityProgress error{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
+                    error.localUserPlayerName = myPlayer.player_name;
+                    progressDelegate.ExecuteIfBound(error);
                     secondaryIdentityRequestManager_.Reset();
                 });
                 request->Dispatch();
