@@ -218,11 +218,19 @@ void FDriftBase::TickHeartbeat(float deltaTime)
     auto request = GetGameRequestManager()->Put(hearbeatUrl, FString());
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        FDriftHeartBeatResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
+        // Server and client responds differently to heartbeats
+        if (drift_server.heartbeat_url.IsEmpty())
         {
-            heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
-            heartbeatTimeout_ = response.heartbeat_timeout;
+            FDriftHeartBeatResponse response;
+            if (JsonUtils::ParseResponse(context.response, response))
+            {
+                heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
+                heartbeatTimeout_ = response.heartbeat_timeout;
+            }
+        }
+        else
+        {
+            heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt();
         }
 
         DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs"), *FDateTime::UtcNow().ToString(), heartbeatDueInSeconds_);
