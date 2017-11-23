@@ -103,3 +103,9 @@ void FDriftWorldHelper::DestroyInstance()
     auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
     provider.DestroyInstance(identifier);
 }
+
+void FDriftWorldHelper::DestroyInstance(IDriftAPI* instance)
+{
+    auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
+    provider.DestroyInstance(instance);
+}

@@ -26,6 +26,7 @@ public:
 
     IDriftAPI* GetInstance(const FName& identifier) override;
     void DestroyInstance(const FName& identifier) override;
+    void DestroyInstance(IDriftAPI* instance) override;
 
     void Close();
 

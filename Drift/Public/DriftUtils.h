@@ -27,6 +27,8 @@ public:
 
     void DestroyInstance();
 
+    static void DestroyInstance(IDriftAPI* instance);
+
 private:
     UWorld* world_;
     FName context_;

@@ -218,11 +218,19 @@ void FDriftBase::TickHeartbeat(float deltaTime)
     auto request = GetGameRequestManager()->Put(hearbeatUrl, FString());
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        FDriftHeartBeatResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
+        // Server and client responds differently to heartbeats
+        if (drift_server.heartbeat_url.IsEmpty())
         {
-            heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
-            heartbeatTimeout_ = response.heartbeat_timeout;
+            FDriftHeartBeatResponse response;
+            if (JsonUtils::ParseResponse(context.response, response))
+            {
+                heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
+                heartbeatTimeout_ = response.heartbeat_timeout;
+            }
+        }
+        else
+        {
+            heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt();
         }
 
         DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs"), *FDateTime::UtcNow().ToString(), heartbeatDueInSeconds_);
@@ -1296,7 +1304,24 @@ void FDriftBase::AddAnalyticsEvent(const FString& event_name, const TArray<FAnal
     auto event = MakeEvent(event_name);
     for (const auto& attribute : attributes)
     {
-        event->Add(attribute.AttrName, attribute.AttrValue);
+        switch (attribute.AttrType)
+        {
+        case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
+            event->Add(attribute.AttrName, attribute.AttrValueBool);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
+            event->Add(attribute.AttrName, attribute.AttrValueString);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::Null:
+            event->Add(attribute.AttrName, nullptr);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::Number:
+            event->Add(attribute.AttrName, attribute.AttrValueNumber);
+            break;
+        case FAnalyticsEventAttribute::AttrTypeEnum::String:
+            event->Add(attribute.AttrName, attribute.AttrValueString);
+            break;
+        }
     }
     AddAnalyticsEvent(MoveTemp(event));
 }
@@ -2364,9 +2389,9 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
                     // Could happen if the user already has an association with a different id from the same provider
                     context.errorHandled = true;
                     // TODO: Check if this is broken or if there's a previous association
-                    FDriftAddPlayerIdentityProgress progress{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
-                    progress.localUserPlayerName = myPlayer.player_name;
-                    progressDelegate.ExecuteIfBound(progress);
+                    FDriftAddPlayerIdentityProgress error{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
+                    error.localUserPlayerName = myPlayer.player_name;
+                    progressDelegate.ExecuteIfBound(error);
                     secondaryIdentityRequestManager_.Reset();
                 });
                 request->Dispatch();
