@@ -147,8 +147,8 @@ public:
 
 struct FActiveMatch
 {
-    int32 match_id;
-    int32 num_players;
+    int32 match_id{ 0 };
+    int32 num_players{ 0 };
 
     FDateTime create_date;
     FString game_mode;
@@ -157,8 +157,15 @@ struct FActiveMatch
     FString server_status;
     FString ue4_connection_url;
     FString version;
-    
-    FString matchplayers_url;
+};
+
+
+struct FMatchQueueMatch
+{
+    int32 match_id;
+
+    FDateTime create_date;
+    FString ue4_connection_url;
 };
 
 
@@ -172,7 +179,7 @@ struct FMatchesSearch
 struct FMatchQueueStatus
 {
     FName status;
-    FActiveMatch match;
+    FMatchQueueMatch match;
 };
 
 

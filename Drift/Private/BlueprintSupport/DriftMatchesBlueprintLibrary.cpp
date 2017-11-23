@@ -40,7 +40,11 @@ FString UDriftMatchesBlueprintLibrary::GetStatus(const FBlueprintMatchQueueStatu
 
 FBlueprintActiveMatch UDriftMatchesBlueprintLibrary::GetMatch(const FBlueprintMatchQueueStatus& status)
 {
-    return FBlueprintActiveMatch{ status.queue.match };
+    FBlueprintActiveMatch match;
+    match.match.create_date = status.queue.match.create_date;
+    match.match.ue4_connection_url = status.queue.match.ue4_connection_url;
+    match.match.match_id = status.queue.match.match_id;
+    return match;
 }
 
 

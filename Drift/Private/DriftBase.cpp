@@ -851,7 +851,6 @@ void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
             result.server_status = match.server_status;
             result.ue4_connection_url = match.ue4_connection_url;
             result.version = match.version;
-            result.matchplayers_url = match.matchplayers_url;
             search->matches.Add(result);
         }
         onGotActiveMatches.Broadcast(true);
@@ -979,15 +978,10 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
         }
         matchQueueState = matchQueue.status == MatchQueueStatusMatchedName ? EMatchQueueState::Matched : EMatchQueueState::Queued;
         delegate.ExecuteIfBound(true, FMatchQueueStatus{
-            matchQueue.status, FActiveMatch{
+            matchQueue.status, FMatchQueueMatch{
                 matchQueue.match_id,
-                0,
                 matchQueue.create_date,
-                TEXT(""), TEXT(""),
-                TEXT(""), TEXT(""),
-                matchQueue.ue4_connection_url,
-                TEXT(""),
-                TEXT("")
+                matchQueue.ue4_connection_url
             }
         });
     });
@@ -1134,15 +1128,10 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
         }
 
         delegate.ExecuteIfBound(true, FMatchQueueStatus{
-            response.status, FActiveMatch{
+            response.status, FMatchQueueMatch{
                 response.match_id,
-                0,
                 response.create_date,
-                TEXT(""), TEXT(""),
-                TEXT(""), TEXT(""),
-                response.ue4_connection_url,
-                TEXT(""),
-                TEXT("")
+                response.ue4_connection_url
             }
         });
     });
