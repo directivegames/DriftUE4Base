@@ -148,6 +148,7 @@ public:
 struct FActiveMatch
 {
     int32 match_id{ 0 };
+    int32 max_players{ 0 };
     int32 num_players{ 0 };
 
     FDateTime create_date;
