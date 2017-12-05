@@ -51,7 +51,7 @@ static const float UPDATE_FRIENDS_INTERVAL = 3.0f;
 const TCHAR* settingsSection = TEXT("/Script/DriftEditor.DriftProjectSettings");
 
 
-FDriftBase::FDriftBase(TSharedPtr<IHttpCache> cache, const FName& instanceName, int32 instanceIndex)
+FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex)
 : instanceName_(instanceName)
 , instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
 , instanceIndex_(instanceIndex)
@@ -128,7 +128,7 @@ void FDriftBase::ConfigurePlacement()
         if (!GConfig->GetString(settingsSection, TEXT("Placement"), defaultPlacement, GGameIni))
         {
             bool canBindAll;
-            auto address = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, canBindAll);
+            const auto address = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, canBindAll);
             uint32 ip;
             address->GetIp(ip);
             defaultPlacement = FString::Printf(TEXT("LAN %d.%d"), (ip & 0xff000000) >> 24, (ip & 0x00ff0000) >> 16);
@@ -163,13 +163,13 @@ void FDriftBase::Tick(float deltaTime)
 }
 
 
-TSharedPtr<JsonRequestManager> FDriftBase::GetRootRequestManager()
+TSharedPtr<JsonRequestManager> FDriftBase::GetRootRequestManager() const
 {
     return rootRequestManager_;
 }
 
 
-TSharedPtr<JsonRequestManager> FDriftBase::GetGameRequestManager()
+TSharedPtr<JsonRequestManager> FDriftBase::GetGameRequestManager() const
 {
     if (!authenticatedRequestManager.IsValid())
     {
@@ -301,7 +301,7 @@ void FDriftBase::Shutdown()
 
 void FDriftBase::Disconnect()
 {
-    auto oldState = state_;
+    const auto oldState = state_;
     if (state_ != DriftSessionState::Connected && state_ != DriftSessionState::Usurped && state_ != DriftSessionState::Timedout)
     {
         DRIFT_LOG(Base, Warning, TEXT("Ignoring attempt to disconnect while not connected."));
@@ -773,7 +773,7 @@ EDriftConnectionState FDriftBase::GetConnectionState() const
 }
 
 
-EDriftConnectionState FDriftBase::InternalToPublicState(DriftSessionState internalState) const
+EDriftConnectionState FDriftBase::InternalToPublicState(const DriftSessionState internalState)
 {
     switch (internalState)
     {
@@ -795,7 +795,7 @@ EDriftConnectionState FDriftBase::InternalToPublicState(DriftSessionState intern
 }
 
 
-void FDriftBase::BroadcastConnectionStateChange(DriftSessionState internalState)
+void FDriftBase::BroadcastConnectionStateChange(const DriftSessionState internalState) const
 {
     onConnectionStateChanged.Broadcast(InternalToPublicState(internalState));
 }
@@ -878,7 +878,7 @@ void FDriftBase::JoinMatchQueue(const FDriftJoinedMatchQueueDelegate& delegate)
 
 void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
 {
-    auto tokenIt = message.payload.FindMember(TEXT("token"));
+    const auto tokenIt = message.payload.FindMember(TEXT("token"));
     if (tokenIt == message.payload.MemberEnd() || !(*tokenIt).value.IsString())
     {
         UE_LOG(LogDriftMessages, Error, TEXT("Match queue message contains no valid token"));
@@ -887,7 +887,7 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
     }
     FString token = (*tokenIt).value.GetString();
 
-    auto actionIt = message.payload.FindMember(TEXT("action"));
+    const auto actionIt = message.payload.FindMember(TEXT("action"));
     if (actionIt != message.payload.MemberEnd())
     {
         auto& value = (*actionIt).value;
@@ -897,7 +897,7 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
 
             return;
         }
-        FString action = value.GetString();
+        const FString action = value.GetString();
         if (action == TEXT("challenge"))
         {
             UE_LOG(LogDriftMessages, Verbose, TEXT("Got match challenge from player: %d, token: %s"), message.sender_id, *token);
@@ -915,23 +915,23 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
 }
 
 
-void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry & message)
+void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry& message)
 {
-    auto eventIt = message.payload.FindMember(TEXT("event"));
+    const auto eventIt = message.payload.FindMember(TEXT("event"));
     if (eventIt == message.payload.MemberEnd() || !(*eventIt).value.IsString())
     {
         UE_LOG(LogDriftMessages, Error, TEXT("Friend event message contains no event"));
 
         return;
     }
-    FString event = (*eventIt).value.GetString();
-    if (event == TEXT("friend_added"))
+    const FString eventName = (*eventIt).value.GetString();
+    if (eventName == TEXT("friend_added"))
     {
         UE_LOG(LogDriftMessages, Verbose, TEXT("Got friend added confirmation from player %d"), message.sender_id);
 
         onFriendAdded.Broadcast(message.sender_id);
     }
-    else if (event == TEXT("friend_removed"))
+    else if (eventName == TEXT("friend_removed"))
     {
         UE_LOG(LogDriftMessages, Verbose, TEXT("Friend player %d removed friendship"), message.sender_id);
 
@@ -1098,7 +1098,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
     if (matchQueueState != EMatchQueueState::Queued && matchQueueState != EMatchQueueState::Matched)
     {
         auto extra = MakeShared<FJsonObject>();
-        extra->SetNumberField(L"state", (int32)matchQueueState);
+        extra->SetNumberField(L"state", static_cast<int32>(matchQueueState));
         IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue while in an incompatible state"), extra);
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
@@ -1221,7 +1221,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
 
     // TODO: Preferably one should create the match/queue entry, and then send the invite separately
 
-    auto token = FGuid::NewGuid();
+    const auto token = FGuid::NewGuid();
     JoinMatchQueueImpl(buildReference, defaultPlacement, token.ToString(), FDriftJoinedMatchQueueDelegate::CreateLambda([this, playerInfo, token, delegate](bool success, const FMatchQueueStatus& status)
     {
         if (success)
@@ -1471,7 +1471,7 @@ void FDriftBase::GetLeaderboardImpl(const FString& counterName, const TWeakPtr<F
         leaderboardPtr->rows.Empty();
     }
 
-    auto counter = GetCounterInfo(counterName);
+    const auto counter = GetCounterInfo(counterName);
 
     if (counter == nullptr || counter->url.IsEmpty())
     {
@@ -1573,9 +1573,9 @@ bool FDriftBase::GetFriendsList(TArray<FDriftFriend>& friends)
         {
             continue;
         }
-        auto playerInfo = GetFriendInfo(entry.player_id);
-        auto presence = (playerInfo && playerInfo->is_online) ? EDriftPresence::Online : EDriftPresence::Offline;
-        auto type = (driftFriends.Find(entry.player_id) != nullptr)
+        const auto playerInfo = GetFriendInfo(entry.player_id);
+        const auto presence = (playerInfo && playerInfo->is_online) ? EDriftPresence::Online : EDriftPresence::Offline;
+        const auto type = (driftFriends.Find(entry.player_id) != nullptr)
             ? EDriftFriendType::Drift : EDriftFriendType::External;
         friends.Add(FDriftFriend{ entry.player_id, entry.player_name, presence, type });
     }
@@ -1719,7 +1719,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
         return false;
     }
 
-    auto friendInfo = driftFriends.Find(friendID);
+    const auto friendInfo = driftFriends.Find(friendID);
     if (friendInfo == nullptr)
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend which is not (yet) known to the system"));
@@ -2109,7 +2109,7 @@ void FDriftBase::SetPlayerName(const FString& name)
 
     myPlayer.player_name = name;
 
-    FChangePlayerNamePayload payload{ name };
+    const FChangePlayerNamePayload payload{ name };
     auto request = GetGameRequestManager()->Put(driftEndpoints.my_player, payload);
     request->OnResponse.BindLambda([this, name](ResponseContext& context, JsonDocument& doc)
     {
@@ -2398,9 +2398,7 @@ void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResp
 {
     DRIFT_LOG(Base, Log, TEXT("Re-assigning identity to a different user"));
 
-    FDriftUserIdentityPayload payload{};
-    payload.link_with_user_jti = targetUser.jti;
-    payload.link_with_user_id = targetUser.user_id;
+    FDriftUserIdentityPayload payload{ targetUser.jti, targetUser.user_id };
     auto request = GetGameRequestManager()->Post(driftEndpoints.user_identities, payload);
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -2492,7 +2490,7 @@ void FDriftBase::InitServerAuthentication()
     }
     
     // Post to 'auth' and get token. Use hacky credentials
-    auto payload = FString::Printf(
+    const auto payload = FString::Printf(
         TEXT("{\"username\": \"%s\", \"password\": \"%s\", \"provider\": \"%s\"}"),
         *SERVER_CREDENTIALS_USERNAME, *password, *SERVER_CREDENTIALS_PROVIDER
         );
@@ -2719,7 +2717,7 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
     
     DRIFT_LOG(Base, Verbose, TEXT("Removing player: %i from match %i"), playerID, match_info.match_id);
 
-    FString url = FString::Printf(TEXT("%s/%i"), *match_info.matchplayers_url, playerID);
+    const FString url = FString::Printf(TEXT("%s/%i"), *match_info.matchplayers_url, playerID);
     auto request = GetGameRequestManager()->Delete(url);
     request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -2886,7 +2884,7 @@ void FDriftBase::CachePlayerInfo(int32 playerID)
         return;
     }
 
-    auto entry = serverCounterManagers.Find(playerID);
+    const auto entry = serverCounterManagers.Find(playerID);
     if (entry != nullptr && (*entry).IsValid())
     {
         return;
@@ -3034,8 +3032,8 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
                 FString low, high;
                 if (fakeFriend.Split(TEXT("-"), &low, &high))
                 {
-                    auto lowID = FCString::Atoi(*low);
-                    auto highID = FCString::Atoi(*high);
+                    const auto lowID = FCString::Atoi(*low);
+                    const auto highID = FCString::Atoi(*high);
 
                     for (int32 fakeFriendID = lowID; fakeFriendID <= highID; ++fakeFriendID)
                     {
@@ -3053,7 +3051,7 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
 
     DRIFT_LOG(Base, Verbose, TEXT("Mapping %d third party friend IDs to Drift counterparts"), payload.identity_names.Num());
 
-    auto url = driftEndpoints.my_player_groups.Replace(TEXT("{group_name}"), TEXT("friends"));
+    const auto url = driftEndpoints.my_player_groups.Replace(TEXT("{group_name}"), TEXT("friends"));
     auto request = GetGameRequestManager()->Put(url, payload);
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -3183,7 +3181,7 @@ const FDriftPlayerResponse* FDriftBase::GetFriendInfo(int32 playerID) const
 
 void FDriftBase::ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute)
 {
-    auto counterManager = serverCounterManagers.Find(playerID);
+    const auto counterManager = serverCounterManagers.Find(playerID);
     if (counterManager != nullptr && (*counterManager).IsValid())
     {
         (*counterManager).Get()->AddCount(counterName, value, absolute);
@@ -3197,7 +3195,7 @@ void FDriftBase::ModifyPlayerCounter(int32 playerID, const FString& counterName,
 
 bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, float& value)
 {
-    auto counterManager = serverCounterManagers.Find(playerID);
+    const auto counterManager = serverCounterManagers.Find(playerID);
     if (counterManager != nullptr && (*counterManager).IsValid())
     {
         return (*counterManager).Get()->GetCount(counterName, value);
@@ -3220,7 +3218,7 @@ FString FDriftBase::GetApiKeyHeader() const
 void FDriftBase::DefaultErrorHandler(ResponseContext& context)
 {
     // TODO: make this whole thing data-driven
-    auto responseCode = context.responseCode;
+    const auto responseCode = context.responseCode;
     if (responseCode >= static_cast<int32>(HttpStatusCodes::FirstClientError) && responseCode <= static_cast<int32>(HttpStatusCodes::LastClientError))
     {
         GenericRequestErrorResponse response;
@@ -3228,7 +3226,7 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
         {
             if (response.GetErrorCode() == TEXT("client_session_terminated"))
             {
-                auto reason = response.GetErrorReason();
+                const auto reason = response.GetErrorReason();
                 if (reason == TEXT("usurped"))
                 {
                     // User logged in on another device with the same credentials
@@ -3254,7 +3252,7 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
             }
         }
     }
-    else if (responseCode >= (int32)HttpStatusCodes::FirstServerError && responseCode <= (int32)HttpStatusCodes::LastServerError)
+    else if (responseCode >= static_cast<int32>(HttpStatusCodes::FirstServerError) && responseCode <= static_cast<int32>(HttpStatusCodes::LastServerError))
     {
         GenericRequestErrorResponse response;
         if (JsonUtils::ParseResponse(context.response, response))

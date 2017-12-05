@@ -61,7 +61,7 @@ class IDriftAuthProvider;
 class FDriftBase : public IDriftAPI, public FTickableGameObject
 {
 public:
-    FDriftBase(TSharedPtr<IHttpCache> cache, const FName& instanceName, int32 instanceIndex);
+    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex);
     FDriftBase(const FDriftBase& other) = delete;
     virtual ~FDriftBase();
 
@@ -232,8 +232,8 @@ private:
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
     
-    TSharedPtr<JsonRequestManager> GetRootRequestManager();
-    TSharedPtr<JsonRequestManager> GetGameRequestManager();
+    TSharedPtr<JsonRequestManager> GetRootRequestManager() const;
+    TSharedPtr<JsonRequestManager> GetGameRequestManager() const;
     void SetGameRequestManager(TSharedPtr<JsonRequestManager> manager)
     {
         authenticatedRequestManager = manager;
@@ -295,11 +295,11 @@ private:
     void ConfigurePlacement();
     void ConfigureBuildReference();
 
-    EDriftConnectionState InternalToPublicState(DriftSessionState internalState) const;
+    static EDriftConnectionState InternalToPublicState(DriftSessionState internalState);
 
-    void BroadcastConnectionStateChange(DriftSessionState internalState);
+    void BroadcastConnectionStateChange(DriftSessionState internalState) const;
 
-    TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
+    static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
 
 private:
     // TODO: deprecate or consolidate with other properties
