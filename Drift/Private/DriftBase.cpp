@@ -2398,7 +2398,9 @@ void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResp
 {
     DRIFT_LOG(Base, Log, TEXT("Re-assigning identity to a different user"));
 
-    FDriftUserIdentityPayload payload{ targetUser.jti, targetUser.user_id };
+    FDriftUserIdentityPayload payload;
+    payload.link_with_user_jti = targetUser.jti;
+    payload.link_with_user_id = targetUser.user_id;
     auto request = GetGameRequestManager()->Post(driftEndpoints.user_identities, payload);
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
