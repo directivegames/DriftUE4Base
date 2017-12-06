@@ -225,7 +225,7 @@ void HttpRequest::LogError(ResponseContext& context)
     if (context.response.IsValid())
     {
         GenericRequestErrorResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
+        if (JsonUtils::ParseResponseNoLog(context.response, response))
         {
             auto code = response.GetErrorCode();
             if (!code.IsEmpty())
@@ -276,7 +276,7 @@ void HttpRequest::LogError(ResponseContext& context)
          * This pattern cannot be static, some internal smart pointer will crash on shutdown.
          * Since it's only used when there's an error, the cost of on-demand creation is acceptable.
          */
-        FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
+        const FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
 
         FString normalizedUrl = wrappedRequest_->GetURL();
         TArray<TSharedPtr<FJsonValue>> params;
@@ -292,8 +292,11 @@ void HttpRequest::LogError(ResponseContext& context)
         }
         
         errorMessage = FString::Printf(TEXT("HTTP request failed: %s %s"), *wrappedRequest_->GetVerb(), *normalizedUrl);
-        
-        error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+
+        if (params.Num() > 0)
+        {
+            error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+        }
     }
     error->SetObjectField("request", requestData);
     IErrorReporter::Get()->AddError(L"LogHttpClient", *errorMessage, error);

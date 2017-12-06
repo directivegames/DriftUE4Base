@@ -42,11 +42,14 @@ public:
     }
     
     bool IsLoading() const;
-    JsonValue& GetValue() { return value; }
+    JsonValue& GetValue() const { return value; }
     
     template<typename T>
     bool SerializeProperty(const wchar_t* propertyName, T& property);
     
+    template<typename T>
+    bool SerializeOptionalProperty(const wchar_t* propertyName, T& property);
+
 private:
     JsonArchive& archive;
     JsonValue& value;
@@ -57,6 +60,7 @@ private:
 * Serialize a named C++ property with the corresponding json value
 */
 #define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(L###propertyName, propertyName)
+#define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(L###propertyName, propertyName)
 
 
 class RAPIDJSON_API JsonArchive
@@ -77,11 +81,17 @@ public:
     template<class T>
     static bool LoadObject(const wchar_t* jsonString, T& object)
     {
+        return LoadObject(jsonString, object, true);
+    }
+
+    template<class T>
+    static bool LoadObject(const wchar_t* jsonString, T& object, bool logErrors)
+    {
         JsonDocument doc;
 
         if (LoadDocument(jsonString, doc))
         {
-            JsonArchive reader(true);
+            JsonArchive reader(true, logErrors);
             return reader.SerializeObject(doc, object);
         }
 
@@ -138,7 +148,7 @@ public:
     {
         auto context = SerializationContext(*this, jValue);
 
-        if (mIsLoading)
+        if (isLoading_)
         {
             if (!jValue.IsObject())
             {
@@ -158,7 +168,7 @@ public:
     SerializeObject(JsonValue& jValue, T& cEnum)
     {
         bool success = false;
-        if (mIsLoading)
+        if (isLoading_)
         {
             if (jValue.IsInt())
             {
@@ -180,7 +190,7 @@ public:
     {
         bool success = false;
         
-        if (mIsLoading)
+        if (isLoading_)
         {
             if (jArray.IsArray())
             {
@@ -194,7 +204,10 @@ public:
                     }
                     else
                     {
-                        UE_LOG(LogDriftJson, Warning, TEXT("Failed to parse array entry: %s"), *ToString(element));
+                        if (logErrors_)
+                        {
+                            UE_LOG(LogDriftJson, Warning, TEXT("Failed to parse array entry: %s"), *ToString(element));
+                        }
                         return false;
                     }
                 }
@@ -211,7 +224,7 @@ public:
                 JsonValue jValue;
                 if (SerializeObject(jValue, elem))
                 {
-                    jArray.PushBack(jValue, mAllocator);
+                    jArray.PushBack(jValue, allocator_);
                 }
             }
             
@@ -229,7 +242,7 @@ public:
     {
         auto context = SerializationContext(*this, jValue);
         
-        if (mIsLoading)
+        if (isLoading_)
         {
             // Loading is not supported
             if (!jValue.IsObject())
@@ -255,7 +268,7 @@ public:
     {
         auto context = SerializationContext(*this, jValue);
         
-        if (mIsLoading)
+        if (isLoading_)
         {
             if (!jValue.IsObject())
             {
@@ -280,7 +293,7 @@ public:
                 JsonValue key, value;
                 if (SerializeObject(key, itr.Key) && SerializeObject(value, itr.Value))
                 {
-                    jValue.AddMember(key, value, mAllocator);
+                    jValue.AddMember(key, value, allocator_);
                 }
             }
         }
@@ -297,11 +310,11 @@ public:
     {
         bool success = false;
         
-        if (mIsLoading)
+        if (isLoading_)
         {
             JsonValue& v = parent[propName];
             success = SerializeObject(v, cValue);
-            if (!success)
+            if (!success && logErrors_)
             {
                 UE_LOG(LogDriftJson, Warning, TEXT("Failed to serialize property: %s from: %s"), propName, *ToString(parent));
             }
@@ -313,56 +326,63 @@ public:
             
             if (success)
             {
-                parent.AddMember(NewValue(propName), value, mAllocator);
+                parent.AddMember(NewValue(propName), value, allocator_);
             }
         }
         
         return success;
     }
     
-    bool IsLoading() const { return mIsLoading; }
+    bool IsLoading() const { return isLoading_; }
     
-    static rapidjson::CrtAllocator& Allocator() { return mAllocator; }
+    static rapidjson::CrtAllocator& Allocator() { return allocator_; }
 
     static JsonValue NewValue(const wchar_t* str)
     {
-        return JsonValue(str, mAllocator);
+        return JsonValue(str, allocator_);
     }
 
     template<typename TValue>
     static void AddMember(JsonValue& parent, const FString& name, const TValue& value)
     {
-        parent.AddMember(JsonValue(*name, name.Len(), mAllocator), JsonValue(value, mAllocator), mAllocator);
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value, allocator_), allocator_);
     }
 
     static void AddMember(JsonValue& parent, const FString& name, float value)
     {
-        parent.AddMember(JsonValue(*name, name.Len(), mAllocator), JsonValue(value), mAllocator);
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
     }
     
     static void AddMember(JsonValue& parent, const FString& name, double value)
     {
-        parent.AddMember(JsonValue(*name, name.Len(), mAllocator), JsonValue(value), mAllocator);
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
     }
     
     static void AddMember(JsonValue& parent, const FString& name, int value)
     {
-        parent.AddMember(JsonValue(*name, name.Len(), mAllocator), JsonValue(value), mAllocator);
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
     }
     
     static void AddMember(JsonValue& parent, const FString& name, JsonValue&& value)
     {
-        parent.AddMember(JsonValue(*name, name.Len(), mAllocator), Forward<JsonValue>(value), mAllocator);
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), Forward<JsonValue>(value), allocator_);
     }
     
 //private:
-    JsonArchive(bool loading):
-    mIsLoading(loading)
+    JsonArchive(bool loading)
+        : isLoading_{ loading }
+        , logErrors_{ true }
+    {}
+
+    JsonArchive(bool loading, bool logErrors)
+        : isLoading_{ loading }
+        , logErrors_{ logErrors }
     {}
 
 private:
-    bool mIsLoading;
-    static rapidjson::CrtAllocator mAllocator;
+    bool isLoading_;
+    static rapidjson::CrtAllocator allocator_;
+    bool logErrors_;
 };
 
 template<>
@@ -408,3 +428,17 @@ bool SerializationContext::SerializeProperty(const wchar_t* propertyName, T& pro
     return archive.SerializeProperty(value, propertyName, property);
 }
 
+
+template<typename T>
+bool SerializationContext::SerializeOptionalProperty(const wchar_t* propertyName, T& property)
+{
+    if (archive.IsLoading())
+    {
+        if (value.HasMember(propertyName))
+        {
+            return archive.SerializeProperty(value, propertyName, property);
+        }
+        return true;
+    }
+    return archive.SerializeProperty(value, propertyName, property);
+}

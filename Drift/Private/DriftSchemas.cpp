@@ -70,10 +70,7 @@ bool FDriftUserInfoResponse::Serialize(SerializationContext &context)
 bool ClientUpgradeResponse::Serialize(SerializationContext &context)
 {
     bool res = SERIALIZE_PROPERTY(context, action);
-#if PLATFORM_IOS
-    // the url is optional, so the result is not checked
-    context.SerializeProperty(TEXT("upgrade_url_ios"), upgrade_url);
-#endif
+    SERIALIZE_OPTIONAL_PROPERTY(context, upgrade_url);
     return  res;
 }
 

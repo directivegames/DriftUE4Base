@@ -1775,24 +1775,6 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
         logForwarder->SetLogsUrl(driftEndpoints.clientlogs);
         onStaticRoutesInitialized.Broadcast();
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
-    {
-        if (context.response.IsValid() && context.response->GetResponseCode() == EHttpResponseCodes::Forbidden)
-        {
-            ClientUpgradeResponse message;
-            if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
-            {
-                context.errorHandled = true;
-                Reset();
-                onGameVersionMismatch.Broadcast(message.upgrade_url);
-                return;
-            }
-        }
-        context.errorHandled = true;
-        Reset();
-        onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
-        return;
-    });
     request->Dispatch();
 }
 
@@ -3223,6 +3205,16 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
     const auto responseCode = context.responseCode;
     if (responseCode >= static_cast<int32>(HttpStatusCodes::FirstClientError) && responseCode <= static_cast<int32>(HttpStatusCodes::LastClientError))
     {
+        ClientUpgradeResponse message;
+        if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
+        {
+            context.errorHandled = true;
+            // Reset instead of disconnect as we know all future calls will fail
+            Reset();
+            onGameVersionMismatch.Broadcast(message.upgrade_url);
+            return;
+        }
+
         GenericRequestErrorResponse response;
         if (JsonUtils::ParseResponse(context.response, response))
         {
