@@ -62,7 +62,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
          * Grab out-of-band debug messages from http response header and display
          * it to the player.
          */
-        auto debug_message = response->GetHeader("Drift-Debug-Message");
+        auto debug_message = response->GetHeader(L"Drift-Debug-Message");
         if (debug_message.Len())
         {
             OnDebugMessage().ExecuteIfBound(debug_message);
@@ -119,6 +119,11 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                     }
                     context.successful = true;
                     OnResponse.ExecuteIfBound(context, doc);
+                    const auto deprecationHeader = response->GetHeader(L"Drift-Feature-Deprecation");
+                    if (!deprecationHeader.IsEmpty())
+                    {
+                        OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
+                    }
                 }
             }
             /**

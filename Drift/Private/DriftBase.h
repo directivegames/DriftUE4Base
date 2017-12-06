@@ -119,7 +119,9 @@ public:
     void FlushEvents() override;
 
     void Shutdown() override;
-    
+
+    const TMap<FString, FDateTime>& GetDeprecations() override;
+
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
     FDriftFriendPresenceChangedDelegate& OnFriendPresenceChanged() override { return onFriendPresenceChanged; }
@@ -140,6 +142,7 @@ public:
     FDriftGameVersionMismatchDelegate& OnGameVersionMismatch() override { return onGameVersionMismatch; }
     FDriftUserErrorDelegate& OnUserError() override { return onUserError; }
     FDriftServerErrorDelegate& OnServerError() override { return onServerError; }
+    FDriftNewDeprecationDelegate OnDeprecation() override { return onDeprecation; }
 
     // Server API
     bool RegisterServer() override;
@@ -225,6 +228,7 @@ private:
     FDriftGameVersionMismatchDelegate onGameVersionMismatch;
     FDriftUserErrorDelegate onUserError;
     FDriftServerErrorDelegate onServerError;
+    FDriftNewDeprecationDelegate onDeprecation;
 
     FDriftServerRegisteredDelegate onServerRegistered;
     FDriftPlayerAddedToMatchDelegate onPlayerAddedToMatch;
@@ -285,6 +289,8 @@ private:
     FString GetPublicIP() const;
 
     void DefaultErrorHandler(ResponseContext& context);
+    void DriftDeprecationMessageHandler(const FString& deprecations);
+    void ParseDeprecation(const FString& deprecation);
 
     TUniquePtr<IDriftAuthProvider> GetDeviceIDCredentials(int32 index);
 
@@ -379,6 +385,9 @@ private:
     TSharedPtr<IDriftAuthProvider> authProvider;
 
     TSharedPtr<IHttpCache> httpCache_;
+
+    TMap<FString, FDateTime> deprecations_;
+    FString previousDeprecationHeader_;
 };
 
 

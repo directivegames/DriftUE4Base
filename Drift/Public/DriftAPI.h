@@ -424,6 +424,8 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
 
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString&, const FDateTime&);
+
 
 class IDriftAPI : public IDriftServerAPI
 {
@@ -636,7 +638,12 @@ public:
      * Shuts down the connection and cleans up any outstanding transactions
      */
     virtual void Shutdown() = 0;
-    
+
+    /**
+     * Get all known feature deprecation dates
+     */
+    virtual const TMap<FString, FDateTime>& GetDeprecations() = 0;
+
     /**
      * Fired when the player finishes authenticating.
      */
@@ -707,7 +714,11 @@ public:
      * Fired when the server experiences an internal error, or is busy, due to no fault of the user.
      */
     virtual FDriftServerErrorDelegate& OnServerError() = 0;
-    
+    /**
+     * Fired when the server gets a deprecation notification from the backend.
+     */
+    virtual FDriftNewDeprecationDelegate OnDeprecation() = 0;
+
     virtual ~IDriftAPI() {}
 };
 

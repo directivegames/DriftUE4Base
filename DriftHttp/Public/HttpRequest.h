@@ -56,7 +56,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHttpClient, Log, All);
 
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FShouldRetryDelegate, FHttpRequestPtr, FHttpResponsePtr);
-DECLARE_DELEGATE_OneParam(FOnDebugMessageDelegate, FString);
+DECLARE_DELEGATE_OneParam(FOnDebugMessageDelegate, const FString&);
+DECLARE_DELEGATE_OneParam(FOnDriftDeprecationMessageDelegate, const FString&);
 
 
 class ResponseContext
@@ -108,7 +109,7 @@ public:
 
     /** Return the delegate called when the server returns debug headers */
     FOnDebugMessageDelegate& OnDebugMessage() { return onDebugMessage_; }
-    
+
     /**
      * Dispatch the request for processing
      * The request may be sent over the wire immediately, or queued by the request manager
@@ -144,7 +145,8 @@ public:
     FRequestErrorDelegate DefaultErrorHandler;
     FUnhandledErrorDelegate OnUnhandledError;
     FResponseRecievedDelegate OnResponse;
-    
+    FOnDriftDeprecationMessageDelegate OnDriftDeprecationMessage;
+
     FProcessResponseDelegate ProcessResponse;
 
     FDispatchRequestDelegate OnDispatch;
