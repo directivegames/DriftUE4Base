@@ -88,7 +88,7 @@ public:
     /**
      * For a match to show up in Drift match making, it needs to be registered.
      */
-    virtual void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players) = 0;
+    virtual void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) = 0;
     
     /**
     * Update a server to set it's status for the match maker.
@@ -109,25 +109,25 @@ public:
      * Register a player with the current match. This lets the backend know the player has
      * successfully connected to the match.
      */
-    virtual void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) = 0;
+    virtual void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) = 0;
     
     /**
      * Remove a player from the current match. This should be done if the player disconnects,
      * but the match isn't ending. When the match is set to "completed", players are automatically removed.
      */
-    virtual void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) = 0;
+    virtual void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) = 0;
     
     /**
      * Modify a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.
      */
-    virtual void ModifyPlayerCounter(int32 player_id, const FString& counter_name, float value, bool absolute) = 0;
+    virtual void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) = 0;
     
     /**
      * Get a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.
      */
-    virtual bool GetPlayerCounter(int32 player_id, const FString& counter_name, float& value) = 0;
+    virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) = 0;
     
     /**
      * Server Specific Notifications
@@ -147,8 +147,9 @@ public:
 
 struct FActiveMatch
 {
-    int32 match_id;
-    int32 num_players;
+    int32 match_id{ 0 };
+    int32 max_players{ 0 };
+    int32 num_players{ 0 };
 
     FDateTime create_date;
     FString game_mode;
@@ -157,8 +158,15 @@ struct FActiveMatch
     FString server_status;
     FString ue4_connection_url;
     FString version;
-    
-    FString matchplayers_url;
+};
+
+
+struct FMatchQueueMatch
+{
+    int32 match_id;
+
+    FDateTime create_date;
+    FString ue4_connection_url;
 };
 
 
@@ -172,7 +180,7 @@ struct FMatchesSearch
 struct FMatchQueueStatus
 {
     FName status;
-    FActiveMatch match;
+    FMatchQueueMatch match;
 };
 
 
@@ -511,17 +519,17 @@ public:
     /**
      * Update a counter for the currently authenticated player.
      */
-    virtual void AddCount(const FString& counter_name, float value, bool absolute) = 0;
+    virtual void AddCount(const FString& counterName, float value, bool absolute) = 0;
     
     /**
      * Return the value of a counter for the currently authenticated player.
      */
-    virtual bool GetCount(const FString& counter_name, float& value) = 0;
+    virtual bool GetCount(const FString& counterName, float& value) = 0;
     
     /**
      * Post an event for the metrics system
      */
-    virtual void AddAnalyticsEvent(const FString& event_name, const TArray<FAnalyticsEventAttribute>& attributes) = 0;
+    virtual void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) = 0;
     
     /**
      * Post an event for the metrics system
@@ -555,18 +563,18 @@ public:
     virtual void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) = 0;
 
     /**
-     * Get the global top leaderboard for counter_name. Requires an authenticated player.
+     * Get the global top leaderboard for counterName. Requires an authenticated player.
      * Returns data in the passed in leaderboard struct
      * Fires delegate when finished
      */
-    virtual void GetLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
+    virtual void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
 
     /**
-     * Get the top leaderboard for counter_name filtered on the authenticated player's friends.
+     * Get the top leaderboard for counterName filtered on the authenticated player's friends.
      * Returns data in the passed in leaderboard struct
      * Fires delegate when finished
      */
-    virtual void GetFriendsLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
+    virtual void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
     
     /**
      * Read the friends list

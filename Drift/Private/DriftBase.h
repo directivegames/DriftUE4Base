@@ -61,7 +61,7 @@ class IDriftAuthProvider;
 class FDriftBase : public IDriftAPI, public FTickableGameObject
 {
 public:
-    FDriftBase(TSharedPtr<IHttpCache> cache, const FName& instanceName, int32 instanceIndex);
+    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex);
     FDriftBase(const FDriftBase& other) = delete;
     virtual ~FDriftBase();
 
@@ -86,14 +86,14 @@ public:
     void PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate) override;
     void ResetMatchQueue() override;
     EMatchQueueState GetMatchQueueState() const override;
-    void InvitePlayerToMatch(int32 playerId, const FDriftJoinedMatchQueueDelegate& delegate) override;
+    void InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueueDelegate& delegate) override;
     void JoinMatch(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
     void AcceptMatchInvite(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
 
-    void AddCount(const FString& counter_name, float value, bool absolute) override;
-    bool GetCount(const FString& counter_name, float& value) override;
+    void AddCount(const FString& counterName, float value, bool absolute) override;
+    bool GetCount(const FString& counterName, float& value) override;
 
-    void AddAnalyticsEvent(const FString& event_name, const TArray<FAnalyticsEventAttribute>& attributes) override;
+    void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) override;
     void AddAnalyticsEvent(TUniquePtr<IDriftEvent> event) override;
 
     void LoadStaticData(const FString& name, const FString& ref) override;
@@ -103,8 +103,8 @@ public:
     void LoadPlayerGameState(const FString& name, const FDriftGameStateLoadedDelegate& delegate) override;
     void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) override;
 
-    void GetLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
-    void GetFriendsLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
+    void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
+    void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
 
     void LoadFriendsList(const FDriftFriendsListLoadedDelegate& delegate) override;
     void UpdateFriendsList() override;
@@ -144,14 +144,14 @@ public:
     // Server API
     bool RegisterServer() override;
     
-    void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players) override;
+    void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
-    void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) override;
-    void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) override;
-    void ModifyPlayerCounter(int32 player_id, const FString& counter_name, float value, bool absolute) override;
-    bool GetPlayerCounter(int32 player_id, const FString& counter_name, float& value) override;
+    void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
+    void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
+    void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
+    bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
     
     FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
     FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
@@ -191,7 +191,7 @@ private:
     void InitServerRootInfo();
     void InitServerAuthentication();
     void InitServerRegistration();
-    void InitServerInfo(const FString& server_url);
+    void InitServerInfo(const FString& serverUrl);
 
     /**
      * Disconnect the player if connected, flush counters and events, and reset the internal state.
@@ -232,8 +232,8 @@ private:
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
     
-    TSharedPtr<JsonRequestManager> GetRootRequestManager();
-    TSharedPtr<JsonRequestManager> GetGameRequestManager();
+    TSharedPtr<JsonRequestManager> GetRootRequestManager() const;
+    TSharedPtr<JsonRequestManager> GetGameRequestManager() const;
     void SetGameRequestManager(TSharedPtr<JsonRequestManager> manager)
     {
         authenticatedRequestManager = manager;
@@ -243,9 +243,9 @@ private:
     void TickMatchInvites();
     void TickFriendUpdates(float deltaTime);
 
-    void BeginGetFriendLeaderboard(const FString& counter_name, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate);
-    void BeginGetLeaderboard(const FString& counter_name, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& player_group, const FDriftLeaderboardLoadedDelegate& delegate);
-    void GetLeaderboardImpl(const FString& counter_name, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& player_group, const FDriftLeaderboardLoadedDelegate& delegate);
+    void BeginGetFriendLeaderboard(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate);
+    void BeginGetLeaderboard(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& playerGroup, const FDriftLeaderboardLoadedDelegate& delegate);
+    void GetLeaderboardImpl(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& playerGroup, const FDriftLeaderboardLoadedDelegate& delegate);
 
     void LoadPlayerGameStateImpl(const FString& name, const FDriftGameStateLoadedDelegate& delegate);
     void SavePlayerGameStateImpl(const FString& name, const FString& state, const FDriftGameStateSavedDelegate& delegate);
@@ -265,14 +265,14 @@ private:
     void CreateLogForwarder();
     void CreateMessageQueue();
 
-    void CachePlayerInfo(int32 player_id);
+    void CachePlayerInfo(int32 playerID);
 
     void LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegate);
     void MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegate);
     void CacheFriendInfos(const TFunction<void(bool)>& delegate);
     void UpdateFriendOnlineInfos();
 
-    const FDriftPlayerResponse* GetFriendInfo(int32 player_id) const;
+    const FDriftPlayerResponse* GetFriendInfo(int32 playerID) const;
 
     /**
      * Return the instance name to use for the server process
@@ -290,16 +290,16 @@ private:
 
     FString GetApiKeyHeader() const;
 
-    const FDriftCounterInfo* GetCounterInfo(const FString& counter_name) const;
+    const FDriftCounterInfo* GetCounterInfo(const FString& counterName) const;
 
     void ConfigurePlacement();
     void ConfigureBuildReference();
 
-    EDriftConnectionState InternalToPublicState(DriftSessionState internalState) const;
+    static EDriftConnectionState InternalToPublicState(DriftSessionState internalState);
 
-    void BroadcastConnectionStateChange(DriftSessionState internalState);
+    void BroadcastConnectionStateChange(DriftSessionState internalState) const;
 
-    TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
+    static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
 
 private:
     // TODO: deprecate or consolidate with other properties
