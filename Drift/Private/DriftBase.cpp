@@ -758,6 +758,22 @@ void FDriftBase::AuthenticatePlayer()
         return;
     }
 
+    FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
+    if (!cli.jti.IsEmpty())
+    {
+        GetRootEndpoints([this]()
+        {
+            TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(cli.jti));
+            manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+            manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
+            manager->SetApiKey(GetApiKeyHeader());
+            manager->SetCache(httpCache_);
+            SetGameRequestManager(manager);
+            GetUserInfo();
+        });
+        return;
+    }
+
     FString credentialType;
     FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
     if (credentialType.IsEmpty())
