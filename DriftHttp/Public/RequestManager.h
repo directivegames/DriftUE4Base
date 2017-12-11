@@ -85,6 +85,8 @@ public:
      */
     FUnhandledErrorDelegate DefaultUnhandledErrorHandler;
 
+    FOnDriftDeprecationMessageDelegate DefaultDriftDeprecationMessageHandler;
+
 protected:
     friend class HttpRequest;
 

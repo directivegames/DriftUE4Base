@@ -60,6 +60,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
 , httpCache_(cache)
 {
     GetRootRequestManager()->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+    GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
     GConfig->GetString(settingsSection, TEXT("ApiKey"), apiKey, GGameIni);
     GConfig->GetString(settingsSection, TEXT("ProjectName"), projectName, GGameIni);
@@ -299,6 +300,12 @@ void FDriftBase::Shutdown()
 }
 
 
+const TMap<FString, FDateTime>& FDriftBase::GetDeprecations()
+{
+    return deprecations_;
+}
+
+
 void FDriftBase::Disconnect()
 {
     const auto oldState = state_;
@@ -399,6 +406,9 @@ void FDriftBase::Reset()
     playerGameStateInfosLoaded = false;
     userIdentitiesLoaded = false;
     shouldUpdateFriends = false;
+
+    deprecations_.Empty();
+    previousDeprecationHeader_.Empty();
 }
 
 
@@ -1775,24 +1785,6 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
         logForwarder->SetLogsUrl(driftEndpoints.clientlogs);
         onStaticRoutesInitialized.Broadcast();
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
-    {
-        if (context.response.IsValid() && context.response->GetResponseCode() == EHttpResponseCodes::Forbidden)
-        {
-            ClientUpgradeResponse message;
-            if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
-            {
-                context.errorHandled = true;
-                Reset();
-                onGameVersionMismatch.Broadcast(message.upgrade_url);
-                return;
-            }
-        }
-        context.errorHandled = true;
-        Reset();
-        onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
-        return;
-    });
     request->Dispatch();
 }
 
@@ -1898,6 +1890,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
 
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
@@ -1997,6 +1990,7 @@ void FDriftBase::RegisterClient()
         heartbeatDueInSeconds_ = driftClient.next_heartbeat_seconds;
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(driftClient.jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
@@ -2214,6 +2208,7 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
 
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
         secondaryIdentityRequestManager_ = manager;
 
@@ -2398,7 +2393,9 @@ void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResp
 {
     DRIFT_LOG(Base, Log, TEXT("Re-assigning identity to a different user"));
 
-    FDriftUserIdentityPayload payload{ targetUser.jti, targetUser.user_id };
+    FDriftUserIdentityPayload payload;
+    payload.link_with_user_jti = targetUser.jti;
+    payload.link_with_user_id = targetUser.user_id;
     auto request = GetGameRequestManager()->Post(driftEndpoints.user_identities, payload);
     request->OnResponse.BindLambda([this, progressDelegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -2470,6 +2467,7 @@ void FDriftBase::InitServerAuthentication()
     {
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(cli.jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
@@ -2511,6 +2509,7 @@ void FDriftBase::InitServerAuthentication()
 
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
@@ -3221,6 +3220,16 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
     const auto responseCode = context.responseCode;
     if (responseCode >= static_cast<int32>(HttpStatusCodes::FirstClientError) && responseCode <= static_cast<int32>(HttpStatusCodes::LastClientError))
     {
+        ClientUpgradeResponse message;
+        if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
+        {
+            context.errorHandled = true;
+            // Reset instead of disconnect as we know all future calls will fail
+            Reset();
+            onGameVersionMismatch.Broadcast(message.upgrade_url);
+            return;
+        }
+
         GenericRequestErrorResponse response;
         if (JsonUtils::ParseResponse(context.response, response))
         {
@@ -3263,6 +3272,56 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
     else
     {
         // No repsonse at all, and no error code
+    }
+}
+
+
+void FDriftBase::DriftDeprecationMessageHandler(const FString& deprecations)
+{
+    if (deprecations == previousDeprecationHeader_)
+    {
+        return;
+    }
+
+    previousDeprecationHeader_ = deprecations;
+    FString deprecation;
+    FString remaining = deprecations;
+    while (remaining.Split(TEXT(","), &deprecation, &remaining))
+    {
+        ParseDeprecation(deprecation);
+    }
+    ParseDeprecation(remaining);
+}
+
+
+void FDriftBase::ParseDeprecation(const FString& deprecation)
+{
+    FString feature;
+    FString deprecationDateString;
+    if (deprecation.Split(TEXT("@"), &feature, &deprecationDateString))
+    {
+        FDateTime deprecationDate;
+        if (FDateTime::ParseIso8601(*deprecationDateString, deprecationDate))
+        {
+            auto& entry = deprecations_.FindOrAdd(feature);
+            if (entry == deprecationDate)
+            {
+                return;
+            }
+            entry = deprecationDate;
+
+            DRIFT_LOG(Base, Log, TEXT("Got new feature deprecation: %s by %s"), *feature, *entry.ToString());
+
+            onDeprecation.Broadcast(feature, deprecationDate);
+        }
+        else
+        {
+            DRIFT_LOG(Base, Warning, TEXT("Failed to parse deprecation date for feature: %s"), *feature);
+        }
+    }
+    else
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Failed to locate deprecation date for feature: %s"), *feature);
     }
 }
 

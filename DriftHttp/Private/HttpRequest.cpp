@@ -62,7 +62,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
          * Grab out-of-band debug messages from http response header and display
          * it to the player.
          */
-        auto debug_message = response->GetHeader("Drift-Debug-Message");
+        auto debug_message = response->GetHeader(L"Drift-Debug-Message");
         if (debug_message.Len())
         {
             OnDebugMessage().ExecuteIfBound(debug_message);
@@ -119,6 +119,11 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                     }
                     context.successful = true;
                     OnResponse.ExecuteIfBound(context, doc);
+                    const auto deprecationHeader = response->GetHeader(L"Drift-Feature-Deprecation");
+                    if (!deprecationHeader.IsEmpty())
+                    {
+                        OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
+                    }
                 }
             }
             /**
@@ -225,7 +230,7 @@ void HttpRequest::LogError(ResponseContext& context)
     if (context.response.IsValid())
     {
         GenericRequestErrorResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
+        if (JsonUtils::ParseResponseNoLog(context.response, response))
         {
             auto code = response.GetErrorCode();
             if (!code.IsEmpty())
@@ -276,7 +281,7 @@ void HttpRequest::LogError(ResponseContext& context)
          * This pattern cannot be static, some internal smart pointer will crash on shutdown.
          * Since it's only used when there's an error, the cost of on-demand creation is acceptable.
          */
-        FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
+        const FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
 
         FString normalizedUrl = wrappedRequest_->GetURL();
         TArray<TSharedPtr<FJsonValue>> params;
@@ -292,8 +297,11 @@ void HttpRequest::LogError(ResponseContext& context)
         }
         
         errorMessage = FString::Printf(TEXT("HTTP request failed: %s %s"), *wrappedRequest_->GetVerb(), *normalizedUrl);
-        
-        error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+
+        if (params.Num() > 0)
+        {
+            error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+        }
     }
     error->SetObjectField("request", requestData);
     IErrorReporter::Get()->AddError(L"LogHttpClient", *errorMessage, error);

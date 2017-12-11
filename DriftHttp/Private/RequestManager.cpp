@@ -133,6 +133,7 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 
     wrapper->DefaultErrorHandler = DefaultErrorHandler;
     wrapper->OnUnhandledError = DefaultUnhandledErrorHandler;
+    wrapper->OnDriftDeprecationMessage = DefaultDriftDeprecationMessageHandler;
 
     wrapper->SetCache(cache_);
 
