@@ -379,7 +379,7 @@ bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring&
 {
 	bool success = false;
 
-	if (mIsLoading)
+	if (IsLoading())
 	{
 		if (jValue.IsString())
 		{
@@ -393,7 +393,7 @@ bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring&
 	}
 	else
 	{
-		jValue.SetString(cValue.c_str(), mAllocator);
+		jValue.SetString(cValue.c_str(), Allocator());
 		success = true;
 	}
 

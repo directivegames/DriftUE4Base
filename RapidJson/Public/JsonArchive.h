@@ -276,7 +276,7 @@ public:
 	{
 		bool success = false;
 
-		if (mIsLoading)
+		if (IsLoading())
 		{
 			cValue.clear();
 			if (jArray.IsArray())
@@ -296,14 +296,14 @@ public:
 		else
 		{
 			jArray.SetArray();
-			jArray.Reserve(cValue.size(), mAllocator);
+			jArray.Reserve(cValue.size(), Allocator());
 
 			for (auto& elem : cValue)
 			{
 				JsonValue jValue;
 				if (SerializeObject(jValue, elem))
 				{
-					jArray.PushBack(jValue, mAllocator);
+					jArray.PushBack(jValue, Allocator());
 				}
 			}
 
@@ -388,7 +388,7 @@ public:
 	{
 		auto context = SerializationContext(*this, jValue);
 
-		if (mIsLoading)
+		if (IsLoading())
 		{
 			cValue.clear();
 			if (!jValue.IsObject())
@@ -414,7 +414,7 @@ public:
 				JsonValue key, value;
 				if (SerializeObject(key, (TKey&)itr.first) && SerializeObject(value, (TValue&)itr.second))
 				{
-					jValue.AddMember(key, value, mAllocator);
+					jValue.AddMember(key, value, Allocator());
 				}
 			}
 		}
@@ -430,7 +430,7 @@ public:
 	{
 		auto context = SerializationContext(*this, jValue);
 
-		if (mIsLoading)
+		if (IsLoading())
 		{
 			if (!jValue.IsObject())
 			{
@@ -457,7 +457,7 @@ public:
 	{
 		auto context = SerializationContext(*this, jValue);
 
-		if (mIsLoading)
+		if (IsLoading())
 		{
 			if (!jValue.IsObject())
 			{
@@ -551,17 +551,17 @@ public:
 	{
 		if (parent.HasMember(name.c_str()))
 		{
-			parent[name.c_str()].CopyFrom(value, mAllocator);
+			parent[name.c_str()].CopyFrom(value, Allocator());
 		}
 		else
 		{
-			parent.AddMember(JsonValue(name.c_str(), name.length(), mAllocator), JsonValue(value, mAllocator), mAllocator);
+			parent.AddMember(JsonValue(name.c_str(), name.length(), Allocator()), JsonValue(value, Allocator()), Allocator());
 		}
 	}
 
 	static void AddMember(JsonValue& parent, const std::wstring& name, const wchar_t* value)
 	{
-		AddMember(parent, name, JsonValue(value, mAllocator));
+		AddMember(parent, name, JsonValue(value, Allocator()));
 	}
 
 	template<typename TValue>
