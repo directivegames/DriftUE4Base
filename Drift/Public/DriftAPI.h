@@ -97,7 +97,7 @@ public:
     /**
      * For a match to show up in Drift match making, it needs to be registered.
      */
-    virtual void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players) = 0;
+    virtual void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) = 0;
     virtual void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players, const FDriftOnMatchAddedDelegate& delegate) = 0;
 
     /**
@@ -109,7 +109,7 @@ public:
      * Update a match to set it's status for the match maker. A status of "completed" means the match has ended.
      */
     virtual void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
-    virtual void UpdateMatch(int32 match_id, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
+    virtual void UpdateMatch(int32 matchID, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
 
     /**
      * Get the match ID if currently hosting a match, or 0.
@@ -119,33 +119,33 @@ public:
     /**
     * Get the team ID for the given team index if currently hosting a match, or 0.
     */
-    virtual int32 GetTeamID(int32 match_id, int32 team_index) const = 0;
+    virtual int32 GetTeamID(int32 matchID, int32 teamIndex) const = 0;
 
     /**
      * Register a player with the current match. This lets the backend know the player has
      * successfully connected to the match.
      */
-    virtual void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) = 0;
-    virtual void AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id, const FDriftPlayerAddedDelegate& delegate) = 0;
+    virtual void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) = 0;
+    virtual void AddPlayerToMatch(int32 matchID, int32 teamID, int32 playerID, const FDriftPlayerAddedDelegate& delegate) = 0;
 
     /**
      * Remove a player from the current match. This should be done if the player disconnects,
      * but the match isn't ending. When the match is set to "completed", players are automatically removed.
      */
-    virtual void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) = 0;
-    virtual void RemovePlayerFromMatch(int32 match_id, int32 player_id, const FDriftPlayerRemovedDelegate& delegate) = 0;
+    virtual void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) = 0;
+    virtual void RemovePlayerFromMatch(int32 matchID, int32 playerID, const FDriftPlayerRemovedDelegate& delegate) = 0;
 
     /**
      * Modify a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.
      */
-    virtual void ModifyPlayerCounter(int32 player_id, const FString& counter_name, float value, bool absolute) = 0;
+    virtual void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) = 0;
     
     /**
      * Get a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.
      */
-    virtual bool GetPlayerCounter(int32 player_id, const FString& counter_name, float& value) = 0;
+    virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) = 0;
     
     /**
      * Server Specific Notifications
@@ -165,8 +165,9 @@ public:
 
 struct FActiveMatch
 {
-    int32 match_id;
-    int32 num_players;
+    int32 match_id{ 0 };
+    int32 max_players{ 0 };
+    int32 num_players{ 0 };
 
     FDateTime create_date;
     FString game_mode;
@@ -175,8 +176,15 @@ struct FActiveMatch
     FString server_status;
     FString ue4_connection_url;
     FString version;
-    
-    FString matchplayers_url;
+};
+
+
+struct FMatchQueueMatch
+{
+    int32 match_id;
+
+    FDateTime create_date;
+    FString ue4_connection_url;
 };
 
 
@@ -190,7 +198,7 @@ struct FMatchesSearch
 struct FMatchQueueStatus
 {
     FName status;
-    FActiveMatch match;
+    FMatchQueueMatch match;
 };
 
 
@@ -258,6 +266,7 @@ struct FPlayerAuthenticatedInfo
 struct FDriftLeaderboardEntry
 {
     FString player_name;
+    int32 player_id;
     float value;
     int32 position;
 };
@@ -288,11 +297,20 @@ enum class EDriftPresence : uint8
 };
 
 
+UENUM(BlueprintType)
+enum class EDriftFriendType : uint8
+{
+    Drift,
+    External
+};
+
+
 struct FDriftFriend
 {
     int32 playerID;
     FString name;
     EDriftPresence presence;
+    EDriftFriendType type;
 };
 
 
@@ -330,6 +348,13 @@ enum class EDriftConnectionState : uint8
 };
 
 
+enum class EPlayerIdentityAssignOption : uint8
+{
+    DoNotAssignIdentityToUser,
+    AssignIdentityToExistingUser
+};
+
+
 enum class EPlayerIdentityOverrideOption : uint8
 {
     DoNotOverrideExistingUserAssociation,
@@ -337,15 +362,42 @@ enum class EPlayerIdentityOverrideOption : uint8
 };
 
 
-enum class EAddPlayerIdentityResult : uint8
+enum class EAddPlayerIdentityStatus : uint8
 {
-    Success,
+    Unknown,
+    Success_NewIdentityAddedToExistingUser,
+    Success_NoChange,
+    Success_OldIdentityMovedToNewUser,
+    Progress_IdentityCanBeAssociatedWithUser,
     Progress_IdentityAssociatedWithOtherUser,
     Error_FailedToAquireCredentials,
     Error_FailedToAuthenticate,
-    Error_FailedToBindNewIdentity,
+    Error_FailedToReAssignOldIdentity,
     Error_UserAlreadyBoundToSameIdentityType,
     Error_Failed
+};
+
+
+DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityAssignContinuationDelegate, EPlayerIdentityAssignOption);
+DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityOverrideContinuationDelegate, EPlayerIdentityOverrideOption);
+
+
+struct FDriftAddPlayerIdentityProgress
+{
+    FDriftAddPlayerIdentityProgress()
+    : FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus::Unknown)
+    {}
+
+    FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus inStatus)
+    : status{inStatus}
+    {}
+
+    EAddPlayerIdentityStatus status;
+    FString localUserPlayerName;
+    FString newIdentityName;
+    FString newIdentityUserPlayerName;
+    FDriftPlayerIdentityAssignContinuationDelegate assignDelegate;
+    FDriftPlayerIdentityOverrideContinuationDelegate overrideDelegate;
 };
 
 
@@ -362,10 +414,13 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, c
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
+DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
+DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
-DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityContinuationDelegate, EPlayerIdentityOverrideOption);
-DECLARE_DELEGATE_TwoParams(FDriftAddPlayerIdentityProgressDelegate, EAddPlayerIdentityResult, const FDriftPlayerIdentityContinuationDelegate&);
+DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftGameVersionMismatchDelegate, const FString&);
 
@@ -382,7 +437,12 @@ DECLARE_DELEGATE_TwoParams(FDriftPolledMatchQueueDelegate, bool, const FMatchQue
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftRecievedMatchInviteDelegate, const FMatchInvite&);
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendAddedDelegate, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
+
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString&, const FDateTime&);
 
 
 class IDriftAPI : public IDriftServerAPI
@@ -479,17 +539,17 @@ public:
     /**
      * Update a counter for the currently authenticated player.
      */
-    virtual void AddCount(const FString& counter_name, float value, bool absolute) = 0;
+    virtual void AddCount(const FString& counterName, float value, bool absolute) = 0;
     
     /**
      * Return the value of a counter for the currently authenticated player.
      */
-    virtual bool GetCount(const FString& counter_name, float& value) = 0;
+    virtual bool GetCount(const FString& counterName, float& value) = 0;
     
     /**
      * Post an event for the metrics system
      */
-    virtual void AddAnalyticsEvent(const FString& event_name, const TArray<FAnalyticsEventAttribute>& attributes) = 0;
+    virtual void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) = 0;
     
     /**
      * Post an event for the metrics system
@@ -523,18 +583,18 @@ public:
     virtual void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) = 0;
 
     /**
-     * Get the global top leaderboard for counter_name. Requires an authenticated player.
+     * Get the global top leaderboard for counterName. Requires an authenticated player.
      * Returns data in the passed in leaderboard struct
      * Fires delegate when finished
      */
-    virtual void GetLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
+    virtual void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
 
     /**
-     * Get the top leaderboard for counter_name filtered on the authenticated player's friends.
+     * Get the top leaderboard for counterName filtered on the authenticated player's friends.
      * Returns data in the passed in leaderboard struct
      * Fires delegate when finished
      */
-    virtual void GetFriendsLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
+    virtual void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
     
     /**
      * Read the friends list
@@ -558,7 +618,21 @@ public:
      */
     virtual FString GetFriendName(int32 friendID) = 0;
 
-	/**
+    /**
+     * Request a friend request token to be sent to a friend via external means
+     */
+    virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+    /**
+     * Accept a friend request via an external token
+     */
+    virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+    /**
+     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
+     * Only supported for friends managed through Drift, i.e. with Type == EDriftFriendType::Drift
+     */
+    virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) = 0;
+
+    /**
 	* Load the avatar url of the currently logged in player
 	* Fires delegate when finished
 	*/
@@ -582,7 +656,12 @@ public:
      * Shuts down the connection and cleans up any outstanding transactions
      */
     virtual void Shutdown() = 0;
-    
+
+    /**
+     * Get all known feature deprecation dates
+     */
+    virtual const TMap<FString, FDateTime>& GetDeprecations() = 0;
+
     /**
      * Fired when the player finishes authenticating.
      */
@@ -621,6 +700,16 @@ public:
     virtual FDriftStaticDataProgressDelegate& OnStaticDataProgress() = 0;
     virtual FDriftGotActiveMatchesDelegate& OnGotActiveMatches() = 0;
     virtual FDriftPlayerNameSetDelegate& OnPlayerNameSet() = 0;
+
+    /**
+     * Fired when another player has accepted a friend request.
+     */
+    virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
+    /**
+     * Fired when a friend has terminated the friendship.
+     */
+    virtual FDriftFriendRemovedDelegate& OnFriendRemoved() = 0;
+
     /**
      * Fired when the root endpoints have been aquired. The user is not yet
      * authenticated at this point.
@@ -643,7 +732,11 @@ public:
      * Fired when the server experiences an internal error, or is busy, due to no fault of the user.
      */
     virtual FDriftServerErrorDelegate& OnServerError() = 0;
-    
+    /**
+     * Fired when the server gets a deprecation notification from the backend.
+     */
+    virtual FDriftNewDeprecationDelegate OnDeprecation() = 0;
+
     virtual ~IDriftAPI() {}
 };
 

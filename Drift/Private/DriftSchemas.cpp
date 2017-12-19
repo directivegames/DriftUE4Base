@@ -33,8 +33,10 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, static_data)
         && SERIALIZE_PROPERTY(context, user_identities)
         && SERIALIZE_PROPERTY(context, users)
+        && SERIALIZE_PROPERTY(context, friend_invites)
 
         // Optional
+        && SERIALIZE_PROPERTY(context, my_friends)
         && SERIALIZE_PROPERTY(context, my_gamestate)
         && SERIALIZE_PROPERTY(context, my_gamestates)
         && SERIALIZE_PROPERTY(context, my_messages)
@@ -68,10 +70,7 @@ bool FDriftUserInfoResponse::Serialize(SerializationContext &context)
 bool ClientUpgradeResponse::Serialize(SerializationContext &context)
 {
     bool res = SERIALIZE_PROPERTY(context, action);
-#if PLATFORM_IOS
-    // the url is optional, so the result is not checked
-    context.SerializeProperty(TEXT("upgrade_url_ios"), upgrade_url);
-#endif
+    SERIALIZE_OPTIONAL_PROPERTY(context, upgrade_url);
     return  res;
 }
 
@@ -300,7 +299,8 @@ bool FDriftCreatePlayerGroupResponse::Serialize(SerializationContext &context)
 
 bool FDriftLeaderboardResponseItem::Serialize(SerializationContext& context)
 {
-    return SERIALIZE_PROPERTY(context, player_name)
+    return SERIALIZE_PROPERTY(context, player_id)
+        && SERIALIZE_PROPERTY(context, player_name)
         && SERIALIZE_PROPERTY(context, total)
         && SERIALIZE_PROPERTY(context, position);
 }
@@ -445,4 +445,12 @@ bool FDriftUserIdentityPayload::Serialize(SerializationContext & context)
 {
     return SERIALIZE_PROPERTY(context, link_with_user_jti)
         && SERIALIZE_PROPERTY(context, link_with_user_id);
+}
+
+
+bool FDriftFriendResponse::Serialize(SerializationContext& context)
+{
+    return SERIALIZE_PROPERTY(context, friend_id)
+        && SERIALIZE_PROPERTY(context, player_url)
+        && SERIALIZE_PROPERTY(context, friendship_url);
 }

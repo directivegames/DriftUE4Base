@@ -61,7 +61,7 @@ class IDriftAuthProvider;
 class FDriftBase : public IDriftAPI, public FTickableGameObject
 {
 public:
-    FDriftBase(TSharedPtr<IHttpCache> cache, const FName& instanceName, int32 instanceIndex);
+    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex);
     FDriftBase(const FDriftBase& other) = delete;
     virtual ~FDriftBase();
 
@@ -86,14 +86,14 @@ public:
     void PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate) override;
     void ResetMatchQueue() override;
     EMatchQueueState GetMatchQueueState() const override;
-    void InvitePlayerToMatch(int32 playerId, const FDriftJoinedMatchQueueDelegate& delegate) override;
+    void InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueueDelegate& delegate) override;
     void JoinMatch(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
     void AcceptMatchInvite(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
 
-    void AddCount(const FString& counter_name, float value, bool absolute) override;
-    bool GetCount(const FString& counter_name, float& value) override;
+    void AddCount(const FString& counterName, float value, bool absolute) override;
+    bool GetCount(const FString& counterName, float& value) override;
 
-    void AddAnalyticsEvent(const FString& event_name, const TArray<FAnalyticsEventAttribute>& attributes) override;
+    void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) override;
     void AddAnalyticsEvent(TUniquePtr<IDriftEvent> event) override;
 
     void LoadStaticData(const FString& name, const FString& ref) override;
@@ -103,20 +103,25 @@ public:
     void LoadPlayerGameState(const FString& name, const FDriftGameStateLoadedDelegate& delegate) override;
     void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) override;
 
-    void GetLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
-    void GetFriendsLeaderboard(const FString& counter_name, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
+    void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
+    void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
 
     void LoadFriendsList(const FDriftFriendsListLoadedDelegate& delegate) override;
     void UpdateFriendsList() override;
     bool GetFriendsList(TArray<FDriftFriend>& friends) override;
     FString GetFriendName(int32 friendID) override;
+    bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) override;
+    bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
+    bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
     void FlushCounters() override;
     void FlushEvents() override;
 
     void Shutdown() override;
-    
+
+    const TMap<FString, FDateTime>& GetDeprecations() override;
+
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
     FDriftFriendPresenceChangedDelegate& OnFriendPresenceChanged() override { return onFriendPresenceChanged; }
@@ -128,28 +133,33 @@ public:
     FDriftPlayerGameStateSavedDelegate& OnPlayerGameStateSaved() { return onPlayerGameStateSaved; }
     FDriftGotActiveMatchesDelegate& OnGotActiveMatches() override { return onGotActiveMatches; }
     FDriftPlayerNameSetDelegate& OnPlayerNameSet() override { return onPlayerNameSet; }
+
+    FDriftFriendAddedDelegate& OnFriendAdded() override { return onFriendAdded;  }
+    FDriftFriendRemovedDelegate& OnFriendRemoved() override { return onFriendRemoved; }
+
     FDriftStaticRoutesInitializedDelegate& OnStaticRoutesInitialized() override { return onStaticRoutesInitialized; }
     FDriftPlayerDisconnectedDelegate& OnPlayerDisconnected() override { return onPlayerDisconnected; }
     FDriftGameVersionMismatchDelegate& OnGameVersionMismatch() override { return onGameVersionMismatch; }
     FDriftUserErrorDelegate& OnUserError() override { return onUserError; }
     FDriftServerErrorDelegate& OnServerError() override { return onServerError; }
+    FDriftNewDeprecationDelegate OnDeprecation() override { return onDeprecation; }
 
     // Server API
     bool RegisterServer() override;
     
-    void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players) override;
-    void AddMatch(const FString& map_name, const FString& game_mode, int32 num_teams, int32 max_players, const FDriftOnMatchAddedDelegate& delegate) override;
+    void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
+    void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers, const FDriftOnMatchAddedDelegate& delegate) override;
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
-    void UpdateMatch(int32 match_id, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    void UpdateMatch(int32 matchID, const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
-    int32 GetTeamID(int32 match_id, int32 team_index) const override;
-    void AddPlayerToMatch(int32 player_id, int32 team_id, const FDriftPlayerAddedDelegate& delegate) override;
-    void AddPlayerToMatch(int32 match_id, int32 team_id, int32 player_id, const FDriftPlayerAddedDelegate& delegate) override;
-    void RemovePlayerFromMatch(int32 player_id, const FDriftPlayerRemovedDelegate& delegate) override;
-    void RemovePlayerFromMatch(int32 match_id, int32 player_id, const FDriftPlayerRemovedDelegate& delegate) override;
-    void ModifyPlayerCounter(int32 player_id, const FString& counter_name, float value, bool absolute) override;
-    bool GetPlayerCounter(int32 player_id, const FString& counter_name, float& value) override;
+    int32 GetTeamID(int32 matchID, int32 teamIndex) const override;
+    void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
+    void AddPlayerToMatch(int32 matchID, int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
+    void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
+    void RemovePlayerFromMatch(int32 matchID, int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
+    void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
+    bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
     
     FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
     FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
@@ -167,14 +177,14 @@ private:
     
     void AuthenticatePlayer(IDriftAuthProvider* provider);
 
-    void AddPlayerIdentity(IDriftAuthProvider* provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
-    void BindUserIdentity(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void BindUserIdentity(const FString& newIdentityName, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
 
     /**
      * Associate the new identity with the current user.
      * This allows us to log in with either identity for this user in the future.
      */
-    void AssociateNewIdentityWithCurrentUser(const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void ConnectNewIdentityToCurrentUser(const FString& newIdentityName, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
 
     /**
      * Disassociate the current identity with its user, and associate it with the user tied to the new identity.
@@ -184,12 +194,12 @@ private:
      * The previous user will no longer be associated with this identity and might not be recoverable unless there
      * are additional identities tied to it.
      */
-    void AssociateCurrentUserWithSecondaryIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
+    void MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResponse& targetUser, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
 
     void InitServerRootInfo();
     void InitServerAuthentication();
     void InitServerRegistration();
-    void InitServerInfo(const FString& server_url);
+    void InitServerInfo(const FString& serverUrl);
 
     /**
      * Disconnect the player if connected, flush counters and events, and reset the internal state.
@@ -216,11 +226,14 @@ private:
     FDriftPlayerGameStateSavedDelegate onPlayerGameStateSaved;
     FDriftGotActiveMatchesDelegate onGotActiveMatches;
     FDriftPlayerNameSetDelegate onPlayerNameSet;
+    FDriftFriendAddedDelegate onFriendAdded;
+    FDriftFriendRemovedDelegate onFriendRemoved;
     FDriftStaticRoutesInitializedDelegate onStaticRoutesInitialized;
     FDriftPlayerDisconnectedDelegate onPlayerDisconnected;
     FDriftGameVersionMismatchDelegate onGameVersionMismatch;
     FDriftUserErrorDelegate onUserError;
     FDriftServerErrorDelegate onServerError;
+    FDriftNewDeprecationDelegate onDeprecation;
 
     FDriftServerRegisteredDelegate onServerRegistered;
     FDriftPlayerAddedToMatchDelegate onPlayerAddedToMatch;
@@ -228,8 +241,8 @@ private:
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
     
-    TSharedPtr<JsonRequestManager> GetRootRequestManager();
-    TSharedPtr<JsonRequestManager> GetGameRequestManager();
+    TSharedPtr<JsonRequestManager> GetRootRequestManager() const;
+    TSharedPtr<JsonRequestManager> GetGameRequestManager() const;
     void SetGameRequestManager(TSharedPtr<JsonRequestManager> manager)
     {
         authenticatedRequestManager = manager;
@@ -239,9 +252,9 @@ private:
     void TickMatchInvites();
     void TickFriendUpdates(float deltaTime);
 
-    void BeginGetFriendLeaderboard(const FString& counter_name, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate);
-    void BeginGetLeaderboard(const FString& counter_name, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& player_group, const FDriftLeaderboardLoadedDelegate& delegate);
-    void GetLeaderboardImpl(const FString& counter_name, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& player_group, const FDriftLeaderboardLoadedDelegate& delegate);
+    void BeginGetFriendLeaderboard(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate);
+    void BeginGetLeaderboard(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& playerGroup, const FDriftLeaderboardLoadedDelegate& delegate);
+    void GetLeaderboardImpl(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& playerGroup, const FDriftLeaderboardLoadedDelegate& delegate);
 
     void LoadPlayerGameStateImpl(const FString& name, const FDriftGameStateLoadedDelegate& delegate);
     void SavePlayerGameStateImpl(const FString& name, const FString& state, const FDriftGameStateSavedDelegate& delegate);
@@ -251,6 +264,7 @@ private:
     void JoinMatchQueueImpl(const FString& ref, const FString& placement, const FString& token, const FDriftJoinedMatchQueueDelegate& delegate);
 
     void HandleMatchQueueMessage(const FMessageQueueEntry& message);
+    void HandleFriendEventMessage(const FMessageQueueEntry& message);
 
     bool IsPreAuthenticated() const;
     bool IsPreRegistered() const;
@@ -260,12 +274,14 @@ private:
     void CreateLogForwarder();
     void CreateMessageQueue();
 
-    void CachePlayerInfo(int32 player_id);
+    void CachePlayerInfo(int32 playerID);
 
-    void CacheFriendInfos(TFunction<void(bool)> delegate);
+    void LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegate);
+    void MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegate);
+    void CacheFriendInfos(const TFunction<void(bool)>& delegate);
     void UpdateFriendOnlineInfos();
 
-    const FDriftPlayerResponse* GetFriendInfo(int32 player_id) const;
+    const FDriftPlayerResponse* GetFriendInfo(int32 playerID) const;
 
     /**
      * Return the instance name to use for the server process
@@ -278,21 +294,23 @@ private:
     FString GetPublicIP() const;
 
     void DefaultErrorHandler(ResponseContext& context);
+    void DriftDeprecationMessageHandler(const FString& deprecations);
+    void ParseDeprecation(const FString& deprecation);
 
     TUniquePtr<IDriftAuthProvider> GetDeviceIDCredentials(int32 index);
 
     FString GetApiKeyHeader() const;
 
-    const FDriftCounterInfo* GetCounterInfo(const FString& counter_name) const;
+    const FDriftCounterInfo* GetCounterInfo(const FString& counterName) const;
 
     void ConfigurePlacement();
     void ConfigureBuildReference();
 
-    EDriftConnectionState InternalToPublicState(DriftSessionState internalState) const;
+    static EDriftConnectionState InternalToPublicState(DriftSessionState internalState);
 
-    void BroadcastConnectionStateChange(DriftSessionState internalState);
+    void BroadcastConnectionStateChange(DriftSessionState internalState) const;
 
-    TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
+    static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
 
 private:
     // TODO: deprecate or consolidate with other properties
@@ -309,7 +327,8 @@ private:
     const FString instanceDisplayName_;
     const int32 instanceIndex_;
 
-    float heartbeatDueInSeconds = FLT_MAX;
+    float heartbeatDueInSeconds_{ FLT_MAX };
+    FDateTime heartbeatTimeout_{ FDateTime::MinValue() };
 
     DriftSessionState state_;
 
@@ -344,6 +363,7 @@ private:
 
     TArray<FString> externalFriendIDs;
     
+    TMap<int32, FDriftFriendResponse> driftFriends;
     TMap<int32, FDriftPlayerResponse> friendInfos;
     bool shouldUpdateFriends = false;
     float updateFriendsInSeconds = 0.0f;
@@ -372,6 +392,9 @@ private:
     TSharedPtr<IDriftAuthProvider> authProvider;
 
     TSharedPtr<IHttpCache> httpCache_;
+
+    TMap<FString, FDateTime> deprecations_;
+    FString previousDeprecationHeader_;
 };
 
 

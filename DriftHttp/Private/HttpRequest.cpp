@@ -62,7 +62,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
          * Grab out-of-band debug messages from http response header and display
          * it to the player.
          */
-        auto debug_message = response->GetHeader("Drift-Debug-Message");
+        auto debug_message = response->GetHeader(L"Drift-Debug-Message");
         if (debug_message.Len())
         {
             OnDebugMessage().ExecuteIfBound(debug_message);
@@ -90,7 +90,12 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             else
             {
                 JsonDocument doc;
-                doc.Parse(*response->GetContentAsString());
+                FString content = response->GetContentAsString();
+                if (context.responseCode == (int32)HttpStatusCodes::NoContent)
+                {
+                    content = TEXT("{}");
+                }
+                doc.Parse(*content);
                 if (doc.HasParseError())
                 {
                     context.error = FString::Printf(L"JSON response is broken at position %i. RapidJson error: %i",
@@ -114,6 +119,11 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                     }
                     context.successful = true;
                     OnResponse.ExecuteIfBound(context, doc);
+                    const auto deprecationHeader = response->GetHeader(L"Drift-Feature-Deprecation");
+                    if (!deprecationHeader.IsEmpty())
+                    {
+                        OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
+                    }
                 }
             }
             /**
@@ -186,7 +196,7 @@ void HttpRequest::BroadcastError(ResponseContext &context)
 void HttpRequest::LogError(ResponseContext& context)
 {
     FString errorMessage;
-
+    
     auto error = MakeShared<FJsonObject>();
     error->SetNumberField(L"elapsed", (FDateTime::UtcNow() - sent_).GetTotalSeconds());
     error->SetBoolField(L"error_handled", context.errorHandled);
@@ -199,13 +209,13 @@ void HttpRequest::LogError(ResponseContext& context)
     {
         error->SetStringField(L"error", context.error);
     }
-
+    
     auto requestData = MakeShared<FJsonObject>();
     requestData->SetStringField(L"method", wrappedRequest_->GetVerb());
     requestData->SetStringField(L"url", wrappedRequest_->GetURL());
-
+    
     auto allHeaders = MakeShared<FJsonObject>();
-
+    
     auto requestHeaders = context.request->GetAllHeaders();
     if (requestHeaders.Num() > 0)
     {
@@ -216,11 +226,11 @@ void HttpRequest::LogError(ResponseContext& context)
             allHeaders->SetStringField(key, value);
         }
     }
-
+    
     if (context.response.IsValid())
     {
         GenericRequestErrorResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
+        if (JsonUtils::ParseResponseNoLog(context.response, response))
         {
             auto code = response.GetErrorCode();
             if (!code.IsEmpty())
@@ -259,15 +269,42 @@ void HttpRequest::LogError(ResponseContext& context)
             errorMessage = L"HTTP request timeout";
         }
     }
-
+    
     if (allHeaders->Values.Num() > 0)
     {
         requestData->SetObjectField("headers", allHeaders);
     }
+    
+    if (errorMessage.IsEmpty())
+    {
+        /**
+         * This pattern cannot be static, some internal smart pointer will crash on shutdown.
+         * Since it's only used when there's an error, the cost of on-demand creation is acceptable.
+         */
+        const FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
 
+        FString normalizedUrl = wrappedRequest_->GetURL();
+        TArray<TSharedPtr<FJsonValue>> params;
+        
+        int index = 0;
+        FRegexMatcher matcher{ urlNormalizationPattern, normalizedUrl };
+        while (matcher.FindNext())
+        {
+            normalizedUrl = FString::Printf(L"%s{%d}%s", *normalizedUrl.Left(matcher.GetCaptureGroupBeginning(1)), index, *normalizedUrl.Mid(matcher.GetCaptureGroupEnding(1)));
+            params.Add(MakeShared<FJsonValueString>(matcher.GetCaptureGroup(1)));
+            matcher = FRegexMatcher{ urlNormalizationPattern, normalizedUrl };
+            ++index;
+        }
+        
+        errorMessage = FString::Printf(TEXT("HTTP request failed: %s %s"), *wrappedRequest_->GetVerb(), *normalizedUrl);
+
+        if (params.Num() > 0)
+        {
+            error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+        }
+    }
     error->SetObjectField("request", requestData);
-    IErrorReporter::Get()->AddError(L"LogHttpClient",
-        errorMessage.IsEmpty() ? L"HTTP request failed" : *errorMessage, error);
+    IErrorReporter::Get()->AddError(L"LogHttpClient", *errorMessage, error);
 }
 
 

@@ -39,8 +39,10 @@ struct FDriftEndpointsResponse
     FString static_data;
     FString user_identities;
     FString users;
-    
+    FString friend_invites;
+
     // Added after authentication
+    FString my_friends;
     FString my_gamestate;
     FString my_gamestates;
     FString my_messages;
@@ -71,9 +73,9 @@ struct FUserPassAuthenticationPayload
  */
 struct FDriftUserInfoResponse
 {
-    int32 user_id;
-    int32 player_id;
-    int32 identity_id;
+    int32 user_id = 0;
+    int32 player_id = 0;
+    int32 identity_id = 0;
     FString user_name;
     FString player_name;
     FString jti;
@@ -409,6 +411,7 @@ struct FDriftCreatePlayerGroupResponse
  */
 struct FDriftLeaderboardResponseItem
 {
+    int32 player_id;
     int32 position;
     float total;
     FString player_name;
@@ -564,5 +567,15 @@ struct FMatchInfo
     
     FString url;
     
+    bool Serialize(class SerializationContext& context);
+};
+
+
+struct FDriftFriendResponse
+{
+    int32 friend_id;
+    FString player_url;
+    FString friendship_url;
+
     bool Serialize(class SerializationContext& context);
 };

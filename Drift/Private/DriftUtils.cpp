@@ -41,8 +41,12 @@ const FName DriftModuleName = TEXT("Drift");
 
 
 FDriftWorldHelper::FDriftWorldHelper(UObject* worldContextObject)
-: world_{ GEngine->GetWorldFromContextObject(worldContextObject, EGetWorldErrorMode::Assert) }
+: world_{ nullptr }
 {
+    if (worldContextObject != nullptr && worldContextObject->IsValidLowLevel())
+    {
+        world_ = GEngine->GetWorldFromContextObject(worldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+    }
 }
 
 
@@ -98,4 +102,10 @@ void FDriftWorldHelper::DestroyInstance()
 #endif // UE_EDITOR
     auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
     provider.DestroyInstance(identifier);
+}
+
+void FDriftWorldHelper::DestroyInstance(IDriftAPI* instance)
+{
+    auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
+    provider.DestroyInstance(instance);
 }

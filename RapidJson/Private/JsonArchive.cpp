@@ -16,7 +16,7 @@
 
 using namespace rapidjson;
 
-CrtAllocator JsonArchive::mAllocator;
+CrtAllocator JsonArchive::allocator_;
 
 bool SerializationContext::IsLoading() const
 {
@@ -28,7 +28,7 @@ bool JsonArchive::SerializeObject<int>(JsonValue& jValue, int& cValue)
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsInt())
         {
@@ -50,7 +50,7 @@ bool JsonArchive::SerializeObject<uint8>(JsonValue& jValue, uint8& cValue)
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsInt())
         {
@@ -72,7 +72,7 @@ bool JsonArchive::SerializeObject<unsigned>(JsonValue& jValue, unsigned& cValue)
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsUint())
         {
@@ -94,7 +94,7 @@ bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValu
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsInt64())
         {
@@ -116,7 +116,7 @@ bool JsonArchive::SerializeObject<float>(JsonValue& jValue, float& cValue)
 {
     bool success = false;
 
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsDouble())
         {
@@ -148,7 +148,7 @@ bool JsonArchive::SerializeObject<double>(JsonValue& jValue, double& cValue)
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsDouble())
         {
@@ -180,7 +180,7 @@ bool JsonArchive::SerializeObject<bool>(JsonValue& jValue, bool& cValue)
 {
     bool success = false;
 
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsBool())
         {
@@ -202,7 +202,7 @@ bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue)
 {
     bool success = false;
 
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsString())
         {
@@ -221,7 +221,7 @@ bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue)
     }
     else
     {
-        jValue.SetString(*cValue, mAllocator);
+        jValue.SetString(*cValue, allocator_);
         success = true;
     }
 
@@ -233,7 +233,7 @@ bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue)
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsString())
         {
@@ -245,7 +245,7 @@ bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue)
     {
         FString temp;
         cValue.ToString(temp);
-        jValue.SetString(*temp, mAllocator);
+        jValue.SetString(*temp, allocator_);
         success = true;
     }
     
@@ -257,7 +257,7 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsString())
         {
@@ -284,7 +284,7 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
     else
     {
         FString temp = cValue.ToIso8601();
-        jValue.SetString(*temp, mAllocator);
+        jValue.SetString(*temp, allocator_);
         success = true;
     }
     
@@ -296,7 +296,7 @@ bool JsonArchive::SerializeObject<FTimespan>(JsonValue& jValue, FTimespan& cValu
 {
     bool success = false;
     
-    if (mIsLoading)
+    if (isLoading_)
     {
         if (jValue.IsInt64())
         {
@@ -316,13 +316,13 @@ bool JsonArchive::SerializeObject<FTimespan>(JsonValue& jValue, FTimespan& cValu
 template<>
 bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValue)
 {
-    if (mIsLoading)
+    if (isLoading_)
     {
-        cValue.CopyFrom(jValue, mAllocator);
+        cValue.CopyFrom(jValue, allocator_);
     }
     else
     {
-        jValue.CopyFrom(cValue, mAllocator);
+        jValue.CopyFrom(cValue, allocator_);
     }
 
     return true;
