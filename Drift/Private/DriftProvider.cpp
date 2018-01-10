@@ -57,11 +57,8 @@ void FDriftProvider::DestroyInstance(const FName& identifier)
 {
     const FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
     
-    if (const auto instance = instances.Find(keyName))
-    {
     FScopeLock lock{ &mutex };
     instances.Remove(keyName);
-}
 }
 
 
