@@ -48,26 +48,28 @@ DEFINE_LOG_CATEGORY(LogDriftCounterUser);
 static const float UPDATE_FRIENDS_INTERVAL = 3.0f;
 
 
-const TCHAR* settingsSection = TEXT("/Script/DriftEditor.DriftProjectSettings");
+const TCHAR* defaultSettingsSection = TEXT("/Script/DriftEditor.DriftProjectSettings");
 
 
-FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex)
-: instanceName_(instanceName)
-, instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
-, instanceIndex_(instanceIndex)
-, state_(DriftSessionState::Undefined)
-, rootRequestManager_(MakeShareable(new JsonRequestManager()))
-, httpCache_(cache)
+FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config)
+    : instanceName_(instanceName)
+    , instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
+    , instanceIndex_(instanceIndex)
+    , state_(DriftSessionState::Undefined)
+    , rootRequestManager_(MakeShareable(new JsonRequestManager()))
+    , httpCache_(cache)
 {
+    ConfigureSettingsSection(config);
+
     GetRootRequestManager()->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
     GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
-    GConfig->GetString(settingsSection, TEXT("ApiKey"), apiKey, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("ProjectName"), projectName, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("GameVersion"), gameVersion, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("GameBuild"), gameBuild, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("Environment"), environment, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("StaticDataReference"), staticDataReference, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("ApiKey"), apiKey, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
 
     if (apiKey.IsEmpty())
     {
@@ -126,7 +128,7 @@ void FDriftBase::ConfigurePlacement()
 {
     if (!FParse::Value(FCommandLine::Get(), TEXT("-placement="), defaultPlacement))
     {
-        if (!GConfig->GetString(settingsSection, TEXT("Placement"), defaultPlacement, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("Placement"), defaultPlacement, GGameIni))
         {
             bool canBindAll;
             const auto address = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, canBindAll);
@@ -142,7 +144,7 @@ void FDriftBase::ConfigureBuildReference()
 {
     if (!FParse::Value(FCommandLine::Get(), TEXT("-ref="), buildReference))
     {
-        if (!GConfig->GetString(settingsSection, TEXT("BuildReference"), buildReference, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("BuildReference"), buildReference, GGameIni))
         {
             buildReference = FString::Printf(TEXT("user/%s"), FPlatformProcess::UserName());
         }
@@ -747,7 +749,7 @@ void FDriftBase::AuthenticatePlayer()
 
     if (cli.drift_url.IsEmpty())
     {
-        GConfig->GetString(settingsSection, TEXT("DriftUrl"), cli.drift_url, GGameIni);
+        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
 
     if (cli.drift_url.IsEmpty())
@@ -759,6 +761,7 @@ void FDriftBase::AuthenticatePlayer()
     }
 
     FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
+
     if (!cli.jti.IsEmpty())
     {
         GetRootEndpoints([this]()
@@ -776,9 +779,10 @@ void FDriftBase::AuthenticatePlayer()
 
     FString credentialType;
     FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+
     if (credentialType.IsEmpty())
     {
-        GConfig->GetString(settingsSection, TEXT("CredentialsType"), credentialType, GGameIni);
+        GConfig->GetString(*settingsSection_, TEXT("CredentialsType"), credentialType, GGameIni);
     }
 
     if (credentialType.IsEmpty())
@@ -1780,6 +1784,19 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
 }
 
 
+void FDriftBase::ConfigureSettingsSection(const FString& config)
+{
+    if (config.IsEmpty())
+    {
+        settingsSection_ = defaultSettingsSection;
+    }
+    else
+    {
+        settingsSection_ = FString::Printf(TEXT("%s.%s"), defaultSettingsSection, *config);
+    }
+}
+
+
 void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
 {
     FString url = cli.drift_url;
@@ -2433,7 +2450,7 @@ void FDriftBase::InitServerRootInfo()
     FString drift_url = cli.drift_url;
     if (drift_url.IsEmpty())
     {
-        if (!GConfig->GetString(settingsSection, TEXT("DriftUrl"), drift_url, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), drift_url, GGameIni))
         {
             DRIFT_LOG(Base, Error, TEXT("Running in server mode, but no Drift url specified."));
 
@@ -2661,7 +2678,7 @@ bool FDriftBase::RegisterServer()
 
     if (cli.drift_url.IsEmpty())
     {
-        GConfig->GetString(settingsSection, TEXT("DriftUrl"), cli.drift_url, GGameIni);
+        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
 
     if (cli.drift_url.IsEmpty())

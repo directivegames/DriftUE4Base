@@ -61,7 +61,7 @@ class IDriftAuthProvider;
 class FDriftBase : public IDriftAPI, public FTickableGameObject
 {
 public:
-    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex);
+    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config);
     FDriftBase(const FDriftBase& other) = delete;
     virtual ~FDriftBase();
 
@@ -163,6 +163,8 @@ public:
     FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
 
 private:
+    void ConfigureSettingsSection(const FString& config);
+
     void GetRootEndpoints(TFunction<void()> onSuccess);
     void InitAuthentication(const FString& credentialType);
     void GetUserInfo();
@@ -308,6 +310,8 @@ private:
     static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
 
 private:
+    FString settingsSection_;
+
     // TODO: deprecate or consolidate with other properties
     struct CLI
     {

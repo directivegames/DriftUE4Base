@@ -25,6 +25,7 @@ public:
     FDriftProvider();
 
     IDriftAPI* GetInstance(const FName& identifier) override;
+    IDriftAPI* GetInstance(const FName& identifier, const FString& config) override;
     void DestroyInstance(const FName& identifier) override;
     void DestroyInstance(IDriftAPI* instance) override;
 

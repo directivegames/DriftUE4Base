@@ -29,13 +29,19 @@ FDriftProvider::FDriftProvider()
 
 IDriftAPI* FDriftProvider::GetInstance(const FName& identifier)
 {
+    return GetInstance(identifier, TEXT(""));
+}
+
+
+IDriftAPI* FDriftProvider::GetInstance(const FName& identifier, const FString& config)
+{
     const FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
 
     FScopeLock lock{ &mutex };
     auto instance = instances.Find(keyName);
     if (instance == nullptr)
     {
-        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num()), [](IDriftAPI* instance)
+        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num(), config), [](IDriftAPI* instance)
         {
             instance->Shutdown();
             delete instance;
@@ -53,9 +59,9 @@ void FDriftProvider::DestroyInstance(const FName& identifier)
     
     if (const auto instance = instances.Find(keyName))
     {
-        FScopeLock lock{ &mutex };
-        instances.Remove(keyName);
-    }
+    FScopeLock lock{ &mutex };
+    instances.Remove(keyName);
+}
 }
 
 
