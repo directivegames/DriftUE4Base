@@ -70,6 +70,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
+    GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
 
     if (apiKey.IsEmpty())
     {
@@ -126,7 +127,7 @@ void FDriftBase::CreateMessageQueue()
 
 void FDriftBase::ConfigurePlacement()
 {
-    if (!FParse::Value(FCommandLine::Get(), TEXT("-placement="), defaultPlacement))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-placement="), defaultPlacement))
     {
         if (!GConfig->GetString(*settingsSection_, TEXT("Placement"), defaultPlacement, GGameIni))
         {
@@ -142,7 +143,7 @@ void FDriftBase::ConfigurePlacement()
 
 void FDriftBase::ConfigureBuildReference()
 {
-    if (!FParse::Value(FCommandLine::Get(), TEXT("-ref="), buildReference))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-ref="), buildReference))
     {
         if (!GConfig->GetString(*settingsSection_, TEXT("BuildReference"), buildReference, GGameIni))
         {
@@ -745,7 +746,10 @@ void FDriftBase::AuthenticatePlayer()
         return;
     }
 
-    FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
+    }
 
     if (cli.drift_url.IsEmpty())
     {
@@ -760,7 +764,10 @@ void FDriftBase::AuthenticatePlayer()
         return;
     }
 
-    FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
+    }
 
     if (!cli.jti.IsEmpty())
     {
@@ -778,7 +785,10 @@ void FDriftBase::AuthenticatePlayer()
     }
 
     FString credentialType;
-    FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+    }
 
     if (credentialType.IsEmpty())
     {
