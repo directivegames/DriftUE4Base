@@ -35,7 +35,7 @@ IDriftAPI* FDriftProvider::GetInstance(const FName& identifier)
 
 IDriftAPI* FDriftProvider::GetInstance(const FName& identifier, const FString& config)
 {
-    const FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
+    const FName keyName{ *MakeKey(identifier, config) };
 
     FScopeLock lock{ &mutex };
     auto instance = instances.Find(keyName);
@@ -55,7 +55,7 @@ IDriftAPI* FDriftProvider::GetInstance(const FName& identifier, const FString& c
 
 void FDriftProvider::DestroyInstance(const FName& identifier)
 {
-    const FName keyName = identifier == NAME_None ? DefaultInstanceName : identifier;
+    const FName keyName{ *MakeKey(identifier, TEXT("")) };
     
     FScopeLock lock{ &mutex };
     instances.Remove(keyName);
@@ -84,4 +84,13 @@ void FDriftProvider::Close()
 {
     FScopeLock lock{ &mutex };
 	instances.Empty();
+}
+
+
+FString FDriftProvider::MakeKey(const FName& identifier, const FString& config)
+{
+    return FString::Printf(TEXT("%s.%s"),
+        *(identifier == NAME_None ? DefaultInstanceName : identifier).ToString(),
+        config.IsEmpty() ? TEXT("default") : *config
+    );
 }

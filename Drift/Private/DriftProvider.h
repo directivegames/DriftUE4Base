@@ -32,6 +32,8 @@ public:
     void Close();
 
 private:
+    static FString MakeKey(const FName& identifier, const FString& config);
+
     TMap<FName, DriftApiPtr> instances;
     FCriticalSection mutex;
     
