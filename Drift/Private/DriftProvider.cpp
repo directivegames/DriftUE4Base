@@ -75,7 +75,8 @@ void FDriftProvider::DestroyInstance(IDriftAPI* instance)
      */
     if (const auto key = instances.FindKey(MakeShareable(instance, [](IDriftAPI*) {})))
     {
-        DestroyInstance(*key);
+        FScopeLock lock{ &mutex };
+        instances.Remove(*key);
     }
 }
 

@@ -90,7 +90,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     CreateLogForwarder();
     CreateMessageQueue();
     
-    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s created"), *instanceName_.ToString());
+    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) created"), *instanceName_.ToString(), instanceIndex_);
 }
 
 
@@ -155,7 +155,7 @@ void FDriftBase::ConfigureBuildReference()
 
 FDriftBase::~FDriftBase()
 {
-    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s destroyed"), *instanceName_.ToString());
+    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) destroyed"), *instanceName_.ToString(), instanceIndex_);
 }
 
 
