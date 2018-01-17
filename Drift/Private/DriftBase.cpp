@@ -309,6 +309,18 @@ const TMap<FString, FDateTime>& FDriftBase::GetDeprecations()
 }
 
 
+FString FDriftBase::GetJWT()
+{
+    return driftClient.jwt;
+}
+
+
+FString FDriftBase::GetJTI()
+{
+    return driftClient.jti;
+}
+
+
 void FDriftBase::Disconnect()
 {
     const auto oldState = state_;

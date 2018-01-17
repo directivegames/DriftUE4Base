@@ -122,6 +122,9 @@ public:
 
     const TMap<FString, FDateTime>& GetDeprecations() override;
 
+    FString GetJWT() override;
+    FString GetJTI() override;
+
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
     FDriftFriendPresenceChangedDelegate& OnFriendPresenceChanged() override { return onFriendPresenceChanged; }
