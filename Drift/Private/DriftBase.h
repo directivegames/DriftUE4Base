@@ -396,7 +396,7 @@ private:
     TMap<FString, FDateTime> deprecations_;
     FString previousDeprecationHeader_;
 
-    bool ignoreCommandLineArguments_;
+    bool ignoreCommandLineArguments_ = false;
 };
 
 
