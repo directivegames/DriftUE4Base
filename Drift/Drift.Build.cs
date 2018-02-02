@@ -23,7 +23,7 @@ public class Drift : ModuleRules
         
         PublicIncludePaths.AddRange(
             new string[] {
-                Path.Combine(ModuleDirectory, "Drift/Public")
+                Path.Combine(ModuleDirectory, "Public")
                 
                 // ... add public include paths required here ...
             }
@@ -32,7 +32,7 @@ public class Drift : ModuleRules
         
         PrivateIncludePaths.AddRange(
             new string[] {
-	            Path.Combine(ModuleDirectory, "Drift/Private"),
+	            Path.Combine(ModuleDirectory, "Private"),
 
                 // ... add other private include paths required here ...
             }
