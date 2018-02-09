@@ -794,6 +794,7 @@ struct FGetMatchesResponseItem
     FString match_status;
     FString url;
     int32 num_players;
+	int32 max_players;
     int32 port;
     FString public_ip;
     FString ref;

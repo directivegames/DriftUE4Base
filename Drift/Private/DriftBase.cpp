@@ -900,8 +900,9 @@ void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
             result.match_id = match.match_id;
             result.match_status = match.match_status;
             result.num_players = match.num_players;
-            result.server_status = match.server_status;
-            result.ue4_connection_url = match.ue4_connection_url;
+			result.max_players = match.max_players;
+            result.server_status = match.server_status;         
+			result.ue4_connection_url = match.ue4_connection_url;			
             result.version = match.version;
             search->matches.Add(result);
         }
