@@ -106,7 +106,7 @@ void FDriftMessageQueue::SendMessage(const FString& urlTemplate, const FString& 
     {
         FMessageQueueMessage payload{ Forward<JsonValue>(message), timeoutSeconds };
         auto request = rm->Post(url, payload);
-        request->OnError.BindLambda([this](ResponseContext& context)
+        request->OnError.BindLambda([](ResponseContext& context)
         {
             context.errorHandled = true;
         });

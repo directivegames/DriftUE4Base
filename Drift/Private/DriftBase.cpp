@@ -1454,7 +1454,7 @@ void FDriftBase::BeginGetLeaderboard(const FString& counterName, const TWeakPtr<
             countersLoaded = true;
             GetLeaderboardImpl(counterName, leaderboard, playerGroup, delegate);
         });
-        request->OnError.BindLambda([this, counterName, leaderboard, delegate](ResponseContext& context)
+        request->OnError.BindLambda([counterName, leaderboard, delegate](ResponseContext& context)
         {
             auto leaderboardPtr = leaderboard.Pin();
             if (leaderboardPtr.IsValid())
@@ -1529,7 +1529,7 @@ void FDriftBase::GetLeaderboardImpl(const FString& counterName, const TWeakPtr<F
         event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
         AddAnalyticsEvent(MoveTemp(event));
     });
-    request->OnError.BindLambda([this, canonicalName, delegate](ResponseContext& context)
+    request->OnError.BindLambda([canonicalName, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, canonicalName);
@@ -1640,7 +1640,7 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
 
         delegate.ExecuteIfBound(true, token);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, {});
@@ -1703,7 +1703,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
 
         delegate.ExecuteIfBound(true, friendID);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, 0);
@@ -1754,7 +1754,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
 
         delegate.ExecuteIfBound(true, friendID);
     });
-    request->OnError.BindLambda([this, friendID, delegate](ResponseContext& context)
+    request->OnError.BindLambda([friendID, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, friendID);
@@ -2816,11 +2816,11 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
     }
 
     auto request = GetGameRequestManager()->Put(drift_server.url, payload);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([delegate](ResponseContext& context, JsonDocument& doc)
     {
         delegate.ExecuteIfBound(true);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         delegate.ExecuteIfBound(false);
         context.errorHandled = true;
@@ -2970,7 +2970,7 @@ void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegat
         AddAnalyticsEvent(MoveTemp(event));
         MakeFriendsGroup(delegate);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -3084,7 +3084,7 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
             delegate.ExecuteIfBound(success);
         });
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -3337,7 +3337,7 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
 
     check(authProvider.IsValid());
 
-    authProvider->GetAvatarUrl([this, delegate](const FString& avatarUrl)
+    authProvider->GetAvatarUrl([delegate](const FString& avatarUrl)
     {
         delegate.ExecuteIfBound(avatarUrl);
     });

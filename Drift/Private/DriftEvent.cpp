@@ -80,7 +80,7 @@ public:
         JsonValue array{ rapidjson::kArrayType };
         for (auto& e : events)
         {
-            e->AddEvent([this, &array](FDriftEvent& event)
+            e->AddEvent([&array](FDriftEvent& event)
             {
                 array.PushBack(event.details_, JsonArchive::Allocator());
             });
