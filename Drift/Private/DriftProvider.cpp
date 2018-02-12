@@ -35,10 +35,10 @@ IDriftAPI* FDriftProvider::GetInstance(const FName& identifier)
     auto instance = instances.Find(keyName);
     if (instance == nullptr)
     {
-        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num()), [](IDriftAPI* instance)
+        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num()), [](IDriftAPI* _instance)
         {
-            instance->Shutdown();
-            delete instance;
+			_instance->Shutdown();
+            delete _instance;
         });
         instances.Add(keyName, newInstance);
         instance = instances.Find(keyName);

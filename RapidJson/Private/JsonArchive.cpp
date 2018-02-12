@@ -112,6 +112,28 @@ bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValu
 }
 
 template<>
+bool JsonArchive::SerializeObject<long>(JsonValue& jValue, long& cValue)
+{
+	bool success = false;
+
+	if (isLoading_)
+	{
+		if (jValue.IsInt64())
+		{
+			cValue = jValue.GetInt64();
+			success = true;
+		}
+	}
+	else
+	{
+		jValue.SetInt64(cValue);
+		success = true;
+	}
+
+	return success;
+}
+
+template<>
 bool JsonArchive::SerializeObject<float>(JsonValue& jValue, float& cValue)
 {
     bool success = false;

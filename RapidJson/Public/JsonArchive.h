@@ -620,6 +620,9 @@ template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValue);
 
 template<>
+RAPIDJSON_API bool JsonArchive::SerializeObject<long>(JsonValue& jValue, long& cValue);
+
+template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<float>(JsonValue& jValue, float& cValue);
 
 template<>
