@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2017 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2018 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -13,6 +13,7 @@
 #pragma once
 
 #include "IHttpRequest.h"
+#include "IHttpResponse.h"
 #include "JsonArchive.h"
 
 
