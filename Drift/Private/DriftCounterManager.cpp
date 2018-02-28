@@ -40,13 +40,26 @@ void FDriftCounterManager::AddCount(const FString& counterName, float value, boo
 
     FCounterModification modification{ 0, value, canonicalName, absolute ? TEXT("absolute") : TEXT("count"), FDateTime::UtcNow(), absolute };
     UpdateCachedCounter(modification);
+
+	// if this is an absolute update, we have to remove any previous relative updates
+	//  otherwise future relative updates could be incorrectly consolidated into the obsolete one
+	if (modification.absolute)
+	{
+		pendingCounters.RemoveAll([canonicalName](const FCounterModification& m)
+		{
+			return m.name == canonicalName && !m.absolute;
+		});
+	}
+	// if we have a previously existing update for the same counter and type...
     int32 existingIndex;
     if (pendingCounters.Find(modification, existingIndex))
     {
+		// ...we can simply update the pending modification, never sending the obsolete update to the server...
         pendingCounters[existingIndex].Update(value, FDateTime::UtcNow());
     }
     else
     {
+		// ...otherwise we have to add a new pending update to the list
         pendingCounters.Add(MoveTemp(modification));
     }
 }
