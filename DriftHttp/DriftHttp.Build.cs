@@ -53,6 +53,7 @@ public class DriftHttp : ModuleRules
                 "RapidJson",
                 "ErrorReporter",
                 "Json",
+				"Launch",
             }
             );
     }

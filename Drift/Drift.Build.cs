@@ -64,6 +64,7 @@ public class Drift : ModuleRules
                 "RapidJson",
                 "ErrorReporter",
                 "Json",
+				"Launch",
             }
             );
         
