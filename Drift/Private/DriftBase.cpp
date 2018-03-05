@@ -31,7 +31,6 @@
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
-#include "Resources/Version.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -1347,7 +1346,7 @@ void FDriftBase::AddAnalyticsEvent(const FString& eventName, const TArray<FAnaly
     auto event = MakeEvent(eventName);
     for (const auto& attribute : attributes)
     {
-#if ENGINE_MINOR_VERSION >= 18
+#ifdef WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES
         switch (attribute.AttrType)
         {
         case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:

@@ -10,7 +10,6 @@
 #include "Details/DateHelper.h"
 
 #include "SecureHash.h"
-#include "Resources/Version.h"
 
 #if PLATFORM_PS4
 #include "PS4File.h"
@@ -28,7 +27,7 @@ FString GetCachePath()
 #if PLATFORM_PS4
     return FPS4PlatformFile::GetTempDirectory();
 #else
-    #if ENGINE_MINOR_VERSION >= 18
+    #ifdef WITH_FPATHS_PROJECTDIR
         return FPaths::ProjectSavedDir();
     #else
         return FPaths::GameSavedDir();

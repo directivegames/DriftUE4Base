@@ -32,7 +32,7 @@ public class Drift : ModuleRules
         
         PrivateIncludePaths.AddRange(
             new string[] {
-	            Path.Combine(ModuleDirectory, "Private"),
+                Path.Combine(ModuleDirectory, "Private"),
 
                 // ... add other private include paths required here ...
             }
@@ -64,7 +64,6 @@ public class Drift : ModuleRules
                 "RapidJson",
                 "ErrorReporter",
                 "Json",
-				"Launch",
             }
             );
         
@@ -73,6 +72,15 @@ public class Drift : ModuleRules
         {
             // Needed for the keychain access
             PublicAdditionalFrameworks.Add(new UEBuildFramework("Security"));
+        }
+
+        BuildVersion Version;
+        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+        {
+            if (Version.MajorVersion == 4 && Version.MinorVersion >= 18)
+            {
+                Definitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
+            }
         }
     }
 }
