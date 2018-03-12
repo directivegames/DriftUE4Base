@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--GoogleARCore plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- init section is always evaluated once per architecture -->
+  <gameActivityClassAdditions>
+    <insert>
+      public void AndroidThunkJava_SharedPreferencesPutString(String fileName, String key, String value)
+      {
+        SharedPreferences preferences = getApplicationContext().getSharedPreferences(fileName, MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(key, value);
+        Log.debug("SharedPreferencesPutString:");
+        Log.debug(fileName);
+        Log.debug(key);
+        Log.debug(value);
+      }
+      
+      public String AndroidThunkJava_SharedPreferencesGetString(String fileName, String key, String defValue)
+      {
+        SharedPreferences preferences = getApplicationContext().getSharedPreferences(fileName, MODE_PRIVATE);
+        String value = preferences.getString(key, defValue);
+        Log.debug("SharedPreferencesGetString:");
+        Log.debug(fileName);
+        Log.debug(key);
+        Log.debug(defValue);
+        Log.debug(value);
+        return value;
+      }
+    </insert>
+  </gameActivityClassAdditions>  
+</root>

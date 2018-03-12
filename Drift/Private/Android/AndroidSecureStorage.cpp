@@ -13,7 +13,7 @@
 #include "DriftPrivatePCH.h"
 
 #include "AndroidSecureStorage.h"
-#include "FileHelper.h"
+#include "AndroidSharedPreferencesHelper.h"
 
 
 #if PLATFORM_ANDROID
@@ -28,22 +28,30 @@ AndroidSecureStorage::AndroidSecureStorage(const FString& productName, const FSt
 
 bool AndroidSecureStorage::SaveValue(const FString& key, const FString& value, bool overwrite)
 {
-    auto fullPath = key + TEXT(".dat");
-    uint32 flags = overwrite ? 0 : FILEWRITE_NoReplaceExisting;
-    return FFileHelper::SaveStringToFile(value, *fullPath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), flags);
+	if (!overwrite)
+	{
+		FString existing;
+		if (GetValue(key, existing))
+		{
+			return true;
+		}
+	}
+
+	AndroidSharedPreferencesHelper::PutString(TEXT("test"), key, value);
+	return true;
 }
 
 
 bool AndroidSecureStorage::GetValue(const FString& key, FString& value)
-{
-    auto fullPath = key + TEXT(".dat");
-    FString fileContent;
-    if (FFileHelper::LoadFileToString(fileContent, *fullPath))
-    {
-        value = fileContent;
-        return true;
-    }
-    return false;
+{    
+	auto temp = AndroidSharedPreferencesHelper::GetString(TEXT("test"), key, TEXT(""));
+	if (temp.Len())
+	{
+		value = temp;
+		return true;
+	}
+
+	return false;
 }
 
 
