@@ -64,14 +64,34 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     GetRootRequestManager()->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
     GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
-    GConfig->GetString(*settingsSection_, TEXT("ApiKey"), apiKey, GGameIni);
+    GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
-    GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
-    GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
 
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_key="), apiKey);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_env="), environment);
+    }
+
+    if (cli.drift_url.IsEmpty())
+    {
+        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
+    }
+
+
+    if (environment.IsEmpty())
+    {
+        GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
+    }
+
+    if (apiKey.IsEmpty())
+    {
+        GConfig->GetString(*settingsSection_, TEXT("ApiKey"), apiKey, GGameIni);
+    }
     if (apiKey.IsEmpty())
     {
         IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No API key found. Please fill out Project Settings->Drift"));
@@ -309,15 +329,33 @@ const TMap<FString, FDateTime>& FDriftBase::GetDeprecations()
 }
 
 
-FString FDriftBase::GetJWT()
+FString FDriftBase::GetJWT() const
 {
     return driftClient.jwt;
 }
 
 
-FString FDriftBase::GetJTI()
+FString FDriftBase::GetJTI() const
 {
     return driftClient.jti;
+}
+
+
+FString FDriftBase::GetRootURL() const
+{
+    return driftEndpoints.root;
+}
+
+
+FString FDriftBase::GetEnvironment() const
+{
+    return environment;
+}
+
+
+FString FDriftBase::GetApiKey() const
+{
+    return apiKey;
 }
 
 
@@ -756,16 +794,6 @@ void FDriftBase::AuthenticatePlayer()
         DRIFT_LOG(Base, Warning, TEXT("Ignoring attempt to authenticate while another attempt is in progress."));
 
         return;
-    }
-
-    if (!ignoreCommandLineArguments_)
-    {
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-    }
-
-    if (cli.drift_url.IsEmpty())
-    {
-        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
 
     if (cli.drift_url.IsEmpty())

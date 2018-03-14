@@ -122,8 +122,11 @@ public:
 
     const TMap<FString, FDateTime>& GetDeprecations() override;
 
-    FString GetJWT() override;
-    FString GetJTI() override;
+    FString GetJWT() const override;
+    FString GetJTI() const override;
+    FString GetRootURL() const override;
+    FString GetEnvironment() const override;
+    FString GetApiKey() const override;
 
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }

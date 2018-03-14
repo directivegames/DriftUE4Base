@@ -722,11 +722,23 @@ public:
     /**
      * Return the JWT required to authenticate with secondary backend modules
      */
-    virtual FString GetJWT() = 0;
+    virtual FString GetJWT() const = 0;
     /**
      * Return the JTI required to pass the current session to a new instance
      */
-    virtual FString GetJTI() = 0;
+    virtual FString GetJTI() const = 0;
+    /**
+     * Return the current Root URL
+     */
+    virtual FString GetRootURL() const = 0;
+    /**
+    * Return the current environment specifier
+    */
+    virtual FString GetEnvironment() const = 0;
+    /**
+    * Return the current API key
+    */
+    virtual FString GetApiKey() const = 0;
 
     virtual ~IDriftAPI() {}
 };
