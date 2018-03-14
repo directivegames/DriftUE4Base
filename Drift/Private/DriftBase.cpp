@@ -353,12 +353,6 @@ FString FDriftBase::GetEnvironment() const
 }
 
 
-FString FDriftBase::GetApiKey() const
-{
-    return apiKey;
-}
-
-
 void FDriftBase::Disconnect()
 {
     const auto oldState = state_;

@@ -735,10 +735,6 @@ public:
     * Return the current environment specifier
     */
     virtual FString GetEnvironment() const = 0;
-    /**
-    * Return the current API key
-    */
-    virtual FString GetApiKey() const = 0;
 
     virtual ~IDriftAPI() {}
 };
