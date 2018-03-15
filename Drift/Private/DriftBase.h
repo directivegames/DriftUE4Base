@@ -126,6 +126,8 @@ public:
     FString GetJTI() const override;
     FString GetRootURL() const override;
     FString GetEnvironment() const override;
+    FString GetGameVersion() const override;
+    FString GetGameBuild() const override;
 
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }

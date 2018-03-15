@@ -735,6 +735,14 @@ public:
     * Return the current environment specifier
     */
     virtual FString GetEnvironment() const = 0;
+    /**
+    * Return the game version
+    */
+    virtual FString GetGameVersion() const = 0;
+    /**
+    * Return the game build
+    */
+    virtual FString GetGameBuild() const = 0;
 
     virtual ~IDriftAPI() {}
 };

@@ -66,8 +66,6 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
 
     GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName, GGameIni);
-    GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
-    GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
 
     if (!ignoreCommandLineArguments_)
@@ -75,13 +73,23 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
         FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
         FParse::Value(FCommandLine::Get(), TEXT("-drift_key="), apiKey);
         FParse::Value(FCommandLine::Get(), TEXT("-drift_env="), environment);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_version="), gameVersion);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_build="), gameBuild);
+    }
+
+    if (gameVersion.IsEmpty())
+    {
+        GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
+    }
+    if (gameBuild.IsEmpty())
+    {
+        GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
     }
 
     if (cli.drift_url.IsEmpty())
     {
         GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
-
 
     if (environment.IsEmpty())
     {
@@ -350,6 +358,18 @@ FString FDriftBase::GetRootURL() const
 FString FDriftBase::GetEnvironment() const
 {
     return environment;
+}
+
+
+FString FDriftBase::GetGameVersion() const
+{
+    return gameVersion;
+}
+
+
+FString FDriftBase::GetGameBuild() const
+{
+    return gameBuild;
 }
 
 
