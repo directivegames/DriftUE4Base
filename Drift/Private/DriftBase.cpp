@@ -2018,7 +2018,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
 
 void FDriftBase::GetUserInfo()
 {
-    auto request = GetGameRequestManager()->Get(cli.drift_url, HttpStatusCodes::Ok);
+    auto request = GetGameRequestManager()->Get(driftEndpoints.root, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         auto currentUser = doc.FindMember(TEXT("current_user"));
@@ -2116,7 +2116,7 @@ void FDriftBase::GetPlayerEndpoints()
 {
     DRIFT_LOG(Base, Verbose, TEXT("Fetching player endpoints"));
     
-    auto request = GetGameRequestManager()->Get(cli.drift_url);
+    auto request = GetGameRequestManager()->Get(driftEndpoints.root);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
