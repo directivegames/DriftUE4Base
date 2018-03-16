@@ -72,16 +72,13 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     {
         FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
         FParse::Value(FCommandLine::Get(), TEXT("-drift_key="), apiKey);
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_env="), environment);
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_version="), gameVersion);
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_build="), gameBuild);
     }
 
-    if (gameVersion.IsEmpty())
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_version="), gameVersion))
     {
         GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
     }
-    if (gameBuild.IsEmpty())
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_build="), gameBuild))
     {
         GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
     }
@@ -91,7 +88,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
         GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
 
-    if (environment.IsEmpty())
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_env="), environment))
     {
         GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
     }
