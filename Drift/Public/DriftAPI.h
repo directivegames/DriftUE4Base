@@ -743,6 +743,10 @@ public:
     * Return the game build
     */
     virtual FString GetGameBuild() const = 0;
+    /**
+    * Return API key with version
+    */
+    virtual FString GetVersionedAPIKey() const = 0;
 
     virtual ~IDriftAPI() {}
 };

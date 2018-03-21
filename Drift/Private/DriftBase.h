@@ -128,6 +128,7 @@ public:
     FString GetEnvironment() const override;
     FString GetGameVersion() const override;
     FString GetGameBuild() const override;
+    FString GetVersionedAPIKey() const override;
 
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }

@@ -370,6 +370,12 @@ FString FDriftBase::GetGameBuild() const
 }
 
 
+FString FDriftBase::GetVersionedAPIKey() const
+{
+    return GetApiKeyHeader();
+}
+
+
 void FDriftBase::Disconnect()
 {
     const auto oldState = state_;
