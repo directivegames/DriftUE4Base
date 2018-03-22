@@ -317,6 +317,8 @@ private:
 
     static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
 
+    bool IsRunningAsServer() const;
+
 private:
     FString settingsSection_;
 

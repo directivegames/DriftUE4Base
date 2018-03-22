@@ -912,6 +912,12 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
     return nullptr;
 }
 
+bool FDriftBase::IsRunningAsServer() const
+{
+    FString dummy;
+    return IsPreRegistered() || FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), dummy);
+}
+
 
 void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
 {
@@ -3315,7 +3321,7 @@ bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, fl
 
 FString FDriftBase::GetApiKeyHeader() const
 {
-    return FString::Printf(TEXT("%s:%s"), *apiKey, *gameVersion);
+    return FString::Printf(TEXT("%s:%s"), *apiKey, IsRunningAsServer() ? TEXT("service") : *gameVersion);
 }
 
 
