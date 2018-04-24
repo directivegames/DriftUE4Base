@@ -54,6 +54,7 @@ public class Drift : ModuleRules
             {
                 // ... add private dependencies that you statically link with here ...    
                 "Engine",
+                "EngineSettings",
                 "Slate",
                 "SlateCore",
                 "HTTP",

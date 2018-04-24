@@ -27,6 +27,7 @@
 #include "Auth/DriftUuidAuthProviderFactory.h"
 
 #include "SocketSubsystem.h"
+#include "GeneralProjectSettings.h"
 #include "IPAddress.h"
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
@@ -64,23 +65,35 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     GetRootRequestManager()->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
     GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
+    const auto& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+
     GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
 
+    if (projectName.IsEmpty())
+    {
+        projectName = ProjectSettings.ProjectName;
+    }
+    if (projectName.IsEmpty())
+    {
+        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("ProjectName is empty or missing. Please fill out Project Settings->Drift"));
+    }
+
     if (!ignoreCommandLineArguments_)
     {
         FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_key="), apiKey);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_key="), versionedApiKey);
     }
 
-    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_version="), gameVersion))
+    GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("AppGuid"), appGuid, GGameIni);
+
+    if (appGuid.IsEmpty())
     {
-        GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
-    }
-    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_build="), gameBuild))
-    {
-        GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
+        DRIFT_LOG(Base, Log, TEXT("No AppGuid specified, will fall back to the UE4 ProjectID"));
+        appGuid = ProjectSettings.ProjectID.ToString(EGuidFormats::DigitsWithHyphens);
     }
 
     if (cli.drift_url.IsEmpty())
@@ -97,9 +110,14 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     {
         GConfig->GetString(*settingsSection_, TEXT("ApiKey"), apiKey, GGameIni);
     }
-    if (apiKey.IsEmpty())
+    if (apiKey.IsEmpty() && versionedApiKey.IsEmpty())
     {
         IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No API key found. Please fill out Project Settings->Drift"));
+    }
+
+    if (appGuid.IsEmpty())
+    {
+        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No App GUID found. Please fill out Project Settings->Drift"));
     }
 
     deviceAuthProviderFactory = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, projectName);
@@ -2068,8 +2086,7 @@ void FDriftBase::RegisterClient()
     FClientRegistrationPayload payload;
     payload.client_type = L"UE4";
     payload.platform_type = details::GetPlatformName();
-    payload.app_guid = L"TEMP";
-    payload.product_name = projectName;
+    payload.app_guid = appGuid;
 
 #if PLATFORM_IOS
     payload.platform_version = IOSUtility::GetIOSVersion();
@@ -3321,6 +3338,10 @@ bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, fl
 
 FString FDriftBase::GetApiKeyHeader() const
 {
+    if (!versionedApiKey.IsEmpty())
+    {
+        return versionedApiKey;
+    }
     return FString::Printf(TEXT("%s:%s"), *apiKey, IsRunningAsServer() ? TEXT("service") : *gameVersion);
 }
 

@@ -387,6 +387,8 @@ private:
     FGetMatchesResponseItem match_info;
 
     FString apiKey;
+	FString versionedApiKey;
+    FString appGuid;
     FString projectName = TEXT("DefaultDriftProject");
     FString gameVersion = TEXT("0.0.0");
     FString gameBuild = TEXT("0");

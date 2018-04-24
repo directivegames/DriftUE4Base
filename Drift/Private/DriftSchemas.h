@@ -107,7 +107,6 @@ struct FClientRegistrationPayload
     FString app_guid;
     FString version;
     FString platform_version;
-    FString product_name;
     
     bool Serialize(SerializationContext& context);
 };
