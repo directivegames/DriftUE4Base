@@ -363,6 +363,21 @@ public:
         parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
     }
     
+    static void AddMember(JsonValue& parent, const FString& name, unsigned value)
+    {
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
+    }
+
+    static void AddMember(JsonValue& parent, const FString& name, int64_t value)
+    {
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
+    }
+
+    static void AddMember(JsonValue& parent, const FString& name, uint64_t value)
+    {
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
+    }
+
     static void AddMember(JsonValue& parent, const FString& name, JsonValue&& value)
     {
         parent.AddMember(JsonValue(*name, name.Len(), allocator_), Forward<JsonValue>(value), allocator_);

@@ -32,6 +32,7 @@
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
+#include "Internationalization.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -2104,6 +2105,23 @@ void FDriftBase::RegisterClient()
     payload.client_type = L"UE4";
     payload.platform_type = details::GetPlatformName();
     payload.app_guid = appGuid;
+
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_physical_cores"), FPlatformMisc::NumberOfCores());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_logical_cores"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_vendor"), *FPlatformMisc::GetCPUVendor());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_brand"), *FPlatformMisc::GetCPUBrand());
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_adapter"), *GRHIAdapterName);
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_vendor_id"), GRHIVendorId);
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_device_id"), GRHIDeviceId);
+
+    const auto& stats = FPlatformMemory::GetConstants();
+    JsonArchive::AddMember(payload.platform_info, TEXT("total_physical_ram"), static_cast<uint64>(stats.TotalPhysical));
+
+    JsonArchive::AddMember(payload.platform_info, TEXT("os_version"), *FPlatformMisc::GetOSVersion());
+
+    const auto& I18N = FInternationalization::Get();
+    JsonArchive::AddMember(payload.platform_info, TEXT("language"), *I18N.GetCurrentLanguage()->GetName());
+    JsonArchive::AddMember(payload.platform_info, TEXT("locale"), *I18N.GetCurrentLocale()->GetName());
 
 #if PLATFORM_IOS
     payload.platform_version = IOSUtility::GetIOSVersion();

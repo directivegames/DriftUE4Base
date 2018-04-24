@@ -59,6 +59,7 @@ public class Drift : ModuleRules
                 "SlateCore",
                 "HTTP",
                 "Sockets",
+                "RHI",
                 "OnlineSubsystem",
                 "OnlineSubsystemUtils",
                 "DriftHttp",
