@@ -234,13 +234,23 @@ void FDriftBase::TickHeartbeat(float deltaTime)
 
     struct FDriftHeartBeatResponse
     {
+        int32 num_heartbeats;
+        FDateTime last_heartbeat;
+        FDateTime this_heartbeat;
+        FDateTime next_heartbeat;
         int32 next_heartbeat_seconds;
         FDateTime heartbeat_timeout;
-        
+        int32 heartbeat_timeout_seconds;
+
         bool Serialize(SerializationContext& context)
         {
-            return SERIALIZE_PROPERTY(context, next_heartbeat_seconds)
-                && SERIALIZE_PROPERTY(context, heartbeat_timeout);
+            return SERIALIZE_PROPERTY(context, num_heartbeats)
+                && SERIALIZE_PROPERTY(context, last_heartbeat)
+                && SERIALIZE_PROPERTY(context, this_heartbeat)
+                && SERIALIZE_PROPERTY(context, next_heartbeat)
+                && SERIALIZE_PROPERTY(context, next_heartbeat_seconds)
+                && SERIALIZE_PROPERTY(context, heartbeat_timeout)
+                && SERIALIZE_PROPERTY(context, heartbeat_timeout_seconds);
         }
     };
 
@@ -253,8 +263,15 @@ void FDriftBase::TickHeartbeat(float deltaTime)
             FDriftHeartBeatResponse response;
             if (JsonUtils::ParseResponse(context.response, response))
             {
+                const auto heartbeatRoundTrip = FTimespan::FromSeconds(context.request.Get()->GetElapsedTime());
                 heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
-                heartbeatTimeout_ = response.heartbeat_timeout;
+                /**
+                 * We don't know if making the call, or returning it, takes a long time,
+                 * and the client clock might be off compared with the server's, so we
+                 * can't use the actual timeout time returned. Local time minus roundtrip
+                 * plus timeout, should be on the safe side.
+                 */
+                heartbeatTimeout_ = FDateTime::UtcNow() + FTimespan::FromSeconds(response.heartbeat_timeout_seconds) - heartbeatRoundTrip;
             }
         }
         else
@@ -262,7 +279,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
             heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt();
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs"), *FDateTime::UtcNow().ToString(), heartbeatDueInSeconds_);
+        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs. Timeout at: %s"), *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
