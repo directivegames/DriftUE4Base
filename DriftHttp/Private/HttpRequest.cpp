@@ -233,7 +233,15 @@ void HttpRequest::LogError(ResponseContext& context)
     {
         auto zeroTerminatedPayload{ context.request->GetContent() };
         zeroTerminatedPayload.Add(0);
-        requestData->SetStringField(L"data", UTF8_TO_TCHAR(zeroTerminatedPayload.GetData()));
+        FString payload{ UTF8_TO_TCHAR(zeroTerminatedPayload.GetData()) };
+        if (payload.Len() < 1024)
+        {
+            requestData->SetStringField(L"data", payload);
+        }
+        else if (payload.Len() > 0)
+        {
+            requestData->SetStringField(L"data", TEXT("[Truncated]"));
+        }
     }
 
     if (context.response.IsValid())
@@ -259,7 +267,16 @@ void HttpRequest::LogError(ResponseContext& context)
                 error->SetStringField(L"description", description);
             }
         }
-        error->SetStringField(L"response_data", context.response->GetContentAsString());
+
+        auto content = context.response->GetContentAsString();
+        if (content.Len() < 1024)
+        {
+            error->SetStringField(L"response_data", content);
+        }
+        else if (content.Len() > 0)
+        {
+            error->SetStringField(L"response_data", TEXT("[Truncated]"));
+        }
 
         auto responseHeaders = context.response->GetAllHeaders();
         if (responseHeaders.Num() > 0)
