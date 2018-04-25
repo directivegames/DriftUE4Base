@@ -66,20 +66,9 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     GetRootRequestManager()->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
     GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
-    const auto& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
-
     GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
-    GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
-
-    if (projectName.IsEmpty())
-    {
-        projectName = ProjectSettings.ProjectName;
-    }
-    if (projectName.IsEmpty())
-    {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("ProjectName is empty or missing. Please fill out Project Settings->Drift"));
-    }
 
     if (!ignoreCommandLineArguments_)
     {
@@ -89,12 +78,17 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
 
     GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
-    GConfig->GetString(*settingsSection_, TEXT("AppGuid"), appGuid, GGameIni);
 
-    if (appGuid.IsEmpty())
     {
-        DRIFT_LOG(Base, Log, TEXT("No AppGuid specified, will fall back to the UE4 ProjectID"));
-        appGuid = ProjectSettings.ProjectID.ToString(EGuidFormats::DigitsWithHyphens);
+        FString appGuid;
+        GConfig->GetString(*settingsSection_, TEXT("AppGuid"), appGuid, GGameIni);
+        if (!appGuid.IsEmpty())
+        {
+            if (!FGuid::Parse(appGuid, appGuid_))
+            {
+                IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("AppGuid \"%s\" could not be parsed as a valid GUID"));
+            }
+        }
     }
 
     if (cli.drift_url.IsEmpty())
@@ -115,13 +109,6 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     {
         IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No API key found. Please fill out Project Settings->Drift"));
     }
-
-    if (appGuid.IsEmpty())
-    {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No App GUID found. Please fill out Project Settings->Drift"));
-    }
-
-    deviceAuthProviderFactory = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, projectName);
 
     ConfigurePlacement();
     ConfigureBuildReference();
@@ -952,6 +939,48 @@ bool FDriftBase::IsRunningAsServer() const
 {
     FString dummy;
     return IsPreRegistered() || FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), dummy);
+}
+
+
+const FString& FDriftBase::GetProjectName()
+{
+    if (projectName_.IsEmpty())
+    {
+        projectName_ = GetDefault<UGeneralProjectSettings>()->ProjectName;
+    }
+
+    if (projectName_.IsEmpty())
+    {
+        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Drift ProjectName is empty or missing. Please fill out Project Settings->Drift"));
+    }
+
+    return projectName_;
+}
+
+
+const FGuid& FDriftBase::GetAppGuid()
+{
+    if (!appGuid_.IsValid())
+    {
+        appGuid_ = GetDefault<UGeneralProjectSettings>()->ProjectID;
+    }
+
+    if (!appGuid_.IsValid())
+    {
+        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No Drift App GUID found. Please fill out Project Settings->Drift"));
+    }
+
+    return appGuid_;
+}
+
+
+IDriftAuthProviderFactory* FDriftBase::GetDeviceAuthProviderFactory()
+{
+    if (!deviceAuthProviderFactory_.IsValid())
+    {
+        deviceAuthProviderFactory_ = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, GetProjectName());
+    }
+    return deviceAuthProviderFactory_.Get();
 }
 
 
@@ -1947,7 +1976,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
             DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
         }
 
-        authProvider = MakeShareable(deviceAuthProviderFactory->GetAuthProvider().Release());
+        authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
     }
     else
     {
@@ -1958,7 +1987,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
     {
         DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to device credentials"), *credentialType);
 
-        authProvider = MakeShareable(deviceAuthProviderFactory->GetAuthProvider().Release());
+        authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
     }
 
     authProvider->InitCredentials([this](bool credentialSuccess)
@@ -2104,7 +2133,7 @@ void FDriftBase::RegisterClient()
     FClientRegistrationPayload payload;
     payload.client_type = L"UE4";
     payload.platform_type = details::GetPlatformName();
-    payload.app_guid = appGuid;
+    payload.app_guid = GetAppGuid().ToString(EGuidFormats::DigitsWithHyphens);
 
     JsonArchive::AddMember(payload.platform_info, TEXT("cpu_physical_cores"), FPlatformMisc::NumberOfCores());
     JsonArchive::AddMember(payload.platform_info, TEXT("cpu_logical_cores"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());

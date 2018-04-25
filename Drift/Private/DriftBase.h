@@ -319,6 +319,10 @@ private:
 
     bool IsRunningAsServer() const;
 
+    const FString& GetProjectName();
+    const FGuid& GetAppGuid();
+    IDriftAuthProviderFactory* GetDeviceAuthProviderFactory();
+
 private:
     FString settingsSection_;
 
@@ -388,8 +392,8 @@ private:
 
     FString apiKey;
 	FString versionedApiKey;
-    FString appGuid;
-    FString projectName = TEXT("DefaultDriftProject");
+    FGuid appGuid_;
+    FString projectName_ = TEXT("DefaultDriftProject");
     FString gameVersion = TEXT("0.0.0");
     FString gameBuild = TEXT("0");
     FString environment = TEXT("dev");
@@ -397,7 +401,7 @@ private:
     FString staticDataReference;
     FString defaultPlacement;
 
-    TUniquePtr<IDriftAuthProviderFactory> deviceAuthProviderFactory;
+    TUniquePtr<IDriftAuthProviderFactory> deviceAuthProviderFactory_;
     TSharedPtr<IDriftAuthProvider> authProvider;
 
     TSharedPtr<IHttpCache> httpCache_;
