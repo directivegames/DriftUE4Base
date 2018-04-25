@@ -77,7 +77,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
         /**
          * We got a response from the server, let's check if it's good or bad
          */
-        if (context.responseCode >= (int32)HttpStatusCodes::Ok && context.responseCode < (int32)HttpStatusCodes::FirstClientError)
+        if (context.responseCode >= static_cast<int32>(HttpStatusCodes::Ok) && context.responseCode < static_cast<int32>(HttpStatusCodes::FirstClientError))
         {
             /**
              * We got a non-error response code
@@ -91,7 +91,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             {
                 JsonDocument doc;
                 FString content = response->GetContentAsString();
-                if (context.responseCode == (int32)HttpStatusCodes::NoContent)
+                if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
                 {
                     content = TEXT("{}");
                 }
@@ -99,8 +99,8 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                 if (doc.HasParseError())
                 {
                     context.error = FString::Printf(L"JSON response is broken at position %i. RapidJson error: %i",
-                        (int32)doc.GetErrorOffset(),
-                        (int32)doc.GetParseError());
+                        static_cast<int32>(doc.GetErrorOffset()),
+                        static_cast<int32>(doc.GetParseError()));
                 }
                 else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
                 {
