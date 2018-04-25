@@ -214,19 +214,28 @@ void HttpRequest::LogError(ResponseContext& context)
     requestData->SetStringField(L"method", wrappedRequest_->GetVerb());
     requestData->SetStringField(L"url", wrappedRequest_->GetURL());
     
-    auto allHeaders = MakeShared<FJsonObject>();
-    
+   
     auto requestHeaders = context.request->GetAllHeaders();
     if (requestHeaders.Num() > 0)
     {
+        auto headers = MakeShared<FJsonObject>();
         for (const auto& header : requestHeaders)
         {
             FString key, value;
-            header.Split(L": ", &key, &value);
-            allHeaders->SetStringField(key, value);
+            if (header.Split(L": ", &key, &value))
+            {
+                headers->SetStringField(key, value);
+            }
         }
+        requestData->SetObjectField("headers", headers);
     }
-    
+
+    {
+        auto zeroTerminatedPayload{ context.request->GetContent() };
+        zeroTerminatedPayload.Add(0);
+        requestData->SetStringField(L"data", UTF8_TO_TCHAR(zeroTerminatedPayload.GetData()));
+    }
+
     if (context.response.IsValid())
     {
         GenericRequestErrorResponse response;
@@ -235,31 +244,36 @@ void HttpRequest::LogError(ResponseContext& context)
             auto code = response.GetErrorCode();
             if (!code.IsEmpty())
             {
-                requestData->SetStringField(L"code", code);
+                error->SetStringField(L"response_code", code);
                 errorMessage += code;
             }
             auto reason = response.GetErrorReason();
             if (!reason.IsEmpty() && reason != L"undefined")
             {
-                requestData->SetStringField(L"reason", reason);
-                errorMessage += errorMessage.IsEmpty() ? reason : FString{ L" : " } +reason;
+                error->SetStringField(L"reason", reason);
+                errorMessage += errorMessage.IsEmpty() ? reason : FString{ L" : " } + reason;
             }
             auto description = response.GetErrorDescription();
             if (!description.IsEmpty())
             {
-                requestData->SetStringField(L"description", description);
+                error->SetStringField(L"description", description);
             }
         }
-        requestData->SetStringField(L"data", context.response->GetContentAsString());
+        error->SetStringField(L"response_data", context.response->GetContentAsString());
+
         auto responseHeaders = context.response->GetAllHeaders();
         if (responseHeaders.Num() > 0)
         {
+            auto headers = MakeShared<FJsonObject>();
             for (const auto& header : responseHeaders)
             {
                 FString key, value;
-                header.Split(L": ", &key, &value);
-                allHeaders->SetStringField(key, value);
+                if (header.Split(L": ", &key, &value))
+                {
+                    headers->SetStringField(key, value);
+                }
             }
+            error->SetObjectField(L"response_headers", headers);
         }
     }
     else
@@ -268,11 +282,6 @@ void HttpRequest::LogError(ResponseContext& context)
         {
             errorMessage = L"HTTP request timeout";
         }
-    }
-    
-    if (allHeaders->Values.Num() > 0)
-    {
-        requestData->SetObjectField("headers", allHeaders);
     }
     
     if (errorMessage.IsEmpty())
