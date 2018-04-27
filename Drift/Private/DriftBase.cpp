@@ -73,7 +73,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     if (!ignoreCommandLineArguments_)
     {
         FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_key="), versionedApiKey);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_apikey="), versionedApiKey);
     }
 
     GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
