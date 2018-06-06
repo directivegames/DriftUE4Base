@@ -449,7 +449,8 @@ bool SerializationContext::SerializeOptionalProperty(const wchar_t* propertyName
 {
     if (archive.IsLoading())
     {
-        if (value.HasMember(propertyName))
+        const auto member = value.FindMember(propertyName);
+        if (member != value.MemberEnd() && !member->value.IsNull())
         {
             return archive.SerializeProperty(value, propertyName, property);
         }
