@@ -11,25 +11,25 @@ namespace details
 const TCHAR* GetPlatformName()
 {
 #if PLATFORM_WINDOWS
-    return L"Windows";
+    return TEXT("Windows");
 #elif PLATFORM_PS4
-    return L"PS4";
+    return TEXT("PS4");
 #elif PLATFORM_XBOXONE
-    return L"XBOX1";
+    return TEXT("XBOX1");
 #elif PLATFORM_MAC
-    return L"MAC";
+    return TEXT("MAC");
 #elif PLATFORM_IOS
     return FIOSPlatformMisc::GetDefaultDeviceProfileName();
 #elif PLATFORM_ANDROID
-    return L"Android";
+    return TEXT("Android");
 #elif PLATFORM_WINRT_ARM
-    return L"WinRT";
+    return TEXT("WinRT");
 #elif PLATFORM_WINRT
-    return L"WinRT";
+    return TEXT("WinRT");
 #elif PLATFORM_HTML5
-    return L"HTML5";
+    return TEXT("HTML5");
 #elif PLATFORM_LINUX
-    return L"Linux";
+    return TEXT("Linux");
 #else
 #error Unknown Platform
 #endif

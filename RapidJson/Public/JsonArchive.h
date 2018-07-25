@@ -19,11 +19,11 @@
 
 #include <type_traits>
 
-
-typedef rapidjson::GenericValue<rapidjson::UTF16<>, rapidjson::CrtAllocator> JsonValue;
-typedef rapidjson::GenericDocument<rapidjson::UTF16<>, rapidjson::CrtAllocator> JsonDocument;
-typedef rapidjson::GenericStringBuffer<rapidjson::UTF16<>, rapidjson::CrtAllocator> JsonStringBuffer;
-typedef rapidjson::Writer<JsonStringBuffer, rapidjson::UTF16<>, rapidjson::UTF16<>> JsonWriter;
+typedef rapidjson::UTF16<TCHAR> StringType;
+typedef rapidjson::GenericValue<StringType, rapidjson::CrtAllocator> JsonValue;
+typedef rapidjson::GenericDocument<StringType, rapidjson::CrtAllocator> JsonDocument;
+typedef rapidjson::GenericStringBuffer<StringType, rapidjson::CrtAllocator> JsonStringBuffer;
+typedef rapidjson::Writer<JsonStringBuffer, StringType, StringType> JsonWriter;
 
 
 class JsonArchive;
@@ -45,10 +45,10 @@ public:
     JsonValue& GetValue() const { return value; }
     
     template<typename T>
-    bool SerializeProperty(const wchar_t* propertyName, T& property);
+    bool SerializeProperty(const TCHAR* propertyName, T& property);
     
     template<typename T>
-    bool SerializeOptionalProperty(const wchar_t* propertyName, T& property);
+    bool SerializeOptionalProperty(const TCHAR* propertyName, T& property);
 
 private:
     JsonArchive& archive;
@@ -59,8 +59,8 @@ private:
 /**
 * Serialize a named C++ property with the corresponding json value
 */
-#define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(L###propertyName, propertyName)
-#define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(L###propertyName, propertyName)
+#define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(TEXT(#propertyName), propertyName)
+#define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(TEXT(#propertyName), propertyName)
 
 
 class RAPIDJSON_API JsonArchive
@@ -69,7 +69,7 @@ public:
     /**
     * Load a json string into a json document, return if the parsing succeeds
     */
-    static bool LoadDocument(const wchar_t* jsonString, JsonDocument& document)
+    static bool LoadDocument(const TCHAR* jsonString, JsonDocument& document)
     {
         document.Parse(jsonString);
         return !document.HasParseError();
@@ -79,13 +79,13 @@ public:
     * Load a json string into a C++ object, return if the parsing succeeds
     */
     template<class T>
-    static bool LoadObject(const wchar_t* jsonString, T& object)
+    static bool LoadObject(const TCHAR* jsonString, T& object)
     {
         return LoadObject(jsonString, object, true);
     }
 
     template<class T>
-    static bool LoadObject(const wchar_t* jsonString, T& object, bool logErrors)
+    static bool LoadObject(const TCHAR* jsonString, T& object, bool logErrors)
     {
         JsonDocument doc;
 
@@ -306,7 +306,7 @@ public:
     * The json value is assumed to be named propName under the parent value
     */
     template<class T>
-    bool SerializeProperty(JsonValue& parent, const wchar_t* propName, T& cValue)
+    bool SerializeProperty(JsonValue& parent, const TCHAR* propName, T& cValue)
     {
         bool success = false;
         
@@ -337,7 +337,7 @@ public:
     
     static rapidjson::CrtAllocator& Allocator() { return allocator_; }
 
-    static JsonValue NewValue(const wchar_t* str)
+    static JsonValue NewValue(const TCHAR* str)
     {
         return JsonValue(str, allocator_);
     }
@@ -438,14 +438,14 @@ RAPIDJSON_API bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, Js
 
 
 template<typename T>
-bool SerializationContext::SerializeProperty(const wchar_t* propertyName, T& property)
+bool SerializationContext::SerializeProperty(const TCHAR* propertyName, T& property)
 {
     return archive.SerializeProperty(value, propertyName, property);
 }
 
 
 template<typename T>
-bool SerializationContext::SerializeOptionalProperty(const wchar_t* propertyName, T& property)
+bool SerializationContext::SerializeOptionalProperty(const TCHAR* propertyName, T& property)
 {
     if (archive.IsLoading())
     {

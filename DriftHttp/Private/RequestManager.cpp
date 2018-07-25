@@ -152,7 +152,7 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 #endif
         FString contextValue;
         JsonArchive::SaveObject(temp, contextValue);
-        wrapper->SetHeader(L"Drift-Log-Context", contextValue);
+        wrapper->SetHeader(TEXT("Drift-Log-Context"), contextValue);
     }
     
     wrapper->SetRetries(defaultRetries_);

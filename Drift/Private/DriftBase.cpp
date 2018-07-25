@@ -86,7 +86,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
         {
             if (!FGuid::Parse(appGuid, appGuid_))
             {
-                IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("AppGuid \"%s\" could not be parsed as a valid GUID"));
+                IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("AppGuid \"%s\" could not be parsed as a valid GUID"));
             }
         }
     }
@@ -107,7 +107,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     }
     if (apiKey.IsEmpty() && versionedApiKey.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No API key found. Please fill out Project Settings->Drift"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("No API key found. Please fill out Project Settings->Drift"));
     }
 
     ConfigurePlacement();
@@ -537,13 +537,13 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
         FStaticDataResponse static_data;
         if (!JsonArchive::LoadObject(doc, static_data))
         {
-            context.error = L"Failed to parse static data response";
+            context.error = TEXT("Failed to parse static data response");
             return;
         }
         
         if (static_data.static_data_urls.Num() == 0)
         {
-            context.error = L"No static data entries found";
+            context.error = TEXT("No static data entries found");
             return;
         }
 
@@ -951,7 +951,7 @@ const FString& FDriftBase::GetProjectName()
 
     if (projectName_.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Drift ProjectName is empty or missing. Please fill out Project Settings->Drift"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Drift ProjectName is empty or missing. Please fill out Project Settings->Drift"));
     }
 
     return projectName_;
@@ -967,7 +967,7 @@ const FGuid& FDriftBase::GetAppGuid()
 
     if (!appGuid_.IsValid())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No Drift App GUID found. Please fill out Project Settings->Drift"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("No Drift App GUID found. Please fill out Project Settings->Drift"));
     }
 
     return appGuid_;
@@ -1002,7 +1002,7 @@ void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
     {
         if (!JsonArchive::LoadObject(doc, cached_matches.matches))
         {
-            context.error = L"Failed to parse matches";
+            context.error = TEXT("Failed to parse matches");
             return;
         }
 
@@ -1113,7 +1113,7 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to join the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to join the match queue without being connected"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1121,7 +1121,7 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
 
     if (matchQueueState != EMatchQueueState::Idle)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to join the match queue while not idle"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to join the match queue while not idle"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1142,7 +1142,7 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
     {
         if (!JsonArchive::LoadObject(doc, matchQueue))
         {
-            context.error = L"Failed to parse join queue response";
+            context.error = TEXT("Failed to parse join queue response");
             return;
         }
         matchQueueState = matchQueue.status == MatchQueueStatusMatchedName ? EMatchQueueState::Matched : EMatchQueueState::Queued;
@@ -1168,7 +1168,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to leave the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to leave the match queue without being connected"));
         
         delegate.ExecuteIfBound(false);
         return;
@@ -1176,7 +1176,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
 
     if (matchQueue.matchqueueplayer_url.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to leave the match queue without being in one"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to leave the match queue without being in one"));
         
         delegate.ExecuteIfBound(false);
         return;
@@ -1184,7 +1184,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
     
     if (matchQueueState == EMatchQueueState::Matched)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to leave the match queue after getting matched"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to leave the match queue after getting matched"));
         
         delegate.ExecuteIfBound(false);
         return;
@@ -1237,7 +1237,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
             }
         }
 
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Failed to leave the match queue for an unknown reason"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Failed to leave the match queue for an unknown reason"));
 
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -1250,7 +1250,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to poll the match queue without being connected"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1258,7 +1258,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
 
     if (matchQueue.matchqueueplayer_url.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue without being in one"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to poll the match queue without being in one"));
 
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1267,8 +1267,8 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
     if (matchQueueState != EMatchQueueState::Queued && matchQueueState != EMatchQueueState::Matched)
     {
         auto extra = MakeShared<FJsonObject>();
-        extra->SetNumberField(L"state", static_cast<int32>(matchQueueState));
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue while in an incompatible state"), extra);
+        extra->SetNumberField(TEXT("state"), static_cast<int32>(matchQueueState));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to poll the match queue while in an incompatible state"), extra);
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1281,7 +1281,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
         FMatchQueueResponse response;
         if (!JsonArchive::LoadObject(doc, response))
         {
-            context.error = L"Failed to parse poll queue response";
+            context.error = TEXT("Failed to parse poll queue response");
             return;
         }
 
@@ -1319,21 +1319,21 @@ void FDriftBase::ResetMatchQueue()
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to reset the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to reset the match queue without being connected"));
         
         return;
     }
     
     if (matchQueue.matchqueueplayer_url.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to reset the match queue without being in one"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to reset the match queue without being in one"));
         
         return;
     }
     
     if (matchQueueState != EMatchQueueState::Matched)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to reset the match queue without being matched"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to reset the match queue without being matched"));
         
         return;
     }
@@ -1355,7 +1355,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to send match challenge without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to send match challenge without being connected"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1363,7 +1363,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
     
     if (matchQueueState != EMatchQueueState::Idle)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to send match challenge while not idle"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to send match challenge while not idle"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1371,7 +1371,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
     
     if (playerID == myPlayer.player_id)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to challenge yourself to a match is not allowed"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to challenge yourself to a match is not allowed"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1381,8 +1381,8 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
     if (!playerInfo)
     {
         auto extra = MakeShared<FJsonObject>();
-        extra->SetNumberField(L"player_id", playerID);
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to challenge player to match, but there's no information about the player"), extra);
+        extra->SetNumberField(TEXT("player_id"), playerID);
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to challenge player to match, but there's no information about the player"), extra);
 
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1667,7 +1667,7 @@ void FDriftBase::GetLeaderboardImpl(const FString& counterName, const TWeakPtr<F
         TArray<FDriftLeaderboardResponseItem> entries;
         if (!JsonArchive::LoadObject(doc, entries))
         {
-            context.error = L"Failed to parse leaderboard entries response";
+            context.error = TEXT("Failed to parse leaderboard entries response");
             return;
         }
 
@@ -1795,7 +1795,7 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
         }
         if (token.IsEmpty()) 
         {
-            context.error = L"Response 'token' missing.";
+            context.error = TEXT("Response 'token' missing.");
             return;
         }
 
@@ -1951,9 +1951,9 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
     auto request = GetRootRequestManager()->Get(url);
     request->OnResponse.BindLambda([this, onSuccess](ResponseContext& context, JsonDocument& doc)
     {
-        if (!JsonArchive::LoadObject(doc[L"endpoints"], driftEndpoints))
+        if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = L"Failed to parse endpoints";
+            context.error = TEXT("Failed to parse endpoints");
             return;
         }
         onSuccess();
@@ -2058,7 +2058,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         }
         if (jti.IsEmpty())
         {
-            context.error = L"Session 'jti' missing.";
+            context.error = TEXT("Session 'jti' missing.");
             return;
         }
 
@@ -2131,7 +2131,7 @@ void FDriftBase::GetUserInfo()
 void FDriftBase::RegisterClient()
 {
     FClientRegistrationPayload payload;
-    payload.client_type = L"UE4";
+    payload.client_type = TEXT("UE4");
     payload.platform_type = details::GetPlatformName();
     payload.app_guid = GetAppGuid().ToString(EGuidFormats::DigitsWithHyphens);
 
@@ -2175,7 +2175,7 @@ void FDriftBase::RegisterClient()
     {
         if (!JsonArchive::LoadObject(doc, driftClient))
         {
-            context.error = L"Failed to parse client registration response";
+            context.error = TEXT("Failed to parse client registration response");
             return;
         }
         hearbeatUrl = driftClient.url;
@@ -2211,13 +2211,13 @@ void FDriftBase::GetPlayerEndpoints()
     {
         if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = "Failed to parse drift endpoints";
+            context.error = TEXT("Failed to parse drift endpoints");
             return;
         }
 
         if (driftEndpoints.my_player.IsEmpty())
         {
-            context.error = L"My player endpoint is empty";
+            context.error = TEXT("My player endpoint is empty");
             return;
         }
 
@@ -2242,7 +2242,7 @@ void FDriftBase::GetPlayerInfo()
     {
         if (!JsonArchive::LoadObject(doc, myPlayer))
         {
-            context.error = L"Failed to parse my player";
+            context.error = TEXT("Failed to parse my player");
             return;
         }
         playerCounterManager->SetCounterUrl(myPlayer.counter_url);
@@ -2392,7 +2392,7 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
         }
         if (jti.IsEmpty())
         {
-            context.error = L"Identity 'jti' missing.";
+            context.error = TEXT("Identity 'jti' missing.");
             return;
         }
 
@@ -2623,9 +2623,9 @@ void FDriftBase::InitServerRootInfo()
     auto request = GetRootRequestManager()->Get(drift_url);
     request->OnResponse.BindLambda([this, drift_url](ResponseContext& context, JsonDocument& doc)
     {
-        if (!JsonArchive::LoadObject(doc[L"endpoints"], driftEndpoints))
+        if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = L"Failed to parse drift endpoints";
+            context.error = TEXT("Failed to parse drift endpoints");
             state_ = DriftSessionState::Disconnected;
             return;
         }
@@ -2693,7 +2693,7 @@ void FDriftBase::InitServerAuthentication()
         FString jti = doc[TEXT("jti")].GetString();
         if (jti.IsEmpty())
         {
-            context.error = L"Session 'jti' missing.";
+            context.error = TEXT("Session 'jti' missing.");
             return;
         }
 
@@ -2770,7 +2770,7 @@ void FDriftBase::InitServerRegistration()
     auto request = GetGameRequestManager()->Post(driftEndpoints.servers, payload);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        InitServerInfo(doc[L"url"].GetString());
+        InitServerInfo(doc[TEXT("url")].GetString());
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -2798,7 +2798,7 @@ void FDriftBase::InitServerInfo(const FString& serverUrl)
         {
             if (!JsonArchive::LoadObject(serverDoc, drift_server))
             {
-                serverContext.error = L"Failed to parse drift server endpoint response.";
+                serverContext.error = TEXT("Failed to parse drift server endpoint response.");
                 return;
             }
             hearbeatUrl = drift_server.heartbeat_url;
@@ -2954,7 +2954,7 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
         FAddMatchResponse match;
         if (!JsonArchive::LoadObject(doc, match))
         {
-            context.error = L"Failed to parse add match response.";
+            context.error = TEXT("Failed to parse add match response.");
             return;
         }
 
@@ -2965,7 +2965,7 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
         {
             if (!JsonArchive::LoadObject(matchDoc, match_info))
             {
-                matchContext.error = L"Failed to parse match info response.";
+                matchContext.error = TEXT("Failed to parse match info response.");
                 return;
             }
 
@@ -3091,7 +3091,7 @@ void FDriftBase::CachePlayerInfo(int32 playerID)
         TArray<FDriftPlayerResponse> info;
         if (!JsonArchive::LoadObject(doc, info))
         {
-            context.error = L"Failed to parse player info response";
+            context.error = TEXT("Failed to parse player info response");
             return;
         }
         if (info.Num() != 1)

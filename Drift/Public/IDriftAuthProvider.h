@@ -19,7 +19,7 @@ public:
     virtual void GetFriends(GetFriendsCallback callback) = 0;
 	virtual void GetAvatarUrl(GetAvatarUrlCallback callback) = 0;
     virtual void FillProviderDetails(DetailsAppender appender) const = 0;
-    virtual FString GetNickname() { return L""; }
+    virtual FString GetNickname() { return TEXT(""); }
 
     virtual FString ToString() const = 0;
 

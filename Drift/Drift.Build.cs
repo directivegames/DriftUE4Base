@@ -82,7 +82,7 @@ public class Drift : ModuleRules
         {
             if (Version.MajorVersion == 4 && Version.MinorVersion >= 18)
             {
-                Definitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
+                PublicDefinitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
             }
         }
     }

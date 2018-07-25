@@ -30,7 +30,6 @@ public class DriftHttp : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
                 // ... add other private include paths required here ...
-                "Drift/DriftHttp/Public",
             }
         );
             
@@ -61,7 +60,7 @@ public class DriftHttp : ModuleRules
         {
             if (Version.MajorVersion == 4 && Version.MinorVersion >= 18)
             {
-                Definitions.Add("WITH_FPATHS_PROJECTDIR");
+                PublicDefinitions.Add("WITH_FPATHS_PROJECTDIR");
             }
         }
     }

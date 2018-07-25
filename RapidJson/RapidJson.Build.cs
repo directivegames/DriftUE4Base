@@ -53,7 +53,7 @@ public class RapidJson : ModuleRules
 
         if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.PS4))
         {
-            Definitions.Add("RAPIDJSON_HAS_CXX11_RVALUE_REFS=1");
+            PublicDefinitions.Add("RAPIDJSON_HAS_CXX11_RVALUE_REFS=1");
         }
     }
 }

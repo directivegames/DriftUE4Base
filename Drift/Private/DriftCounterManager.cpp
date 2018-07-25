@@ -117,7 +117,7 @@ void FDriftCounterManager::LoadCounters()
         TArray<FDriftPlayerCounter> counters;
         if (!JsonArchive::LoadObject(doc, counters))
         {
-            context.error = L"Failed to parse player counter response";
+            context.error = TEXT("Failed to parse player counter response");
             return;
         }
 

@@ -19,7 +19,7 @@ public class ErrorReporter : ModuleRules
         PCHUsage = PCHUsageMode.NoSharedPCHs;
         PrivatePCHHeaderFile = "Private/ErrorReporterPCH.h";
         
-        Definitions.Add("ERROR_REPORTER_PACKAGE=1");
+        PublicDefinitions.Add("ERROR_REPORTER_PACKAGE=1");
 
         PublicDependencyModuleNames.AddRange(
             new string[]
