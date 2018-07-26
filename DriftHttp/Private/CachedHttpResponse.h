@@ -9,17 +9,17 @@ public:
     CachedHttpResponse();
 
     // IHttpBase API
-    FString GetURL() override;
-    FString GetURLParameter(const FString& ParameterName) override;
-    FString GetHeader(const FString& HeaderName)  override;
-    TArray<FString> GetAllHeaders()  override;
-    FString GetContentType()  override;
-    int32 GetContentLength()  override;
-    const TArray<uint8>& GetContent() override;
+    FString GetURL() const override;
+    FString GetURLParameter(const FString& ParameterName) const override;
+    FString GetHeader(const FString& HeaderName)  const override;
+    TArray<FString> GetAllHeaders()  const override;
+    FString GetContentType()  const override;
+    int32 GetContentLength()  const override;
+    const TArray<uint8>& GetContent() const override;
 
     // IHttpResponse API
-    int32 GetResponseCode() override;
-    FString GetContentAsString() override;
+    int32 GetResponseCode() const override;
+    FString GetContentAsString() const override;
 
     friend class FileHttpCache;
 

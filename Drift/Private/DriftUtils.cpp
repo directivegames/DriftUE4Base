@@ -63,8 +63,13 @@ FDriftWorldHelper::FDriftWorldHelper(FName context)
 }
 
 
-
 IDriftAPI* FDriftWorldHelper::GetInstance()
+{
+    return GetInstance(TEXT(""));
+}
+
+
+IDriftAPI* FDriftWorldHelper::GetInstance(const FString& config)
 {
     /**
      * We're treating a null world as a valid case, returning the default Drift instance,
@@ -90,7 +95,7 @@ IDriftAPI* FDriftWorldHelper::GetInstance()
     }
 #endif // UE_EDITOR
     auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
-    return provider.GetInstance(identifier);
+    return provider.GetInstance(identifier, config);
 }
 
 

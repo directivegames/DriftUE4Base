@@ -50,6 +50,11 @@ public:
         InternalAdd(name, value);
     }
 
+    void Add(const FString& name, long long value) override
+    {
+        InternalAdd(name, value);
+    }
+
     void Add(const FString& name, float value) override
     {
         InternalAdd(name, value);
@@ -75,7 +80,7 @@ public:
         InternalAdd(name, value);
     }
 
-    void Add(const FString& name, TArray<TUniquePtr<IDriftEvent>> events)
+    void Add(const FString& name, TArray<TUniquePtr<IDriftEvent>> events) override
     {
         JsonValue array{ rapidjson::kArrayType };
         for (auto& e : events)

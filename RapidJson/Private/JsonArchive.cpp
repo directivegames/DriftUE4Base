@@ -233,7 +233,7 @@ bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue)
         }
         else if (jValue.IsNull())
         {
-            cValue = L"";
+            cValue = TEXT("");
             success = true;
         }
         else
@@ -285,19 +285,19 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
         {
             FString temp = jValue.GetString();
             // Date only
-            if (temp.Right(1) == L"Z" && !temp.Contains(TEXT("T")))
+            if (temp.Right(1) == TEXT("Z") && !temp.Contains(TEXT("T")))
             {
                 temp = temp.LeftChop(1);
                 success = FDateTime::ParseIso8601(*temp, cValue);
             }
             // FDateTime refuses to accept more than 3 digits of sub-second resolution
-            else if (temp.Right(1) == L"Z" || (temp.Contains(TEXT("T")) && temp.Right(1).IsNumeric()))
+            else if (temp.Right(1) == TEXT("Z") || (temp.Contains(TEXT("T")) && temp.Right(1).IsNumeric()))
             {
                 int32 millisecondPeriod;
                 if (temp.FindLastChar(L'.', millisecondPeriod))
                 {
                     // period plus 3 digits
-                    temp = temp.Left(millisecondPeriod + 4) + L"Z";
+                    temp = temp.Left(millisecondPeriod + 4) + TEXT("Z");
                     success = FDateTime::ParseIso8601(*temp, cValue);
                 }
             }

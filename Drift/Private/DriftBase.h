@@ -61,7 +61,7 @@ class IDriftAuthProvider;
 class FDriftBase : public IDriftAPI, public FTickableGameObject
 {
 public:
-    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex);
+    FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config);
     FDriftBase(const FDriftBase& other) = delete;
     virtual ~FDriftBase();
 
@@ -122,6 +122,14 @@ public:
 
     const TMap<FString, FDateTime>& GetDeprecations() override;
 
+    FString GetJWT() const override;
+    FString GetJTI() const override;
+    FString GetRootURL() const override;
+    FString GetEnvironment() const override;
+    FString GetGameVersion() const override;
+    FString GetGameBuild() const override;
+    FString GetVersionedAPIKey() const override;
+
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
     FDriftFriendPresenceChangedDelegate& OnFriendPresenceChanged() override { return onFriendPresenceChanged; }
@@ -163,6 +171,8 @@ public:
     FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
 
 private:
+    void ConfigureSettingsSection(const FString& config);
+
     void GetRootEndpoints(TFunction<void()> onSuccess);
     void InitAuthentication(const FString& credentialType);
     void GetUserInfo();
@@ -307,7 +317,15 @@ private:
 
     static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
 
+    bool IsRunningAsServer() const;
+
+    const FString& GetProjectName();
+    const FGuid& GetAppGuid();
+    IDriftAuthProviderFactory* GetDeviceAuthProviderFactory();
+
 private:
+    FString settingsSection_;
+
     // TODO: deprecate or consolidate with other properties
     struct CLI
     {
@@ -373,7 +391,9 @@ private:
     FGetMatchesResponseItem match_info;
 
     FString apiKey;
-    FString projectName = TEXT("DefaultDriftProject");
+	FString versionedApiKey;
+    FGuid appGuid_;
+    FString projectName_ = TEXT("DefaultDriftProject");
     FString gameVersion = TEXT("0.0.0");
     FString gameBuild = TEXT("0");
     FString environment = TEXT("dev");
@@ -381,13 +401,15 @@ private:
     FString staticDataReference;
     FString defaultPlacement;
 
-    TUniquePtr<IDriftAuthProviderFactory> deviceAuthProviderFactory;
+    TUniquePtr<IDriftAuthProviderFactory> deviceAuthProviderFactory_;
     TSharedPtr<IDriftAuthProvider> authProvider;
 
     TSharedPtr<IHttpCache> httpCache_;
 
     TMap<FString, FDateTime> deprecations_;
     FString previousDeprecationHeader_;
+
+    bool ignoreCommandLineArguments_ = false;
 };
 
 

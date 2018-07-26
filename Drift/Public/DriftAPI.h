@@ -719,6 +719,35 @@ public:
      */
     virtual FDriftNewDeprecationDelegate OnDeprecation() = 0;
 
+    /**
+     * Return the JWT required to authenticate with secondary backend modules
+     */
+    virtual FString GetJWT() const = 0;
+    /**
+     * Return the JTI required to pass the current session to a new instance
+     */
+    virtual FString GetJTI() const = 0;
+    /**
+     * Return the current Root URL
+     */
+    virtual FString GetRootURL() const = 0;
+    /**
+    * Return the current environment specifier
+    */
+    virtual FString GetEnvironment() const = 0;
+    /**
+    * Return the game version
+    */
+    virtual FString GetGameVersion() const = 0;
+    /**
+    * Return the game build
+    */
+    virtual FString GetGameBuild() const = 0;
+    /**
+    * Return API key with version
+    */
+    virtual FString GetVersionedAPIKey() const = 0;
+
     virtual ~IDriftAPI() {}
 };
 
@@ -785,6 +814,7 @@ struct FGetMatchesResponseItem
     FString match_status;
     FString url;
     int32 num_players;
+	int32 max_players;
     int32 port;
     FString public_ip;
     FString ref;

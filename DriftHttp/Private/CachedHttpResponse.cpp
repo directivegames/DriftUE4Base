@@ -11,19 +11,19 @@ CachedHttpResponse::CachedHttpResponse()
 }
 
 
-FString CachedHttpResponse::GetURL()
+FString CachedHttpResponse::GetURL() const
 {
     return url;
 }
 
 
-FString CachedHttpResponse::GetURLParameter(const FString &parameterName)
+FString CachedHttpResponse::GetURLParameter(const FString &parameterName) const
 {
     return TEXT("");
 }
 
 
-FString CachedHttpResponse::GetHeader(const FString &headerName)
+FString CachedHttpResponse::GetHeader(const FString &headerName) const
 {
     auto header = headers.Find(headerName);
     if (header != nullptr)
@@ -34,7 +34,7 @@ FString CachedHttpResponse::GetHeader(const FString &headerName)
 }
 
 
-TArray<FString> CachedHttpResponse::GetAllHeaders()
+TArray<FString> CachedHttpResponse::GetAllHeaders() const
 {
     TArray<FString> result;
     for (const auto& header : headers)
@@ -45,31 +45,31 @@ TArray<FString> CachedHttpResponse::GetAllHeaders()
 }
 
 
-FString CachedHttpResponse::GetContentType()
+FString CachedHttpResponse::GetContentType() const
 {
     return contentType;
 }
 
 
-int32 CachedHttpResponse::GetContentLength()
+int32 CachedHttpResponse::GetContentLength() const
 {
     return payload.Num();
 }
 
 
-const TArray<uint8>& CachedHttpResponse::GetContent()
+const TArray<uint8>& CachedHttpResponse::GetContent() const
 {
     return payload;
 }
 
 
-int32 CachedHttpResponse::GetResponseCode()
+int32 CachedHttpResponse::GetResponseCode() const
 {
     return responseCode;
 }
 
 
-FString CachedHttpResponse::GetContentAsString()
+FString CachedHttpResponse::GetContentAsString() const
 {
     TArray<uint8> zeroTerminatedPayload(GetContent());
     zeroTerminatedPayload.Add(0);

@@ -45,7 +45,7 @@ void Log(const FName& category, const TCHAR* format, ...)
 
 void DefaultErrorReporter::AddError(const FName& context, const FString& message)
 {
-    Log(context, L"%s", *message);
+    Log(context, TEXT("%s"), *message);
 }
 
 
@@ -55,5 +55,5 @@ void DefaultErrorReporter::AddError(const FName& context, const FString& message
     auto writer = TJsonWriterFactory<>::Create(&text);
     FJsonSerializer::Serialize(extra.ToSharedRef(), writer, true);
 
-    Log(context, L"%s - %s", *message, *text);
+    Log(context, TEXT("%s - %s"), *message, *text);
 }

@@ -27,7 +27,11 @@ FString GetCachePath()
 #if PLATFORM_PS4
     return FPS4PlatformFile::GetTempDirectory();
 #else
-    return FPaths::ProjectSavedDir();
+    #ifdef WITH_FPATHS_PROJECTDIR
+        return FPaths::ProjectSavedDir();
+    #else
+        return FPaths::GameSavedDir();
+    #endif
 #endif
 }
 

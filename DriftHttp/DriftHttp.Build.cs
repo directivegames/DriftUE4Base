@@ -23,15 +23,14 @@ public class DriftHttp : ModuleRules
             new string[] {
                 // ... add public include paths required here ...
             }
-            );
+        );
                 
         
         PrivateIncludePaths.AddRange(
             new string[] {
                 // ... add other private include paths required here ...
-                "Drift/DriftHttp/Public",
             }
-            );
+        );
             
         
         PublicDependencyModuleNames.AddRange(
@@ -40,7 +39,7 @@ public class DriftHttp : ModuleRules
                 "Core",
                 // ... add other public dependencies that you statically link with here ...
             }
-            );
+        );
             
         
         PrivateDependencyModuleNames.AddRange(
@@ -53,6 +52,15 @@ public class DriftHttp : ModuleRules
                 "ErrorReporter",
                 "Json",
             }
-            );
+        );
+
+        BuildVersion Version;
+        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+        {
+            if (Version.MajorVersion == 4 && Version.MinorVersion >= 18)
+            {
+                PublicDefinitions.Add("WITH_FPATHS_PROJECTDIR");
+            }
+        }
     }
 }
