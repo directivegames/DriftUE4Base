@@ -101,16 +101,16 @@ void FDriftEventManager::InitDefaultTags()
     tags_.FindOrAdd(TEXT("device_model")) = FPlatformMisc::GetDefaultDeviceProfileName();
 
     FString gameVersion;
-    GConfig->GetString(L"/Script/DriftEditor.DriftProjectSettings", L"GameVersion", gameVersion, GGameIni);
-    tags_.FindOrAdd(L"client_version") = gameVersion;
+    GConfig->GetString(TEXT("/Script/DriftEditor.DriftProjectSettings"), TEXT("GameVersion"), gameVersion, GGameIni);
+    tags_.FindOrAdd(TEXT("client_version")) = gameVersion;
     FString gameBuild;
-    GConfig->GetString(L"/Script/DriftEditor.DriftProjectSettings", L"GameBuild", gameBuild, GGameIni);
-    tags_.FindOrAdd(L"client_build") = gameBuild;
+    GConfig->GetString(TEXT("/Script/DriftEditor.DriftProjectSettings"), TEXT("GameBuild"), gameBuild, GGameIni);
+    tags_.FindOrAdd(TEXT("client_build")) = gameBuild;
 
 #if PLATFORM_IOS
-    tags_.FindOrAdd(L"os_version") = IOSUtility::GetIOSVersion();
-    tags_.FindOrAdd(L"os_build") = IOSUtility::GetIOSBuild();
-    tags_.FindOrAdd(L"device_model_id") = IOSUtility::GetHardwareModel();
+    tags_.FindOrAdd(TEXT("os_version")) = IOSUtility::GetIOSVersion();
+    tags_.FindOrAdd(TEXT("os_build")) = IOSUtility::GetIOSBuild();
+    tags_.FindOrAdd(TEXT("device_model_id")) = IOSUtility::GetHardwareModel();
 #endif // PLATFORM_IOS
 }
 

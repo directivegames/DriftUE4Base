@@ -62,7 +62,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
          * Grab out-of-band debug messages from http response header and display
          * it to the player.
          */
-        auto debug_message = response->GetHeader(L"Drift-Debug-Message");
+        auto debug_message = response->GetHeader(TEXT("Drift-Debug-Message"));
         if (debug_message.Len())
         {
             OnDebugMessage().ExecuteIfBound(debug_message);
@@ -82,10 +82,10 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             /**
              * We got a non-error response code
              */
-            auto contentType = context.response->GetHeader("Content-Type");
-            if (!contentType.StartsWith("application/json")) // to handle cases like `application/json; charset=UTF-8`
+            auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+            if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
             {
-                context.error = FString::Printf(L"Expected Content-Type 'application/json', but got '%s'", *contentType);
+                context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
             }
             else
             {
@@ -98,16 +98,16 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                 doc.Parse(*content);
                 if (doc.HasParseError())
                 {
-                    context.error = FString::Printf(L"JSON response is broken at position %i. RapidJson error: %i",
+                    context.error = FString::Printf(TEXT("JSON response is broken at position %i. RapidJson error: %i"),
                         static_cast<int32>(doc.GetErrorOffset()),
                         static_cast<int32>(doc.GetParseError()));
                 }
                 else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
                 {
-                    context.error = FString::Printf(L"Expected '%i', but got '%i'", expectedResponseCode_, context.responseCode);
-                    if (doc.HasMember(L"message"))
+                    context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
+                    if (doc.HasMember(TEXT("message")))
                     {
-                        context.message = doc[L"message"].GetString();
+                        context.message = doc[TEXT("message")].GetString();
                     }
                 }
                 else
@@ -119,7 +119,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                     }
                     context.successful = true;
                     OnResponse.ExecuteIfBound(context, doc);
-                    const auto deprecationHeader = response->GetHeader(L"Drift-Feature-Deprecation");
+                    const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
                     if (!deprecationHeader.IsEmpty())
                     {
                         OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
@@ -198,21 +198,21 @@ void HttpRequest::LogError(ResponseContext& context)
     FString errorMessage;
     
     auto error = MakeShared<FJsonObject>();
-    error->SetNumberField(L"elapsed", (FDateTime::UtcNow() - sent_).GetTotalSeconds());
-    error->SetBoolField(L"error_handled", context.errorHandled);
-    error->SetNumberField(L"status_code", context.responseCode);
+    error->SetNumberField(TEXT("elapsed"), (FDateTime::UtcNow() - sent_).GetTotalSeconds());
+    error->SetBoolField(TEXT("error_handled"), context.errorHandled);
+    error->SetNumberField(TEXT("status_code"), context.responseCode);
     if (!context.message.IsEmpty())
     {
-        error->SetStringField(L"message", context.message);
+        error->SetStringField(TEXT("message"), context.message);
     }
     if (!context.error.IsEmpty())
     {
-        error->SetStringField(L"error", context.error);
+        error->SetStringField(TEXT("error"), context.error);
     }
     
     auto requestData = MakeShared<FJsonObject>();
-    requestData->SetStringField(L"method", wrappedRequest_->GetVerb());
-    requestData->SetStringField(L"url", wrappedRequest_->GetURL());
+    requestData->SetStringField(TEXT("method"), wrappedRequest_->GetVerb());
+    requestData->SetStringField(TEXT("url"), wrappedRequest_->GetURL());
     
    
     auto requestHeaders = context.request->GetAllHeaders();
@@ -222,12 +222,12 @@ void HttpRequest::LogError(ResponseContext& context)
         for (const auto& header : requestHeaders)
         {
             FString key, value;
-            if (header.Split(L": ", &key, &value))
+            if (header.Split(TEXT(": "), &key, &value))
             {
                 headers->SetStringField(key, value);
             }
         }
-        requestData->SetObjectField("headers", headers);
+        requestData->SetObjectField(TEXT("headers"), headers);
     }
 
     {
@@ -236,11 +236,11 @@ void HttpRequest::LogError(ResponseContext& context)
         FString payload{ UTF8_TO_TCHAR(zeroTerminatedPayload.GetData()) };
         if (payload.Len() < 1024)
         {
-            requestData->SetStringField(L"data", payload);
+            requestData->SetStringField(TEXT("data"), payload);
         }
         else if (payload.Len() > 0)
         {
-            requestData->SetStringField(L"data", TEXT("[Truncated]"));
+            requestData->SetStringField(TEXT("data"), TEXT("[Truncated]"));
         }
     }
 
@@ -252,30 +252,30 @@ void HttpRequest::LogError(ResponseContext& context)
             auto code = response.GetErrorCode();
             if (!code.IsEmpty())
             {
-                error->SetStringField(L"response_code", code);
+                error->SetStringField(TEXT("response_code"), code);
                 errorMessage += code;
             }
             auto reason = response.GetErrorReason();
-            if (!reason.IsEmpty() && reason != L"undefined")
+            if (!reason.IsEmpty() && reason != TEXT("undefined"))
             {
-                error->SetStringField(L"reason", reason);
-                errorMessage += errorMessage.IsEmpty() ? reason : FString{ L" : " } + reason;
+                error->SetStringField(TEXT("reason"), reason);
+                errorMessage += errorMessage.IsEmpty() ? reason : FString{ TEXT(" : ") } + reason;
             }
             auto description = response.GetErrorDescription();
             if (!description.IsEmpty())
             {
-                error->SetStringField(L"description", description);
+                error->SetStringField(TEXT("description"), description);
             }
         }
 
         auto content = context.response->GetContentAsString();
         if (content.Len() < 1024)
         {
-            error->SetStringField(L"response_data", content);
+            error->SetStringField(TEXT("response_data"), content);
         }
         else if (content.Len() > 0)
         {
-            error->SetStringField(L"response_data", TEXT("[Truncated]"));
+            error->SetStringField(TEXT("response_data"), TEXT("[Truncated]"));
         }
 
         auto responseHeaders = context.response->GetAllHeaders();
@@ -285,19 +285,19 @@ void HttpRequest::LogError(ResponseContext& context)
             for (const auto& header : responseHeaders)
             {
                 FString key, value;
-                if (header.Split(L": ", &key, &value))
+                if (header.Split(TEXT(": "), &key, &value))
                 {
                     headers->SetStringField(key, value);
                 }
             }
-            error->SetObjectField(L"response_headers", headers);
+            error->SetObjectField(TEXT("response_headers"), headers);
         }
     }
     else
     {
         if (context.request->GetStatus() == EHttpRequestStatus::Failed_ConnectionError)
         {
-            errorMessage = L"HTTP request timeout";
+            errorMessage = TEXT("HTTP request timeout");
         }
     }
     
@@ -307,7 +307,7 @@ void HttpRequest::LogError(ResponseContext& context)
          * This pattern cannot be static, some internal smart pointer will crash on shutdown.
          * Since it's only used when there's an error, the cost of on-demand creation is acceptable.
          */
-        const FRegexPattern urlNormalizationPattern{ L".*?[/=]+([0-9]+)[&?/=]?.*" };
+        const FRegexPattern urlNormalizationPattern{ TEXT(".*?[/=]+([0-9]+)[&?/=]?.*") };
 
         FString normalizedUrl = wrappedRequest_->GetURL();
         TArray<TSharedPtr<FJsonValue>> params;
@@ -316,7 +316,7 @@ void HttpRequest::LogError(ResponseContext& context)
         FRegexMatcher matcher{ urlNormalizationPattern, normalizedUrl };
         while (matcher.FindNext())
         {
-            normalizedUrl = FString::Printf(L"%s{%d}%s", *normalizedUrl.Left(matcher.GetCaptureGroupBeginning(1)), index, *normalizedUrl.Mid(matcher.GetCaptureGroupEnding(1)));
+            normalizedUrl = FString::Printf(TEXT("%s{%d}%s"), *normalizedUrl.Left(matcher.GetCaptureGroupBeginning(1)), index, *normalizedUrl.Mid(matcher.GetCaptureGroupEnding(1)));
             params.Add(MakeShared<FJsonValueString>(matcher.GetCaptureGroup(1)));
             matcher = FRegexMatcher{ urlNormalizationPattern, normalizedUrl };
             ++index;
@@ -326,11 +326,11 @@ void HttpRequest::LogError(ResponseContext& context)
 
         if (params.Num() > 0)
         {
-            error->SetField(L"params", MakeShared<FJsonValueArray>(params));
+            error->SetField(TEXT("params"), MakeShared<FJsonValueArray>(params));
         }
     }
-    error->SetObjectField("request", requestData);
-    IErrorReporter::Get()->AddError(L"LogHttpClient", *errorMessage, error);
+    error->SetObjectField(TEXT("request"), requestData);
+    IErrorReporter::Get()->AddError(TEXT("LogHttpClient"), *errorMessage, error);
 }
 
 
