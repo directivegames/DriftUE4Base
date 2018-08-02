@@ -19,22 +19,23 @@ public class DriftHttp : ModuleRules
         bFasterWithoutUnity = true;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
 
-        
+
         PublicIncludePaths.AddRange(
-            new string[] {
+            new string[]
+            {
                 // ... add public include paths required here ...
             }
         );
-                
-        
+
+
         PrivateIncludePaths.AddRange(
-            new string[] {
+            new string[]
+            {
                 // ... add other private include paths required here ...
-                "Drift/DriftHttp/Public",
             }
         );
-            
-        
+
+
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
@@ -42,8 +43,8 @@ public class DriftHttp : ModuleRules
                 // ... add other public dependencies that you statically link with here ...
             }
         );
-            
-        
+
+
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
@@ -56,13 +57,10 @@ public class DriftHttp : ModuleRules
             }
         );
 
-        BuildVersion Version;
-        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
-        {
-            if (Version.MajorVersion == 4 && Version.MinorVersion >= 18)
-            {
-                Definitions.Add("WITH_FPATHS_PROJECTDIR");
-            }
-        }
+#if UE_4_19_OR_LATER
+        PublicDefinitions.Add("WITH_FPATHS_PROJECTDIR");
+#elif UE_4_18_OR_LATER
+        Definitions.Add("WITH_FPATHS_PROJECTDIR");
+#endif
     }
 }

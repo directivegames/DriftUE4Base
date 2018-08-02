@@ -77,13 +77,10 @@ public class Drift : ModuleRules
             PublicAdditionalFrameworks.Add(new UEBuildFramework("Security"));
         }
 
-        BuildVersion Version;
-        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
-        {
-            if (Version.MajorVersion == 4 && Version.MinorVersion >= 18)
-            {
-                Definitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
-            }
-        }
+#if UE_4_19_OR_LATER
+        PublicDefinitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
+#elif UE_4_18_OR_LATER
+        Definitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
+#endif
     }
 }

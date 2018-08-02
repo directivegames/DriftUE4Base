@@ -2,24 +2,41 @@
 
 #pragma once
 
+#include "Containers/Map.h"
+#include "Containers/UnrealString.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Misc/EngineVersionComparison.h"
+
 
 class CachedHttpResponse : public IHttpResponse
 {
 public:
     CachedHttpResponse();
 
+#ifdef IS_CONST
+    #error "Macro collision!"
+#endif
+
+#if UE_VERSION_NEWER_THAN(4, 20, 0)
+    #define IS_CONST const
+#else
+    #define IS_CONST
+#endif // UE_VERSION_NEWER_THAN(4, 20, 0)
+
     // IHttpBase API
-    FString GetURL() override;
-    FString GetURLParameter(const FString& ParameterName) override;
-    FString GetHeader(const FString& HeaderName)  override;
-    TArray<FString> GetAllHeaders()  override;
-    FString GetContentType()  override;
-    int32 GetContentLength()  override;
-    const TArray<uint8>& GetContent() override;
+    FString GetURL() IS_CONST override;
+    FString GetURLParameter(const FString& ParameterName) IS_CONST override;
+    FString GetHeader(const FString& HeaderName) IS_CONST  override;
+    TArray<FString> GetAllHeaders() IS_CONST  override;
+    FString GetContentType() IS_CONST  override;
+    int32 GetContentLength() IS_CONST  override;
+    const TArray<uint8>& GetContent() IS_CONST  override;
 
     // IHttpResponse API
-    int32 GetResponseCode() override;
-    FString GetContentAsString() override;
+    int32 GetResponseCode() IS_CONST  override;
+    FString GetContentAsString() IS_CONST  override;
+
+#undef IS_CONST
 
     friend class FileHttpCache;
 
