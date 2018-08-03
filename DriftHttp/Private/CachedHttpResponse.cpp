@@ -3,6 +3,7 @@
 #include "DriftHttpPCH.h"
 
 #include "CachedHttpResponse.h"
+#include "Misc/EngineVersionComparison.h"
 #include "StringConv.h"
 
 

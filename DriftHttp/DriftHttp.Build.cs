@@ -56,11 +56,5 @@ public class DriftHttp : ModuleRules
                 "Json",
             }
         );
-
-#if UE_4_19_OR_LATER
-        PublicDefinitions.Add("WITH_FPATHS_PROJECTDIR");
-#elif UE_4_18_OR_LATER
-        Definitions.Add("WITH_FPATHS_PROJECTDIR");
-#endif
     }
 }
