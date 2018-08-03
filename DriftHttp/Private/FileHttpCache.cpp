@@ -9,7 +9,9 @@
 #include "JsonArchive.h"
 #include "Details/DateHelper.h"
 
+#include "FileHelper.h"
 #include "Misc/EngineVersionComparison.h"
+#include "Paths.h"
 #include "SecureHash.h"
 
 #if PLATFORM_PS4
@@ -124,13 +126,13 @@ void FileHttpCache::CacheResponse(const ResponseContext& context)
 FHttpResponsePtr FileHttpCache::GetCachedResponse(const FString& url)
 {
     // TODO: Consider invalidation by the Vary: header
-    auto response = data.Find(url);
+    const auto response = data.Find(url);
     if (response && response->valid && response->IsFresh())
     {
         return MakeResponse(*response);
     }
-    
-    auto responseFile = index.Find(url);
+
+    const auto responseFile = index.Find(url);
     if (responseFile)
     {
         auto& entry = data.Emplace(url);
@@ -214,9 +216,9 @@ void FileHttpCache::SaveIndex()
         JsonArchive::AddMember(indexEntries, *entry.Key, *entry.Value);
     }
     JsonArchive::AddMember(indexObject, TEXT("entries"), indexEntries);
-    
-    auto indexContent = JsonArchive::ToString(indexObject);
-    auto indexPath = FPaths::Combine(*cacheDir, TEXT("index.json"));
+
+    const auto indexContent = JsonArchive::ToString(indexObject);
+    const auto indexPath = FPaths::Combine(*cacheDir, TEXT("index.json"));
     
     if (!FFileHelper::SaveStringToFile(indexContent, *indexPath))
     {
@@ -237,7 +239,7 @@ FString FileHttpCache::MakeEntryPath(const FString &name) const
 
 bool FileHttpCache::LoadResponse(const FString &name, HttpCacheEntry& entry)
 {
-    auto fullPath = MakeEntryPath(name) + TEXT(".meta");
+    const auto fullPath = MakeEntryPath(name) + TEXT(".meta");
 
     FString fileContent;
     if (!FFileHelper::LoadFileToString(fileContent, *fullPath))
@@ -265,7 +267,7 @@ bool FileHttpCache::SaveResponse(const FString& name, const HttpCacheEntry& entr
         return false;
     }
 
-    auto fullPath = MakeEntryPath(name) + TEXT(".meta");
+    const auto fullPath = MakeEntryPath(name) + TEXT(".meta");
     return FFileHelper::SaveStringToFile(fileContent, *fullPath);
 }
 
@@ -314,10 +316,10 @@ FTimespan FileHttpCache::CalculateCorrectedInitialAge(const FHttpResponsePtr &re
         }
     }
 
-    auto ageValue = FTimespan::FromSeconds(age);
-    auto apparentAge = FMath::Max(FTimespan::FromSeconds(0.0), entry.responseTime - entry.date);
-    auto responseDelay = entry.responseTime - entry.requestTime;
-    auto correctedAgeValue = ageValue + responseDelay;
+    const auto ageValue = FTimespan::FromSeconds(age);
+    const auto apparentAge = FMath::Max(FTimespan::FromSeconds(0.0), entry.responseTime - entry.date);
+    const auto responseDelay = entry.responseTime - entry.requestTime;
+    const auto correctedAgeValue = ageValue + responseDelay;
 
     return FMath::Max(apparentAge, correctedAgeValue);
 }

@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
+
 
 class SerializationContext;
 

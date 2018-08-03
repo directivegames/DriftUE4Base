@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "IHttpRequest.h"
-#include "IHttpResponse.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 #include "JsonArchive.h"
 
 

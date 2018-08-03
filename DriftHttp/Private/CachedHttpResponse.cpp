@@ -26,15 +26,15 @@ FString CachedHttpResponse::GetURL() IS_CONST
 }
 
 
-FString CachedHttpResponse::GetURLParameter(const FString &parameterName) IS_CONST
+FString CachedHttpResponse::GetURLParameter(const FString &ParameterName) IS_CONST
 {
     return TEXT("");
 }
 
 
-FString CachedHttpResponse::GetHeader(const FString &headerName) IS_CONST
+FString CachedHttpResponse::GetHeader(const FString &HeaderName) IS_CONST
 {
-    auto header = headers.Find(headerName);
+    const auto header = headers.Find(HeaderName);
     if (header != nullptr)
     {
         return *header;
