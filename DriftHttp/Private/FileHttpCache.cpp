@@ -58,7 +58,7 @@ void FileHttpCache::CacheResponse(const ResponseContext& context)
         {
             if (maxAge > 0)
             {
-                auto dateHeader = context.response->GetHeader(TEXT("Date"));
+                const auto dateHeader = context.response->GetHeader(TEXT("Date"));
                 FDateTime dateValue;
                 if (!internal::ParseRfc7231DateTime(*dateHeader, dateValue))
                 {
@@ -149,7 +149,7 @@ FHttpResponsePtr FileHttpCache::GetCachedResponse(const FString& url)
 
 void FileHttpCache::LoadCache()
 {
-    auto indexPath = FPaths::Combine(*cacheDir, TEXT("index.json"));
+    const auto indexPath = FPaths::Combine(*cacheDir, TEXT("index.json"));
     
     FString fileContent;
     if (!FFileHelper::LoadFileToString(fileContent, *indexPath))
@@ -177,7 +177,7 @@ void FileHttpCache::LoadCache()
         return;
     }
 
-    int32 version = versionValue.GetInt();
+    const int32 version = versionValue.GetInt();
     if (version > cacheVersion)
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index version is too high"));
@@ -341,7 +341,7 @@ FHttpResponsePtr FileHttpCache::MakeResponse(HttpCacheEntry& entry)
         LoadBody(entry.urlHash, response->payload);
     }
 
-    auto hash = GetContentHash(response);
+    const auto hash = GetContentHash(response);
     if (entry.contentHash != hash)
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cached response checksum mismatch"));
