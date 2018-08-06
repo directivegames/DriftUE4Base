@@ -5,7 +5,7 @@
 #include "Containers/Map.h"
 #include "Containers/UnrealString.h"
 #include "Interfaces/IHttpResponse.h"
-#if WITH_ENGINE_VERSION_MACROS
+#ifdef WITH_ENGINE_VERSION_MACROS
     #include "Misc/EngineVersionComparison.h"
 #endif // WITH_ENGINE_VERSION_MACROS
 
@@ -19,7 +19,7 @@ public:
     #error "Macro collision!"
 #endif
 
-#if WITH_ENGINE_VERSION_MACROS
+#ifdef WITH_ENGINE_VERSION_MACROS
     #if UE_VERSION_NEWER_THAN(4, 20, 0)
         #define IS_CONST const
     #endif // UE_VERSION_NEWER_THAN(4, 20, 0)
