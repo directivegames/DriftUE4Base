@@ -5,7 +5,9 @@
 #include "Containers/Map.h"
 #include "Containers/UnrealString.h"
 #include "Interfaces/IHttpResponse.h"
-#include "Misc/EngineVersionComparison.h"
+#if WITH_ENGINE_VERSION_MACROS
+    #include "Misc/EngineVersionComparison.h"
+#endif // WITH_ENGINE_VERSION_MACROS
 
 
 class CachedHttpResponse : public IHttpResponse
@@ -17,11 +19,13 @@ public:
     #error "Macro collision!"
 #endif
 
-#if UE_VERSION_NEWER_THAN(4, 20, 0)
-    #define IS_CONST const
+#if WITH_ENGINE_VERSION_MACROS
+    #if UE_VERSION_NEWER_THAN(4, 20, 0)
+        #define IS_CONST const
+    #endif // UE_VERSION_NEWER_THAN(4, 20, 0)
 #else
     #define IS_CONST
-#endif // UE_VERSION_NEWER_THAN(4, 20, 0)
+#endif // WITH_ENGINE_VERSION_MACROS
 
     // IHttpBase API
     FString GetURL() IS_CONST override;

@@ -10,7 +10,6 @@
 #include "Details/DateHelper.h"
 
 #include "FileHelper.h"
-#include "Misc/EngineVersionComparison.h"
 #include "Paths.h"
 #include "SecureHash.h"
 
@@ -30,11 +29,11 @@ FString GetCachePath()
 #if PLATFORM_PS4
     return FPS4PlatformFile::GetTempDirectory();
 #else
-    #if UE_VERSION_NEWER_THAN(4, 18, 0)
+    #if WITH_PROJECT_SAVE_DIR
         return FPaths::ProjectSavedDir();
     #else
         return FPaths::GameSavedDir();
-    #endif // UE_VERSION_NEWER_THAN(4, 18, 0)
+    #endif // WITH_PROJECT_SAVE_DIR
 #endif
 }
 
@@ -177,7 +176,7 @@ void FileHttpCache::LoadCache()
         UE_LOG(LogHttpCache, Error, TEXT("Cache index version is invalid"));
         return;
     }
-    
+
     int32 version = versionValue.GetInt();
     if (version > cacheVersion)
     {

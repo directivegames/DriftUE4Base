@@ -3,15 +3,16 @@
 #include "DriftHttpPCH.h"
 
 #include "CachedHttpResponse.h"
-#include "Misc/EngineVersionComparison.h"
 #include "StringConv.h"
 
 
-#if UE_VERSION_NEWER_THAN(4, 20, 0)
-    #define IS_CONST const
+#if WITH_ENGINE_VERSION_MACROS
+    #if UE_VERSION_NEWER_THAN(4, 20, 0)
+        #define IS_CONST const
+    #endif // UE_VERSION_NEWER_THAN(4, 20, 0)
 #else
     #define IS_CONST
-#endif // UE_VERSION_NEWER_THAN(4, 20, 0)
+#endif // WITH_ENGINE_VERSION_MACROS
 
 
 CachedHttpResponse::CachedHttpResponse()

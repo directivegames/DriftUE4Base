@@ -19,6 +19,12 @@ public class DriftHttp : ModuleRules
         bFasterWithoutUnity = true;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
 
+#if UE_4_19_OR_LATER
+        PublicDefinitions.Add("WITH_ENGINE_VERSION_MACROS");
+        PublicDefinitions.Add("WITH_PROJECT_SAVE_DIR");
+#elif UE_4_18_OR_LATER
+        Definitions.Add("WITH_PROJECT_SAVE_DIR");
+#endif
 
         PublicIncludePaths.AddRange(
             new string[]
