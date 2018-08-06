@@ -561,14 +561,14 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
         auto index_received = context.received;
         TSharedPtr<StaticDataSync> sync = MakeShareable(new StaticDataSync);
 
-        auto loader = [this, commit, pin, index_sent, index_received, sync](const FString& data_url, const FString& data_name, const FString& cdn_name)
+        const auto loader = [this, commit, pin, index_sent, index_received, sync](const FString& data_url, const FString& data_name, const FString& cdn_name)
         {
             auto data_request = GetRootRequestManager()->Get(data_url + data_name);
             data_request->OnRequestProgress().BindLambda([this, data_name, sync](FHttpRequestPtr req, int32 bytesWritten, int32 bytesRead)
             {
                 if (!sync->succeeded)
                 {
-                    auto lastBytesRead = sync->bytesRead;
+                    const auto lastBytesRead = sync->bytesRead;
                     if (bytesRead > lastBytesRead)
                     {
                         sync->bytesRead = bytesRead;
@@ -1054,7 +1054,7 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
         
         return;
     }
-    FString token = (*tokenIt).value.GetString();
+    const FString token = (*tokenIt).value.GetString();
 
     const auto actionIt = message.payload.FindMember(TEXT("action"));
     if (actionIt != message.payload.MemberEnd())
@@ -1400,7 +1400,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
             JsonValue message{ rapidjson::kObjectType };
             JsonArchive::AddMember(message, TEXT("action"), TEXT("challenge"));
             JsonArchive::AddMember(message, TEXT("token"), *token.ToString());
-            auto messageUrlTemplate = playerInfo->messagequeue_url;
+            const auto messageUrlTemplate = playerInfo->messagequeue_url;
             messageQueue->SendMessage(messageUrlTemplate, TEXT("matchqueue"), MoveTemp(message), inviteTimeoutSeconds);
         }
         delegate.ExecuteIfBound(success, status);
@@ -1505,7 +1505,7 @@ void FDriftBase::AddAnalyticsEvent(TUniquePtr<IDriftEvent> event)
 const FDriftCounterInfo* FDriftBase::GetCounterInfo(const FString& counterName) const
 {
     auto canonical_name = FDriftCounterManager::MakeCounterName(counterName);
-    auto counter = counterInfos.FindByPredicate([canonical_name](const FDriftCounterInfo& info) -> bool
+    const auto counter = counterInfos.FindByPredicate([canonical_name](const FDriftCounterInfo& info) -> bool
     {
         return info.name == canonical_name;
     });
@@ -1788,7 +1788,7 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FString token;
-        auto member = doc.FindMember(TEXT("token"));
+        const auto member = doc.FindMember(TEXT("token"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             token = member->value.GetString();
@@ -1837,7 +1837,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         int32 friendID{ 0 };
-        auto member = doc.FindMember(TEXT("friend_id"));
+        const auto member = doc.FindMember(TEXT("friend_id"));
         if (member != doc.MemberEnd() && member->value.IsInt())
         {
             friendID = member->value.GetInt();
@@ -1855,18 +1855,18 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
             {
                 return;
             }
-            if (auto f = friendInfos.Find(friendID))
+            if (const auto f = friendInfos.Find(friendID))
             {
                 JsonValue message{ rapidjson::kObjectType };
                 JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_added"));
-                auto messageUrlTemplate = f->messagequeue_url;
+                const auto messageUrlTemplate = f->messagequeue_url;
                 messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
             }
         }));
 
         delegate.ExecuteIfBound(true, friendID);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, 0);
@@ -1909,7 +1909,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
         {
             JsonValue message{ rapidjson::kObjectType };
             JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_removed"));
-            auto messageUrlTemplate = f->messagequeue_url;
+            const auto messageUrlTemplate = f->messagequeue_url;
             messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
         }
 
@@ -2051,7 +2051,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
-        auto member = doc.FindMember(TEXT("jti"));
+        const auto member = doc.FindMember(TEXT("jti"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             jti = member->value.GetString();
@@ -2103,7 +2103,7 @@ void FDriftBase::GetUserInfo()
         }
 
         auto userObject = currentUser->value.GetObject();
-        auto userId = userObject.FindMember(TEXT("user_id"));
+        const auto userId = userObject.FindMember(TEXT("user_id"));
         if (userId == userObject.MemberEnd() || !userId->value.IsUint64())
         {
             context.error = TEXT("Failed to read user id");
@@ -2253,7 +2253,7 @@ void FDriftBase::GetPlayerInfo()
         // TODO: Let user determine if the name should be set or not
         if (authProvider.IsValid())
         {
-            auto currentName = myPlayer.player_name;
+            const auto currentName = myPlayer.player_name;
             auto ossNickName = authProvider->GetNickname();
             if (!ossNickName.IsEmpty() && currentName != ossNickName)
             {
@@ -2385,7 +2385,7 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     request->OnResponse.BindLambda([this, progressDelegate, provider](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
-        auto member = doc.FindMember(TEXT("jti"));
+        const auto member = doc.FindMember(TEXT("jti"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             jti = member->value.GetString();
