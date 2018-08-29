@@ -3416,44 +3416,48 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
     const auto responseCode = context.responseCode;
     if (responseCode >= static_cast<int32>(HttpStatusCodes::FirstClientError) && responseCode <= static_cast<int32>(HttpStatusCodes::LastClientError))
     {
-        ClientUpgradeResponse message;
-        if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
+        auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+        if (contentType.StartsWith(TEXT("application/json")))
         {
-            context.errorHandled = true;
-            // Reset instead of disconnect as we know all future calls will fail
-            Reset();
-            onGameVersionMismatch.Broadcast(message.upgrade_url);
-            return;
-        }
-
-        GenericRequestErrorResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
-        {
-            if (response.GetErrorCode() == TEXT("client_session_terminated"))
+            ClientUpgradeResponse message;
+            if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
             {
-                const auto reason = response.GetErrorReason();
-                if (reason == TEXT("usurped"))
+                context.errorHandled = true;
+                // Reset instead of disconnect as we know all future calls will fail
+                Reset();
+                onGameVersionMismatch.Broadcast(message.upgrade_url);
+                return;
+            }
+
+            GenericRequestErrorResponse response;
+            if (JsonUtils::ParseResponse(context.response, response))
+            {
+                if (response.GetErrorCode() == TEXT("client_session_terminated"))
                 {
-                    // User logged in on another device with the same credentials
-                    state_ = DriftSessionState::Usurped;
-                    BroadcastConnectionStateChange(state_);
-                }
-                else if (reason == TEXT("timeout"))
-                {
-                    // User session timed out, requires regular heartbeats
-                    state_ = DriftSessionState::Timedout;
-                    BroadcastConnectionStateChange(state_);
+                    const auto reason = response.GetErrorReason();
+                    if (reason == TEXT("usurped"))
+                    {
+                        // User logged in on another device with the same credentials
+                        state_ = DriftSessionState::Usurped;
+                        BroadcastConnectionStateChange(state_);
+                    }
+                    else if (reason == TEXT("timeout"))
+                    {
+                        // User session timed out, requires regular heartbeats
+                        state_ = DriftSessionState::Timedout;
+                        BroadcastConnectionStateChange(state_);
+                        context.errorHandled = true;
+                        Disconnect();
+                        return;
+                    }
+                    // Some other reason
                     context.errorHandled = true;
                     Disconnect();
-                    return;
                 }
-                // Some other reason
-                context.errorHandled = true;
-                Disconnect();
-            }
-            else if (response.GetErrorCode() == TEXT("api_key_missing"))
-            {
-                context.error = response.GetErrorDescription();
+                else if (response.GetErrorCode() == TEXT("api_key_missing"))
+                {
+                    context.error = response.GetErrorDescription();
+                }
             }
         }
     }
