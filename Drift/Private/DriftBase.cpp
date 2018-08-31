@@ -377,7 +377,13 @@ FString FDriftBase::GetRootURL() const
 
 FString FDriftBase::GetEnvironment() const
 {
-    return environment;
+    // If we've been redirected, we always consider ourselves to be running in the "dev" environment
+    if (driftEndpoints.root.IsEmpty() || driftEndpoints.root.Compare(cli.drift_url) == 0)
+    {
+        return environment;
+    }
+
+    return TEXT("dev");
 }
 
 
