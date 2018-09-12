@@ -107,7 +107,7 @@ struct FClientRegistrationPayload
     FString app_guid;
     FString version;
     FString platform_version;
-    FString product_name;
+    JsonValue platform_info{ rapidjson::kObjectType };
     
     bool Serialize(SerializationContext& context);
 };

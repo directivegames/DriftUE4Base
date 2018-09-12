@@ -17,13 +17,19 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/allocators.h"
 
+#include "UnrealString.h"
+
 #include <type_traits>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
 
-
-typedef rapidjson::GenericValue<rapidjson::UTF16<>, rapidjson::CrtAllocator> JsonValue;
-typedef rapidjson::GenericDocument<rapidjson::UTF16<>, rapidjson::CrtAllocator> JsonDocument;
-typedef rapidjson::GenericStringBuffer<rapidjson::UTF16<>, rapidjson::CrtAllocator> JsonStringBuffer;
-typedef rapidjson::Writer<JsonStringBuffer, rapidjson::UTF16<>, rapidjson::UTF16<>> JsonWriter;
+typedef rapidjson::UTF16<TCHAR> StringType;
+typedef rapidjson::GenericValue<StringType, rapidjson::CrtAllocator> JsonValue;
+typedef rapidjson::GenericDocument<StringType, rapidjson::CrtAllocator> JsonDocument;
+typedef rapidjson::GenericStringBuffer<StringType, rapidjson::CrtAllocator> JsonStringBuffer;
+typedef rapidjson::Writer<JsonStringBuffer, StringType, StringType> JsonWriter;
 
 
 class JsonArchive;
@@ -45,10 +51,19 @@ public:
     JsonValue& GetValue() const { return value; }
     
     template<typename T>
-    bool SerializeProperty(const wchar_t* propertyName, T& property);
+    bool SerializeProperty(const TCHAR* propertyName, T& property);
+
+	template<typename T>
+	bool SerializePropertyOptional(const TCHAR* propertyName, T& property, const T& defaultValue);
+
+	template<typename T>
+	bool SerializePropertyOptional(const TCHAR* propertyName, T& property);
+
+	void SetVersion(int version);
+	int GetVersion();
     
     template<typename T>
-    bool SerializeOptionalProperty(const wchar_t* propertyName, T& property);
+    bool SerializeOptionalProperty(const TCHAR* propertyName, T& property);
 
 private:
     JsonArchive& archive;
@@ -59,8 +74,13 @@ private:
 /**
 * Serialize a named C++ property with the corresponding json value
 */
-#define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(L###propertyName, propertyName)
-#define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(L###propertyName, propertyName)
+#define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(TEXT(#propertyName), propertyName)
+
+// TODO: Legacy name, replace with SERIALIZE_OPTIONAL_PROPERTY below
+#define SERIALIZE_PROPERTY_OPTIONAL(context, propertyName, defaultValue) context.SerializePropertyOptional(TEXT(#propertyName), propertyName, defaultValue)
+#define SERIALIZE_PROPERTY_OPTIONAL_NODEFAULT(context, propertyName) context.SerializePropertyOptional(TEXT(#propertyName), propertyName)
+
+#define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(TEXT(#propertyName), propertyName)
 
 
 class RAPIDJSON_API JsonArchive
@@ -69,7 +89,7 @@ public:
     /**
     * Load a json string into a json document, return if the parsing succeeds
     */
-    static bool LoadDocument(const wchar_t* jsonString, JsonDocument& document)
+    static bool LoadDocument(const TCHAR* jsonString, JsonDocument& document)
     {
         document.Parse(jsonString);
         return !document.HasParseError();
@@ -79,13 +99,13 @@ public:
     * Load a json string into a C++ object, return if the parsing succeeds
     */
     template<class T>
-    static bool LoadObject(const wchar_t* jsonString, T& object)
+    static bool LoadObject(const TCHAR* jsonString, T& object)
     {
         return LoadObject(jsonString, object, true);
     }
 
     template<class T>
-    static bool LoadObject(const wchar_t* jsonString, T& object, bool logErrors)
+    static bool LoadObject(const TCHAR* jsonString, T& object, bool logErrors)
     {
         JsonDocument doc;
 
@@ -131,6 +151,23 @@ public:
 
         return false;
     }
+
+	/**
+	* Serialize a C++ object into a json string, return if the operation succeeds
+	*/
+	template<class T>
+	static bool SaveObject(const T& object, std::wstring& jsonString)
+	{
+		JsonValue jValue;
+		if (SaveObject(object, jValue))
+		{
+			jsonString = *ToString(jValue);
+			return true;
+		}
+
+		return false;
+	}
+
 
     template<class T>
     static bool SaveObject(const T& object, JsonValue& jValue)
@@ -234,6 +271,48 @@ public:
         return success;
     }
 
+	template<class T>
+	bool SerializeObject(JsonValue& jArray, std::vector<T>& cValue)
+	{
+		bool success = false;
+
+		if (IsLoading())
+		{
+			cValue.clear();
+			if (jArray.IsArray())
+			{
+				cValue.reserve(jArray.Size());
+				for (size_t index = 0; index < jArray.Size(); ++index)
+				{
+					T elem;
+					if (SerializeObject(jArray[index], elem))
+					{
+						cValue.push_back(std::move(elem));
+					}
+				}
+				success = true;
+			}			
+		}
+		else
+		{
+			jArray.SetArray();
+			jArray.Reserve(cValue.size(), Allocator());
+
+			for (auto& elem : cValue)
+			{
+				JsonValue jValue;
+				if (SerializeObject(jValue, elem))
+				{
+					jArray.PushBack(jValue, Allocator());
+				}
+			}
+
+			success = true;
+		}
+
+		return success;
+	}
+
     /**
      * Serialize between a Json and a TUniquePtr managed C++ object
      */
@@ -300,13 +379,109 @@ public:
         
         return true;
     }
+
+	/**
+	* Serialize between a Json and a std::map object
+	*/
+	template<class TKey, class TValue>
+	bool SerializeObject(JsonValue& jValue, std::map<TKey, TValue>& cValue)
+	{
+		auto context = SerializationContext(*this, jValue);
+
+		if (IsLoading())
+		{
+			cValue.clear();
+			if (!jValue.IsObject())
+			{
+				return false;
+			}
+
+			for (auto& member : jValue.GetObject())
+			{
+				TKey key;
+				TValue value;
+				if (SerializeObject(member.name, key) && SerializeObject(member.value, value))
+				{
+					cValue[key] = std::move(value);
+				}
+			}
+		}
+		else
+		{
+			jValue.SetObject();
+			for (const auto& itr : cValue)
+			{
+				JsonValue key, value;
+				if (SerializeObject(key, (TKey&)itr.first) && SerializeObject(value, (TValue&)itr.second))
+				{
+					jValue.AddMember(key, value, Allocator());
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	* Serialize between a Json and a unique_ptr managed C++ object
+	*/
+	template<class T>
+	bool SerializeObject(JsonValue& jValue, std::unique_ptr<T>& cValue)
+	{
+		auto context = SerializationContext(*this, jValue);
+
+		if (IsLoading())
+		{
+			if (!jValue.IsObject())
+			{
+				//AddTypeMismatchError(rapidjson::kObjectType, jValue.GetType());
+				return false;
+			}
+			check(cValue.get() == nullptr);
+			cValue = std::make_unique<T>();
+		}
+		else
+		{
+			check(cValue.get());
+			jValue.SetObject();
+		}
+
+		return (*cValue).Serialize(context);
+	}
+
+	/**
+	* Serialize between a Json and a shared_ptr managed C++ object
+	*/
+	template<class T>
+	bool SerializeObject(JsonValue& jValue, std::shared_ptr<T>& cValue)
+	{
+		auto context = SerializationContext(*this, jValue);
+
+		if (IsLoading())
+		{
+			if (!jValue.IsObject())
+			{
+				//AddTypeMismatchError(rapidjson::kObjectType, jValue.GetType());
+				return false;
+			}
+			check(cValue.get() == nullptr);
+			cValue = std::make_shared<T>();
+		}
+		else
+		{
+			check(cValue.get());
+			jValue.SetObject();
+		}
+
+		return (*cValue).Serialize(context);
+	}
     
     /**
     * Serialize between a json and C++ value
     * The json value is assumed to be named propName under the parent value
     */
     template<class T>
-    bool SerializeProperty(JsonValue& parent, const wchar_t* propName, T& cValue)
+    bool SerializeProperty(JsonValue& parent, const TCHAR* propName, T& cValue)
     {
         bool success = false;
         
@@ -337,7 +512,7 @@ public:
     
     static rapidjson::CrtAllocator& Allocator() { return allocator_; }
 
-    static JsonValue NewValue(const wchar_t* str)
+    static JsonValue NewValue(const TCHAR* str)
     {
         return JsonValue(str, allocator_);
     }
@@ -345,7 +520,11 @@ public:
     template<typename TValue>
     static void AddMember(JsonValue& parent, const FString& name, const TValue& value)
     {
-        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value, allocator_), allocator_);
+        JsonValue temp;
+        if (SaveObject(value, temp))
+        {
+            AddMember(parent, name, MoveTemp(temp));
+        }
     }
 
     static void AddMember(JsonValue& parent, const FString& name, float value)
@@ -363,10 +542,52 @@ public:
         parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
     }
     
+    static void AddMember(JsonValue& parent, const FString& name, unsigned value)
+    {
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
+    }
+
+    static void AddMember(JsonValue& parent, const FString& name, int64_t value)
+    {
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
+    }
+
+    static void AddMember(JsonValue& parent, const FString& name, uint64_t value)
+    {
+        parent.AddMember(JsonValue(*name, name.Len(), allocator_), JsonValue(value), allocator_);
+    }
+
     static void AddMember(JsonValue& parent, const FString& name, JsonValue&& value)
     {
         parent.AddMember(JsonValue(*name, name.Len(), allocator_), Forward<JsonValue>(value), allocator_);
     }
+
+	static void AddMember(JsonValue& parent, const std::wstring& name, const JsonValue& value)
+	{
+		if (parent.HasMember(name.c_str()))
+		{
+			parent[name.c_str()].CopyFrom(value, Allocator());
+		}
+		else
+		{
+			parent.AddMember(JsonValue(name.c_str(), name.length(), Allocator()), JsonValue(value, Allocator()), Allocator());
+		}
+	}
+
+	static void AddMember(JsonValue& parent, const std::wstring& name, const wchar_t* value)
+	{
+		AddMember(parent, name, JsonValue(value, Allocator()));
+	}
+
+	template<typename TValue>
+	static void AddMember(JsonValue& parent, const std::wstring& name, const TValue& value)
+	{
+		JsonValue temp;
+		if (SaveObject(value, temp))
+		{
+			AddMember(parent, name, temp);
+		}
+	}
     
 //private:
     JsonArchive(bool loading)
@@ -385,6 +606,22 @@ private:
     bool logErrors_;
 };
 
+class RAPIDJSON_API JsonValueWrapper
+{
+public:
+	JsonValue value;
+
+	JsonValueWrapper() = default;
+	JsonValueWrapper(const JsonValueWrapper& other);
+	JsonValueWrapper(JsonValueWrapper&& other);
+
+	JsonValueWrapper(const JsonValue& other);
+	JsonValueWrapper(JsonValue&& other);
+
+	JsonValueWrapper& operator=(const JsonValueWrapper& other);
+	JsonValueWrapper& operator=(JsonValueWrapper&& other);
+};
+
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<int>(JsonValue& jValue, int& cValue);
 
@@ -396,6 +633,9 @@ RAPIDJSON_API bool JsonArchive::SerializeObject<unsigned>(JsonValue& jValue, uns
 
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValue);
+
+template<>
+RAPIDJSON_API bool JsonArchive::SerializeObject<long>(JsonValue& jValue, long& cValue);
 
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<float>(JsonValue& jValue, float& cValue);
@@ -421,20 +661,73 @@ RAPIDJSON_API bool JsonArchive::SerializeObject<FTimespan>(JsonValue& jValue, FT
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValue);
 
+template<>
+RAPIDJSON_API bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue);
+
+template<>
+RAPIDJSON_API bool JsonArchive::SerializeObject<JsonValueWrapper>(JsonValue& jValue, JsonValueWrapper& cValue);
 
 template<typename T>
-bool SerializationContext::SerializeProperty(const wchar_t* propertyName, T& property)
+bool SerializationContext::SerializeProperty(const TCHAR* propertyName, T& property)
 {
     return archive.SerializeProperty(value, propertyName, property);
 }
 
+template<typename T>
+bool SerializationContext::SerializePropertyOptional(const TCHAR* propertyName, T& property, const T& defaultValue)
+{
+	if (archive.IsLoading())
+	{
+		if (value.HasMember(propertyName))
+		{
+			return archive.SerializeProperty(value, propertyName, property);
+		}
+		else
+		{
+			property = defaultValue;
+			return true;
+		}
+	}
+	else
+	{
+		if (property != defaultValue)
+		{
+			return archive.SerializeProperty(value, propertyName, property);
+		}
+		else
+		{
+			return true;
+		}
+	}
+}
 
 template<typename T>
-bool SerializationContext::SerializeOptionalProperty(const wchar_t* propertyName, T& property)
+bool SerializationContext::SerializePropertyOptional(const TCHAR* propertyName, T& property)
+{
+	if (archive.IsLoading())
+	{
+		if (value.HasMember(propertyName))
+		{
+			return archive.SerializeProperty(value, propertyName, property);
+		}
+		else
+		{
+			return true;
+		}
+	}
+	else
+	{
+		return archive.SerializeProperty(value, propertyName, property);
+	}
+}
+
+template<typename T>
+bool SerializationContext::SerializeOptionalProperty(const TCHAR* propertyName, T& property)
 {
     if (archive.IsLoading())
     {
-        if (value.HasMember(propertyName) && !value[propertyName].IsNull())
+        const auto member = value.FindMember(propertyName);
+        if (member != value.MemberEnd() && !member->value.IsNull())
         {
             return archive.SerializeProperty(value, propertyName, property);
         }
@@ -442,3 +735,4 @@ bool SerializationContext::SerializeOptionalProperty(const wchar_t* propertyName
     }
     return archive.SerializeProperty(value, propertyName, property);
 }
+

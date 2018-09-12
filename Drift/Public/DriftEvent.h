@@ -16,6 +16,7 @@ public:
     
     virtual void Add(const FString& name, int value) = 0;
     virtual void Add(const FString& name, unsigned value) = 0;
+    virtual void Add(const FString& name, long long value) = 0;
     virtual void Add(const FString& name, float value) = 0;
     virtual void Add(const FString& name, double value) = 0;
     virtual void Add(const FString& name, const TCHAR* value) = 0;

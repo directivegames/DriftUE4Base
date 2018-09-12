@@ -326,7 +326,8 @@ bool FClientRegistrationPayload::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, platform_type)
         && SERIALIZE_PROPERTY(context, app_guid)
         && SERIALIZE_PROPERTY(context, version)
-        && SERIALIZE_PROPERTY(context, platform_version);
+        && SERIALIZE_PROPERTY(context, platform_version)
+        && SERIALIZE_PROPERTY(context, platform_info);
 
     return ok;
 }

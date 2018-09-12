@@ -130,7 +130,7 @@ void FLogForwarder::Log(const TCHAR* text, ELogVerbosity::Type level, const FNam
 
     if (level == ELogVerbosity::Fatal || level == ELogVerbosity::Error)
     {
-        pendingLogs.Emplace(text, *GetLogLevelName(level), category, FDateTime::Now());
+        pendingLogs.Emplace(text, *GetLogLevelName(level), category, FDateTime::UtcNow());
     }
 }
 

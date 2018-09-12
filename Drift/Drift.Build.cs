@@ -11,6 +11,7 @@
  */
 
 using UnrealBuildTool;
+using System.IO;
 
 public class Drift : ModuleRules
 {
@@ -22,7 +23,7 @@ public class Drift : ModuleRules
         
         PublicIncludePaths.AddRange(
             new string[] {
-                "Drift/Drift/Public"
+                Path.Combine(ModuleDirectory, "Public")
                 
                 // ... add public include paths required here ...
             }
@@ -31,7 +32,7 @@ public class Drift : ModuleRules
         
         PrivateIncludePaths.AddRange(
             new string[] {
-                "Drift/Drift/Private",
+                Path.Combine(ModuleDirectory, "Private"),
 
                 // ... add other private include paths required here ...
             }
@@ -52,11 +53,14 @@ public class Drift : ModuleRules
             new string[]
             {
                 // ... add private dependencies that you statically link with here ...    
+                "CoreUObject",
                 "Engine",
+                "EngineSettings",
                 "Slate",
                 "SlateCore",
                 "HTTP",
                 "Sockets",
+                "RHI",
                 "OnlineSubsystem",
                 "OnlineSubsystemUtils",
                 "DriftHttp",
@@ -72,5 +76,11 @@ public class Drift : ModuleRules
             // Needed for the keychain access
             PublicAdditionalFrameworks.Add(new UEBuildFramework("Security"));
         }
+
+#if UE_4_19_OR_LATER
+        PublicDefinitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
+#elif UE_4_18_OR_LATER
+        Definitions.Add("WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES");
+#endif
     }
 }

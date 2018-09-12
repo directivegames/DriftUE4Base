@@ -27,10 +27,12 @@
 #include "Auth/DriftUuidAuthProviderFactory.h"
 
 #include "SocketSubsystem.h"
+#include "GeneralProjectSettings.h"
 #include "IPAddress.h"
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
+#include "Internationalization.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -48,33 +50,65 @@ DEFINE_LOG_CATEGORY(LogDriftCounterUser);
 static const float UPDATE_FRIENDS_INTERVAL = 3.0f;
 
 
-const TCHAR* settingsSection = TEXT("/Script/DriftEditor.DriftProjectSettings");
+const TCHAR* defaultSettingsSection = TEXT("/Script/DriftEditor.DriftProjectSettings");
 
 
-FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex)
-: instanceName_(instanceName)
-, instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
-, instanceIndex_(instanceIndex)
-, state_(DriftSessionState::Undefined)
-, rootRequestManager_(MakeShareable(new JsonRequestManager()))
-, httpCache_(cache)
+FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config)
+    : instanceName_(instanceName)
+    , instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
+    , instanceIndex_(instanceIndex)
+    , state_(DriftSessionState::Undefined)
+    , rootRequestManager_(MakeShareable(new JsonRequestManager()))
+    , httpCache_(cache)
 {
+    ConfigureSettingsSection(config);
+
     GetRootRequestManager()->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
     GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
-    GConfig->GetString(settingsSection, TEXT("ApiKey"), apiKey, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("ProjectName"), projectName, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("GameVersion"), gameVersion, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("GameBuild"), gameBuild, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("Environment"), environment, GGameIni);
-    GConfig->GetString(settingsSection, TEXT("StaticDataReference"), staticDataReference, GGameIni);
+    GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName_, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
+
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
+        FParse::Value(FCommandLine::Get(), TEXT("-drift_apikey="), versionedApiKey);
+    }
+
+    GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
+    GConfig->GetString(*settingsSection_, TEXT("GameBuild"), gameBuild, GGameIni);
+
+    {
+        FString appGuid;
+        GConfig->GetString(*settingsSection_, TEXT("AppGuid"), appGuid, GGameIni);
+        if (!appGuid.IsEmpty())
+        {
+            if (!FGuid::Parse(appGuid, appGuid_))
+            {
+                IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("AppGuid \"%s\" could not be parsed as a valid GUID"));
+            }
+        }
+    }
+
+    if (cli.drift_url.IsEmpty())
+    {
+        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
+    }
+
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_env="), environment))
+    {
+        GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
+    }
 
     if (apiKey.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("No API key found. Please fill out Project Settings->Drift"));
+        GConfig->GetString(*settingsSection_, TEXT("ApiKey"), apiKey, GGameIni);
     }
-
-    deviceAuthProviderFactory = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, projectName);
+    if (apiKey.IsEmpty() && versionedApiKey.IsEmpty())
+    {
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("No API key found. Please fill out Project Settings->Drift"));
+    }
 
     ConfigurePlacement();
     ConfigureBuildReference();
@@ -87,7 +121,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     CreateLogForwarder();
     CreateMessageQueue();
     
-    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s created"), *instanceName_.ToString());
+    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) created"), *instanceName_.ToString(), instanceIndex_);
 }
 
 
@@ -124,9 +158,9 @@ void FDriftBase::CreateMessageQueue()
 
 void FDriftBase::ConfigurePlacement()
 {
-    if (!FParse::Value(FCommandLine::Get(), TEXT("-placement="), defaultPlacement))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-placement="), defaultPlacement))
     {
-        if (!GConfig->GetString(settingsSection, TEXT("Placement"), defaultPlacement, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("Placement"), defaultPlacement, GGameIni))
         {
             bool canBindAll;
             const auto address = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, canBindAll);
@@ -140,9 +174,9 @@ void FDriftBase::ConfigurePlacement()
 
 void FDriftBase::ConfigureBuildReference()
 {
-    if (!FParse::Value(FCommandLine::Get(), TEXT("-ref="), buildReference))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-ref="), buildReference))
     {
-        if (!GConfig->GetString(settingsSection, TEXT("BuildReference"), buildReference, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("BuildReference"), buildReference, GGameIni))
         {
             buildReference = FString::Printf(TEXT("user/%s"), FPlatformProcess::UserName());
         }
@@ -152,7 +186,7 @@ void FDriftBase::ConfigureBuildReference()
 
 FDriftBase::~FDriftBase()
 {
-    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s destroyed"), *instanceName_.ToString());
+    DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) destroyed"), *instanceName_.ToString(), instanceIndex_);
 }
 
 
@@ -206,13 +240,23 @@ void FDriftBase::TickHeartbeat(float deltaTime)
 
     struct FDriftHeartBeatResponse
     {
+        int32 num_heartbeats;
+        FDateTime last_heartbeat;
+        FDateTime this_heartbeat;
+        FDateTime next_heartbeat;
         int32 next_heartbeat_seconds;
         FDateTime heartbeat_timeout;
-        
+        int32 heartbeat_timeout_seconds;
+
         bool Serialize(SerializationContext& context)
         {
-            return SERIALIZE_PROPERTY(context, next_heartbeat_seconds)
-                && SERIALIZE_PROPERTY(context, heartbeat_timeout);
+            return SERIALIZE_PROPERTY(context, num_heartbeats)
+                && SERIALIZE_PROPERTY(context, last_heartbeat)
+                && SERIALIZE_PROPERTY(context, this_heartbeat)
+                && SERIALIZE_PROPERTY(context, next_heartbeat)
+                && SERIALIZE_PROPERTY(context, next_heartbeat_seconds)
+                && SERIALIZE_PROPERTY(context, heartbeat_timeout)
+                && SERIALIZE_PROPERTY(context, heartbeat_timeout_seconds);
         }
     };
 
@@ -225,8 +269,15 @@ void FDriftBase::TickHeartbeat(float deltaTime)
             FDriftHeartBeatResponse response;
             if (JsonUtils::ParseResponse(context.response, response))
             {
+                const auto heartbeatRoundTrip = FTimespan::FromSeconds(context.request.Get()->GetElapsedTime());
                 heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
-                heartbeatTimeout_ = response.heartbeat_timeout;
+                /**
+                 * We don't know if making the call, or returning it, takes a long time,
+                 * and the client clock might be off compared with the server's, so we
+                 * can't use the actual timeout time returned. Local time minus roundtrip
+                 * plus timeout, should be on the safe side.
+                 */
+                heartbeatTimeout_ = FDateTime::UtcNow() + FTimespan::FromSeconds(response.heartbeat_timeout_seconds) - heartbeatRoundTrip;
             }
         }
         else
@@ -234,7 +285,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
             heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt();
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs"), *FDateTime::UtcNow().ToString(), heartbeatDueInSeconds_);
+        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs. Timeout at: %s"), *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -303,6 +354,54 @@ void FDriftBase::Shutdown()
 const TMap<FString, FDateTime>& FDriftBase::GetDeprecations()
 {
     return deprecations_;
+}
+
+
+FString FDriftBase::GetJWT() const
+{
+    return driftClient.jwt;
+}
+
+
+FString FDriftBase::GetJTI() const
+{
+    return driftClient.jti;
+}
+
+
+FString FDriftBase::GetRootURL() const
+{
+    return driftEndpoints.root;
+}
+
+
+FString FDriftBase::GetEnvironment() const
+{
+    // If we've been redirected, we always consider ourselves to be running in the "dev" environment
+    if (driftEndpoints.root.IsEmpty() || driftEndpoints.root.Compare(cli.drift_url) == 0)
+    {
+        return environment;
+    }
+
+    return TEXT("dev");
+}
+
+
+FString FDriftBase::GetGameVersion() const
+{
+    return gameVersion;
+}
+
+
+FString FDriftBase::GetGameBuild() const
+{
+    return gameBuild;
+}
+
+
+FString FDriftBase::GetVersionedAPIKey() const
+{
+    return GetApiKeyHeader();
 }
 
 
@@ -444,13 +543,13 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
         FStaticDataResponse static_data;
         if (!JsonArchive::LoadObject(doc, static_data))
         {
-            context.error = L"Failed to parse static data response";
+            context.error = TEXT("Failed to parse static data response");
             return;
         }
         
         if (static_data.static_data_urls.Num() == 0)
         {
-            context.error = L"No static data entries found";
+            context.error = TEXT("No static data entries found");
             return;
         }
 
@@ -468,14 +567,14 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
         auto index_received = context.received;
         TSharedPtr<StaticDataSync> sync = MakeShareable(new StaticDataSync);
 
-        auto loader = [this, commit, pin, index_sent, index_received, sync](const FString& data_url, const FString& data_name, const FString& cdn_name)
+        const auto loader = [this, commit, pin, index_sent, index_received, sync](const FString& data_url, const FString& data_name, const FString& cdn_name)
         {
             auto data_request = GetRootRequestManager()->Get(data_url + data_name);
             data_request->OnRequestProgress().BindLambda([this, data_name, sync](FHttpRequestPtr req, int32 bytesWritten, int32 bytesRead)
             {
                 if (!sync->succeeded)
                 {
-                    auto lastBytesRead = sync->bytesRead;
+                    const auto lastBytesRead = sync->bytesRead;
                     if (bytesRead > lastBytesRead)
                     {
                         sync->bytesRead = bytesRead;
@@ -743,13 +842,6 @@ void FDriftBase::AuthenticatePlayer()
         return;
     }
 
-    FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-
-    if (cli.drift_url.IsEmpty())
-    {
-        GConfig->GetString(settingsSection, TEXT("DriftUrl"), cli.drift_url, GGameIni);
-    }
-
     if (cli.drift_url.IsEmpty())
     {
         DRIFT_LOG(Base, Log, TEXT("Running in client mode, but no Drift url specified."));
@@ -758,11 +850,35 @@ void FDriftBase::AuthenticatePlayer()
         return;
     }
 
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
+    }
+
+    if (!cli.jti.IsEmpty())
+    {
+        GetRootEndpoints([this]()
+        {
+            TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(cli.jti));
+            manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+            manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
+            manager->SetApiKey(GetApiKeyHeader());
+            manager->SetCache(httpCache_);
+            SetGameRequestManager(manager);
+            GetUserInfo();
+        });
+        return;
+    }
+
     FString credentialType;
-    FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+    if (!ignoreCommandLineArguments_)
+    {
+        FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+    }
+
     if (credentialType.IsEmpty())
     {
-        GConfig->GetString(settingsSection, TEXT("CredentialsType"), credentialType, GGameIni);
+        GConfig->GetString(*settingsSection_, TEXT("CredentialsType"), credentialType, GGameIni);
     }
 
     if (credentialType.IsEmpty())
@@ -825,6 +941,54 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
     return nullptr;
 }
 
+bool FDriftBase::IsRunningAsServer() const
+{
+    FString dummy;
+    return IsPreRegistered() || FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), dummy);
+}
+
+
+const FString& FDriftBase::GetProjectName()
+{
+    if (projectName_.IsEmpty())
+    {
+        projectName_ = GetDefault<UGeneralProjectSettings>()->ProjectName;
+    }
+
+    if (projectName_.IsEmpty())
+    {
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Drift ProjectName is empty or missing. Please fill out Project Settings->Drift"));
+    }
+
+    return projectName_;
+}
+
+
+const FGuid& FDriftBase::GetAppGuid()
+{
+    if (!appGuid_.IsValid())
+    {
+        appGuid_ = GetDefault<UGeneralProjectSettings>()->ProjectID;
+    }
+
+    if (!appGuid_.IsValid())
+    {
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("No Drift App GUID found. Please fill out Project Settings->Drift"));
+    }
+
+    return appGuid_;
+}
+
+
+IDriftAuthProviderFactory* FDriftBase::GetDeviceAuthProviderFactory()
+{
+    if (!deviceAuthProviderFactory_.IsValid())
+    {
+        deviceAuthProviderFactory_ = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, GetProjectName());
+    }
+    return deviceAuthProviderFactory_.Get();
+}
+
 
 void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
 {
@@ -844,7 +1008,7 @@ void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
     {
         if (!JsonArchive::LoadObject(doc, cached_matches.matches))
         {
-            context.error = L"Failed to parse matches";
+            context.error = TEXT("Failed to parse matches");
             return;
         }
 
@@ -858,8 +1022,9 @@ void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
             result.match_id = match.match_id;
             result.match_status = match.match_status;
             result.num_players = match.num_players;
-            result.server_status = match.server_status;
-            result.ue4_connection_url = match.ue4_connection_url;
+			result.max_players = match.max_players;
+            result.server_status = match.server_status;         
+			result.ue4_connection_url = match.ue4_connection_url;			
             result.version = match.version;
             search->matches.Add(result);
         }
@@ -895,7 +1060,7 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
         
         return;
     }
-    FString token = (*tokenIt).value.GetString();
+    const FString token = (*tokenIt).value.GetString();
 
     const auto actionIt = message.payload.FindMember(TEXT("action"));
     if (actionIt != message.payload.MemberEnd())
@@ -954,7 +1119,7 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to join the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to join the match queue without being connected"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -962,7 +1127,7 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
 
     if (matchQueueState != EMatchQueueState::Idle)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to join the match queue while not idle"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to join the match queue while not idle"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -983,7 +1148,7 @@ void FDriftBase::JoinMatchQueueImpl(const FString& ref, const FString& placement
     {
         if (!JsonArchive::LoadObject(doc, matchQueue))
         {
-            context.error = L"Failed to parse join queue response";
+            context.error = TEXT("Failed to parse join queue response");
             return;
         }
         matchQueueState = matchQueue.status == MatchQueueStatusMatchedName ? EMatchQueueState::Matched : EMatchQueueState::Queued;
@@ -1009,7 +1174,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to leave the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to leave the match queue without being connected"));
         
         delegate.ExecuteIfBound(false);
         return;
@@ -1017,7 +1182,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
 
     if (matchQueue.matchqueueplayer_url.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to leave the match queue without being in one"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to leave the match queue without being in one"));
         
         delegate.ExecuteIfBound(false);
         return;
@@ -1025,7 +1190,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
     
     if (matchQueueState == EMatchQueueState::Matched)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to leave the match queue after getting matched"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to leave the match queue after getting matched"));
         
         delegate.ExecuteIfBound(false);
         return;
@@ -1078,7 +1243,7 @@ void FDriftBase::LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate)
             }
         }
 
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Failed to leave the match queue for an unknown reason"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Failed to leave the match queue for an unknown reason"));
 
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -1091,7 +1256,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to poll the match queue without being connected"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1099,7 +1264,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
 
     if (matchQueue.matchqueueplayer_url.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue without being in one"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to poll the match queue without being in one"));
 
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1108,8 +1273,8 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
     if (matchQueueState != EMatchQueueState::Queued && matchQueueState != EMatchQueueState::Matched)
     {
         auto extra = MakeShared<FJsonObject>();
-        extra->SetNumberField(L"state", static_cast<int32>(matchQueueState));
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to poll the match queue while in an incompatible state"), extra);
+        extra->SetNumberField(TEXT("state"), static_cast<int32>(matchQueueState));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to poll the match queue while in an incompatible state"), extra);
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1122,7 +1287,7 @@ void FDriftBase::PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate)
         FMatchQueueResponse response;
         if (!JsonArchive::LoadObject(doc, response))
         {
-            context.error = L"Failed to parse poll queue response";
+            context.error = TEXT("Failed to parse poll queue response");
             return;
         }
 
@@ -1160,21 +1325,21 @@ void FDriftBase::ResetMatchQueue()
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to reset the match queue without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to reset the match queue without being connected"));
         
         return;
     }
     
     if (matchQueue.matchqueueplayer_url.IsEmpty())
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to reset the match queue without being in one"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to reset the match queue without being in one"));
         
         return;
     }
     
     if (matchQueueState != EMatchQueueState::Matched)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to reset the match queue without being matched"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to reset the match queue without being matched"));
         
         return;
     }
@@ -1196,7 +1361,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
 {
     if (state_ != DriftSessionState::Connected)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to send match challenge without being connected"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to send match challenge without being connected"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1204,7 +1369,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
     
     if (matchQueueState != EMatchQueueState::Idle)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to send match challenge while not idle"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to send match challenge while not idle"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1212,7 +1377,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
     
     if (playerID == myPlayer.player_id)
     {
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to challenge yourself to a match is not allowed"));
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to challenge yourself to a match is not allowed"));
         
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1222,8 +1387,8 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
     if (!playerInfo)
     {
         auto extra = MakeShared<FJsonObject>();
-        extra->SetNumberField(L"player_id", playerID);
-        IErrorReporter::Get()->AddError(L"LogDriftBase", TEXT("Attempting to challenge player to match, but there's no information about the player"), extra);
+        extra->SetNumberField(TEXT("player_id"), playerID);
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to challenge player to match, but there's no information about the player"), extra);
 
         delegate.ExecuteIfBound(false, FMatchQueueStatus{});
         return;
@@ -1241,7 +1406,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
             JsonValue message{ rapidjson::kObjectType };
             JsonArchive::AddMember(message, TEXT("action"), TEXT("challenge"));
             JsonArchive::AddMember(message, TEXT("token"), *token.ToString());
-            auto messageUrlTemplate = playerInfo->messagequeue_url;
+            const auto messageUrlTemplate = playerInfo->messagequeue_url;
             messageQueue->SendMessage(messageUrlTemplate, TEXT("matchqueue"), MoveTemp(message), inviteTimeoutSeconds);
         }
         delegate.ExecuteIfBound(success, status);
@@ -1303,6 +1468,7 @@ void FDriftBase::AddAnalyticsEvent(const FString& eventName, const TArray<FAnaly
     auto event = MakeEvent(eventName);
     for (const auto& attribute : attributes)
     {
+#ifdef WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES
         switch (attribute.AttrType)
         {
         case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
@@ -1321,6 +1487,9 @@ void FDriftBase::AddAnalyticsEvent(const FString& eventName, const TArray<FAnaly
             event->Add(attribute.AttrName, attribute.AttrValueString);
             break;
         }
+#else
+        event->Add(attribute.AttrName, attribute.AttrValue);
+#endif
     }
     AddAnalyticsEvent(MoveTemp(event));
 }
@@ -1343,7 +1512,7 @@ void FDriftBase::AddAnalyticsEvent(TUniquePtr<IDriftEvent> event)
 const FDriftCounterInfo* FDriftBase::GetCounterInfo(const FString& counterName) const
 {
     auto canonical_name = FDriftCounterManager::MakeCounterName(counterName);
-    auto counter = counterInfos.FindByPredicate([canonical_name](const FDriftCounterInfo& info) -> bool
+    const auto counter = counterInfos.FindByPredicate([canonical_name](const FDriftCounterInfo& info) -> bool
     {
         return info.name == canonical_name;
     });
@@ -1455,7 +1624,7 @@ void FDriftBase::BeginGetLeaderboard(const FString& counterName, const TWeakPtr<
             countersLoaded = true;
             GetLeaderboardImpl(counterName, leaderboard, playerGroup, delegate);
         });
-        request->OnError.BindLambda([this, counterName, leaderboard, delegate](ResponseContext& context)
+        request->OnError.BindLambda([counterName, leaderboard, delegate](ResponseContext& context)
         {
             auto leaderboardPtr = leaderboard.Pin();
             if (leaderboardPtr.IsValid())
@@ -1505,7 +1674,7 @@ void FDriftBase::GetLeaderboardImpl(const FString& counterName, const TWeakPtr<F
         TArray<FDriftLeaderboardResponseItem> entries;
         if (!JsonArchive::LoadObject(doc, entries))
         {
-            context.error = L"Failed to parse leaderboard entries response";
+            context.error = TEXT("Failed to parse leaderboard entries response");
             return;
         }
 
@@ -1530,7 +1699,7 @@ void FDriftBase::GetLeaderboardImpl(const FString& counterName, const TWeakPtr<F
         event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
         AddAnalyticsEvent(MoveTemp(event));
     });
-    request->OnError.BindLambda([this, canonicalName, delegate](ResponseContext& context)
+    request->OnError.BindLambda([canonicalName, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, canonicalName);
@@ -1626,14 +1795,14 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FString token;
-        auto member = doc.FindMember(TEXT("token"));
+        const auto member = doc.FindMember(TEXT("token"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             token = member->value.GetString();
         }
         if (token.IsEmpty()) 
         {
-            context.error = L"Response 'token' missing.";
+            context.error = TEXT("Response 'token' missing.");
             return;
         }
 
@@ -1641,7 +1810,7 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
 
         delegate.ExecuteIfBound(true, token);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, {});
@@ -1675,7 +1844,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         int32 friendID{ 0 };
-        auto member = doc.FindMember(TEXT("friend_id"));
+        const auto member = doc.FindMember(TEXT("friend_id"));
         if (member != doc.MemberEnd() && member->value.IsInt())
         {
             friendID = member->value.GetInt();
@@ -1693,18 +1862,18 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
             {
                 return;
             }
-            if (auto f = friendInfos.Find(friendID))
+            if (const auto f = friendInfos.Find(friendID))
             {
                 JsonValue message{ rapidjson::kObjectType };
                 JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_added"));
-                auto messageUrlTemplate = f->messagequeue_url;
+                const auto messageUrlTemplate = f->messagequeue_url;
                 messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
             }
         }));
 
         delegate.ExecuteIfBound(true, friendID);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, 0);
@@ -1747,7 +1916,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
         {
             JsonValue message{ rapidjson::kObjectType };
             JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_removed"));
-            auto messageUrlTemplate = f->messagequeue_url;
+            const auto messageUrlTemplate = f->messagequeue_url;
             messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
         }
 
@@ -1755,13 +1924,26 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
 
         delegate.ExecuteIfBound(true, friendID);
     });
-    request->OnError.BindLambda([this, friendID, delegate](ResponseContext& context)
+    request->OnError.BindLambda([friendID, delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, friendID);
     });
     request->Dispatch();
     return true;
+}
+
+
+void FDriftBase::ConfigureSettingsSection(const FString& config)
+{
+    if (config.IsEmpty())
+    {
+        settingsSection_ = defaultSettingsSection;
+    }
+    else
+    {
+        settingsSection_ = FString::Printf(TEXT("%s.%s"), defaultSettingsSection, *config);
+    }
 }
 
 
@@ -1774,11 +1956,11 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
     DRIFT_LOG(Base, Verbose, TEXT("Getting root endpoints from %s"), *url);
 
     auto request = GetRootRequestManager()->Get(url);
-    request->OnResponse.BindLambda([this, onSuccess](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, onSuccess = std::move(onSuccess)](ResponseContext& context, JsonDocument& doc)
     {
-        if (!JsonArchive::LoadObject(doc[L"endpoints"], driftEndpoints))
+        if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = L"Failed to parse endpoints";
+            context.error = TEXT("Failed to parse endpoints");
             return;
         }
         onSuccess();
@@ -1801,7 +1983,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
             DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
         }
 
-        authProvider = MakeShareable(deviceAuthProviderFactory->GetAuthProvider().Release());
+        authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
     }
     else
     {
@@ -1812,7 +1994,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
     {
         DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to device credentials"), *credentialType);
 
-        authProvider = MakeShareable(deviceAuthProviderFactory->GetAuthProvider().Release());
+        authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
     }
 
     authProvider->InitCredentials([this](bool credentialSuccess)
@@ -1876,14 +2058,14 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
-        auto member = doc.FindMember(TEXT("jti"));
+        const auto member = doc.FindMember(TEXT("jti"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             jti = member->value.GetString();
         }
         if (jti.IsEmpty())
         {
-            context.error = L"Session 'jti' missing.";
+            context.error = TEXT("Session 'jti' missing.");
             return;
         }
 
@@ -1917,7 +2099,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
 
 void FDriftBase::GetUserInfo()
 {
-    auto request = GetGameRequestManager()->Get(cli.drift_url, HttpStatusCodes::Ok);
+    auto request = GetGameRequestManager()->Get(driftEndpoints.root, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         auto currentUser = doc.FindMember(TEXT("current_user"));
@@ -1928,7 +2110,7 @@ void FDriftBase::GetUserInfo()
         }
 
         auto userObject = currentUser->value.GetObject();
-        auto userId = userObject.FindMember(TEXT("user_id"));
+        const auto userId = userObject.FindMember(TEXT("user_id"));
         if (userId == userObject.MemberEnd() || !userId->value.IsUint64())
         {
             context.error = TEXT("Failed to read user id");
@@ -1956,10 +2138,26 @@ void FDriftBase::GetUserInfo()
 void FDriftBase::RegisterClient()
 {
     FClientRegistrationPayload payload;
-    payload.client_type = L"UE4";
+    payload.client_type = TEXT("UE4");
     payload.platform_type = details::GetPlatformName();
-    payload.app_guid = L"TEMP";
-    payload.product_name = projectName;
+    payload.app_guid = GetAppGuid().ToString(EGuidFormats::DigitsWithHyphens);
+
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_physical_cores"), FPlatformMisc::NumberOfCores());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_logical_cores"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_vendor"), *FPlatformMisc::GetCPUVendor());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_brand"), *FPlatformMisc::GetCPUBrand());
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_adapter"), *GRHIAdapterName);
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_vendor_id"), GRHIVendorId);
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_device_id"), GRHIDeviceId);
+
+    const auto& stats = FPlatformMemory::GetConstants();
+    JsonArchive::AddMember(payload.platform_info, TEXT("total_physical_ram"), static_cast<uint64>(stats.TotalPhysical));
+
+    JsonArchive::AddMember(payload.platform_info, TEXT("os_version"), *FPlatformMisc::GetOSVersion());
+
+    const auto& I18N = FInternationalization::Get();
+    JsonArchive::AddMember(payload.platform_info, TEXT("language"), *I18N.GetCurrentLanguage()->GetName());
+    JsonArchive::AddMember(payload.platform_info, TEXT("locale"), *I18N.GetCurrentLocale()->GetName());
 
 #if PLATFORM_IOS
     payload.platform_version = IOSUtility::GetIOSVersion();
@@ -1984,7 +2182,7 @@ void FDriftBase::RegisterClient()
     {
         if (!JsonArchive::LoadObject(doc, driftClient))
         {
-            context.error = L"Failed to parse client registration response";
+            context.error = TEXT("Failed to parse client registration response");
             return;
         }
         hearbeatUrl = driftClient.url;
@@ -2015,18 +2213,18 @@ void FDriftBase::GetPlayerEndpoints()
 {
     DRIFT_LOG(Base, Verbose, TEXT("Fetching player endpoints"));
     
-    auto request = GetGameRequestManager()->Get(cli.drift_url);
+    auto request = GetGameRequestManager()->Get(driftEndpoints.root);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = "Failed to parse drift endpoints";
+            context.error = TEXT("Failed to parse drift endpoints");
             return;
         }
 
         if (driftEndpoints.my_player.IsEmpty())
         {
-            context.error = L"My player endpoint is empty";
+            context.error = TEXT("My player endpoint is empty");
             return;
         }
 
@@ -2051,7 +2249,7 @@ void FDriftBase::GetPlayerInfo()
     {
         if (!JsonArchive::LoadObject(doc, myPlayer))
         {
-            context.error = L"Failed to parse my player";
+            context.error = TEXT("Failed to parse my player");
             return;
         }
         playerCounterManager->SetCounterUrl(myPlayer.counter_url);
@@ -2062,7 +2260,7 @@ void FDriftBase::GetPlayerInfo()
         // TODO: Let user determine if the name should be set or not
         if (authProvider.IsValid())
         {
-            auto currentName = myPlayer.player_name;
+            const auto currentName = myPlayer.player_name;
             auto ossNickName = authProvider->GetNickname();
             if (!ossNickName.IsEmpty() && currentName != ossNickName)
             {
@@ -2194,14 +2392,14 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     request->OnResponse.BindLambda([this, progressDelegate, provider](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
-        auto member = doc.FindMember(TEXT("jti"));
+        const auto member = doc.FindMember(TEXT("jti"));
         if (member != doc.MemberEnd() && member->value.IsString())
         {
             jti = member->value.GetString();
         }
         if (jti.IsEmpty())
         {
-            context.error = L"Identity 'jti' missing.";
+            context.error = TEXT("Identity 'jti' missing.");
             return;
         }
 
@@ -2418,7 +2616,7 @@ void FDriftBase::InitServerRootInfo()
     FString drift_url = cli.drift_url;
     if (drift_url.IsEmpty())
     {
-        if (!GConfig->GetString(settingsSection, TEXT("DriftUrl"), drift_url, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), drift_url, GGameIni))
         {
             DRIFT_LOG(Base, Error, TEXT("Running in server mode, but no Drift url specified."));
 
@@ -2432,9 +2630,9 @@ void FDriftBase::InitServerRootInfo()
     auto request = GetRootRequestManager()->Get(drift_url);
     request->OnResponse.BindLambda([this, drift_url](ResponseContext& context, JsonDocument& doc)
     {
-        if (!JsonArchive::LoadObject(doc[L"endpoints"], driftEndpoints))
+        if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = L"Failed to parse drift endpoints";
+            context.error = TEXT("Failed to parse drift endpoints");
             state_ = DriftSessionState::Disconnected;
             return;
         }
@@ -2502,7 +2700,7 @@ void FDriftBase::InitServerAuthentication()
         FString jti = doc[TEXT("jti")].GetString();
         if (jti.IsEmpty())
         {
-            context.error = L"Session 'jti' missing.";
+            context.error = TEXT("Session 'jti' missing.");
             return;
         }
 
@@ -2579,7 +2777,7 @@ void FDriftBase::InitServerRegistration()
     auto request = GetGameRequestManager()->Post(driftEndpoints.servers, payload);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        InitServerInfo(doc[L"url"].GetString());
+        InitServerInfo(doc[TEXT("url")].GetString());
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -2607,7 +2805,7 @@ void FDriftBase::InitServerInfo(const FString& serverUrl)
         {
             if (!JsonArchive::LoadObject(serverDoc, drift_server))
             {
-                serverContext.error = L"Failed to parse drift server endpoint response.";
+                serverContext.error = TEXT("Failed to parse drift server endpoint response.");
                 return;
             }
             hearbeatUrl = drift_server.heartbeat_url;
@@ -2646,7 +2844,7 @@ bool FDriftBase::RegisterServer()
 
     if (cli.drift_url.IsEmpty())
     {
-        GConfig->GetString(settingsSection, TEXT("DriftUrl"), cli.drift_url, GGameIni);
+        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
 
     if (cli.drift_url.IsEmpty())
@@ -2821,7 +3019,7 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
         FAddMatchResponse match;
         if (!JsonArchive::LoadObject(doc, match))
         {
-            context.error = L"Failed to parse add match response.";
+            context.error = TEXT("Failed to parse add match response.");
             return;
         }
 
@@ -2833,7 +3031,7 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
             FGetMatchResponseItem matchInfo;
             if (!JsonArchive::LoadObject(matchDoc, matchInfo))
             {
-                matchContext.error = L"Failed to parse match info response.";
+                matchContext.error = TEXT("Failed to parse match info response.");
                 return;
             }
 
@@ -2883,11 +3081,11 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
     }
 
     auto request = GetGameRequestManager()->Put(drift_server.url, payload);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([delegate](ResponseContext& context, JsonDocument& doc)
     {
         delegate.ExecuteIfBound(true);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         delegate.ExecuteIfBound(false);
         context.errorHandled = true;
@@ -3010,7 +3208,7 @@ void FDriftBase::CachePlayerInfo(int32 playerID)
         TArray<FDriftPlayerResponse> info;
         if (!JsonArchive::LoadObject(doc, info))
         {
-            context.error = L"Failed to parse player info response";
+            context.error = TEXT("Failed to parse player info response");
             return;
         }
         if (info.Num() != 1)
@@ -3081,7 +3279,7 @@ void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegat
         AddAnalyticsEvent(MoveTemp(event));
         MakeFriendsGroup(delegate);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -3195,7 +3393,7 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
             delegate.ExecuteIfBound(success);
         });
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -3321,7 +3519,11 @@ bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, fl
 
 FString FDriftBase::GetApiKeyHeader() const
 {
-    return FString::Printf(TEXT("%s:%s"), *apiKey, *gameVersion);
+    if (!versionedApiKey.IsEmpty())
+    {
+        return versionedApiKey;
+    }
+    return FString::Printf(TEXT("%s:%s"), *apiKey, IsRunningAsServer() ? TEXT("service") : *gameVersion);
 }
 
 
@@ -3331,44 +3533,48 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
     const auto responseCode = context.responseCode;
     if (responseCode >= static_cast<int32>(HttpStatusCodes::FirstClientError) && responseCode <= static_cast<int32>(HttpStatusCodes::LastClientError))
     {
-        ClientUpgradeResponse message;
-        if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
+        auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+        if (contentType.StartsWith(TEXT("application/json")))
         {
-            context.errorHandled = true;
-            // Reset instead of disconnect as we know all future calls will fail
-            Reset();
-            onGameVersionMismatch.Broadcast(message.upgrade_url);
-            return;
-        }
-
-        GenericRequestErrorResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
-        {
-            if (response.GetErrorCode() == TEXT("client_session_terminated"))
+            ClientUpgradeResponse message;
+            if (JsonUtils::ParseResponse(context.response, message) && message.action == TEXT("upgrade_client"))
             {
-                const auto reason = response.GetErrorReason();
-                if (reason == TEXT("usurped"))
+                context.errorHandled = true;
+                // Reset instead of disconnect as we know all future calls will fail
+                Reset();
+                onGameVersionMismatch.Broadcast(message.upgrade_url);
+                return;
+            }
+
+            GenericRequestErrorResponse response;
+            if (JsonUtils::ParseResponse(context.response, response))
+            {
+                if (response.GetErrorCode() == TEXT("client_session_terminated"))
                 {
-                    // User logged in on another device with the same credentials
-                    state_ = DriftSessionState::Usurped;
-                    BroadcastConnectionStateChange(state_);
-                }
-                else if (reason == TEXT("timeout"))
-                {
-                    // User session timed out, requires regular heartbeats
-                    state_ = DriftSessionState::Timedout;
-                    BroadcastConnectionStateChange(state_);
+                    const auto reason = response.GetErrorReason();
+                    if (reason == TEXT("usurped"))
+                    {
+                        // User logged in on another device with the same credentials
+                        state_ = DriftSessionState::Usurped;
+                        BroadcastConnectionStateChange(state_);
+                    }
+                    else if (reason == TEXT("timeout"))
+                    {
+                        // User session timed out, requires regular heartbeats
+                        state_ = DriftSessionState::Timedout;
+                        BroadcastConnectionStateChange(state_);
+                        context.errorHandled = true;
+                        Disconnect();
+                        return;
+                    }
+                    // Some other reason
                     context.errorHandled = true;
                     Disconnect();
-                    return;
                 }
-                // Some other reason
-                context.errorHandled = true;
-                Disconnect();
-            }
-            else if (response.GetErrorCode() == TEXT("api_key_missing"))
-            {
-                context.error = response.GetErrorDescription();
+                else if (response.GetErrorCode() == TEXT("api_key_missing"))
+                {
+                    context.error = response.GetErrorDescription();
+                }
             }
         }
     }
@@ -3448,7 +3654,7 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
 
     check(authProvider.IsValid());
 
-    authProvider->GetAvatarUrl([this, delegate](const FString& avatarUrl)
+    authProvider->GetAvatarUrl([delegate](const FString& avatarUrl)
     {
         delegate.ExecuteIfBound(avatarUrl);
     });

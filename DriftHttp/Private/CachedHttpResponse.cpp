@@ -3,6 +3,16 @@
 #include "DriftHttpPCH.h"
 
 #include "CachedHttpResponse.h"
+#include "StringConv.h"
+
+
+#ifdef WITH_ENGINE_VERSION_MACROS
+    #if UE_VERSION_NEWER_THAN(4, 20, 0)
+        #define IS_CONST const
+    #endif // UE_VERSION_NEWER_THAN(4, 20, 0)
+#else
+    #define IS_CONST
+#endif // WITH_ENGINE_VERSION_MACROS
 
 
 CachedHttpResponse::CachedHttpResponse()
@@ -11,21 +21,21 @@ CachedHttpResponse::CachedHttpResponse()
 }
 
 
-FString CachedHttpResponse::GetURL()
+FString CachedHttpResponse::GetURL() IS_CONST
 {
     return url;
 }
 
 
-FString CachedHttpResponse::GetURLParameter(const FString &parameterName)
+FString CachedHttpResponse::GetURLParameter(const FString &ParameterName) IS_CONST
 {
     return TEXT("");
 }
 
 
-FString CachedHttpResponse::GetHeader(const FString &headerName)
+FString CachedHttpResponse::GetHeader(const FString &HeaderName) IS_CONST
 {
-    auto header = headers.Find(headerName);
+    const auto header = headers.Find(HeaderName);
     if (header != nullptr)
     {
         return *header;
@@ -34,7 +44,7 @@ FString CachedHttpResponse::GetHeader(const FString &headerName)
 }
 
 
-TArray<FString> CachedHttpResponse::GetAllHeaders()
+TArray<FString> CachedHttpResponse::GetAllHeaders() IS_CONST
 {
     TArray<FString> result;
     for (const auto& header : headers)
@@ -45,31 +55,31 @@ TArray<FString> CachedHttpResponse::GetAllHeaders()
 }
 
 
-FString CachedHttpResponse::GetContentType()
+FString CachedHttpResponse::GetContentType() IS_CONST
 {
     return contentType;
 }
 
 
-int32 CachedHttpResponse::GetContentLength()
+int32 CachedHttpResponse::GetContentLength() IS_CONST
 {
     return payload.Num();
 }
 
 
-const TArray<uint8>& CachedHttpResponse::GetContent()
+const TArray<uint8>& CachedHttpResponse::GetContent() IS_CONST
 {
     return payload;
 }
 
 
-int32 CachedHttpResponse::GetResponseCode()
+int32 CachedHttpResponse::GetResponseCode() IS_CONST
 {
     return responseCode;
 }
 
 
-FString CachedHttpResponse::GetContentAsString()
+FString CachedHttpResponse::GetContentAsString() IS_CONST
 {
     TArray<uint8> zeroTerminatedPayload(GetContent());
     zeroTerminatedPayload.Add(0);

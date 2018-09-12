@@ -24,6 +24,7 @@ public:
     FDriftWorldHelper(FName context);
 
     IDriftAPI* GetInstance();
+    IDriftAPI* GetInstance(const FString& config);
 
     void DestroyInstance();
 

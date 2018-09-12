@@ -112,6 +112,28 @@ bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValu
 }
 
 template<>
+bool JsonArchive::SerializeObject<long>(JsonValue& jValue, long& cValue)
+{
+	bool success = false;
+
+	if (isLoading_)
+	{
+		if (jValue.IsInt64())
+		{
+			cValue = jValue.GetInt64();
+			success = true;
+		}
+	}
+	else
+	{
+		jValue.SetInt64(cValue);
+		success = true;
+	}
+
+	return success;
+}
+
+template<>
 bool JsonArchive::SerializeObject<float>(JsonValue& jValue, float& cValue)
 {
     bool success = false;
@@ -211,7 +233,7 @@ bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue)
         }
         else if (jValue.IsNull())
         {
-            cValue = L"";
+            cValue = TEXT("");
             success = true;
         }
         else
@@ -263,19 +285,19 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
         {
             FString temp = jValue.GetString();
             // Date only
-            if (temp.Right(1) == L"Z" && !temp.Contains(TEXT("T")))
+            if (temp.Right(1) == TEXT("Z") && !temp.Contains(TEXT("T")))
             {
                 temp = temp.LeftChop(1);
                 success = FDateTime::ParseIso8601(*temp, cValue);
             }
             // FDateTime refuses to accept more than 3 digits of sub-second resolution
-            else if (temp.Right(1) == L"Z" || (temp.Contains(TEXT("T")) && temp.Right(1).IsNumeric()))
+            else if (temp.Right(1) == TEXT("Z") || (temp.Contains(TEXT("T")) && temp.Right(1).IsNumeric()))
             {
                 int32 millisecondPeriod;
                 if (temp.FindLastChar(L'.', millisecondPeriod))
                 {
                     // period plus 3 digits
-                    temp = temp.Left(millisecondPeriod + 4) + L"Z";
+                    temp = temp.Left(millisecondPeriod + 4) + TEXT("Z");
                     success = FDateTime::ParseIso8601(*temp, cValue);
                 }
             }
@@ -326,4 +348,99 @@ bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValu
     }
 
     return true;
+}
+
+template<>
+bool JsonArchive::SerializeObject<JsonValueWrapper>(JsonValue& jValue, JsonValueWrapper& cValue)
+{
+	return SerializeObject(jValue, cValue.value);
+}
+
+JsonValueWrapper::JsonValueWrapper(const JsonValueWrapper& other)
+{
+	value.CopyFrom(other.value, JsonArchive::Allocator());
+}
+
+JsonValueWrapper::JsonValueWrapper(JsonValueWrapper&& other) :
+	value(std::move(other.value))
+{
+}
+
+JsonValueWrapper::JsonValueWrapper(const JsonValue& other)
+{
+	value.CopyFrom(other, JsonArchive::Allocator());
+}
+
+JsonValueWrapper::JsonValueWrapper(JsonValue&& other) :
+	value(std::move(other))
+{
+}
+
+JsonValueWrapper& JsonValueWrapper::operator=(const JsonValueWrapper& other)
+{
+	if (this != &other)
+	{
+		value.CopyFrom(other.value, JsonArchive::Allocator());
+	}
+
+	return *this;
+}
+
+JsonValueWrapper& JsonValueWrapper::operator=(JsonValueWrapper&& other)
+{
+	if (this != &other)
+	{
+		value = std::move(other.value);
+	}
+
+	return *this;
+}
+
+template<>
+bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue)
+{
+	bool success = false;
+
+	if (IsLoading())
+	{
+		if (jValue.IsString())
+		{
+			cValue = jValue.GetString();
+			success = true;
+		}
+		else
+		{
+			//AddTypeMismatchError(rapidjson::kStringType, jValue.GetType());
+		}
+	}
+	else
+	{
+		jValue.SetString(cValue.c_str(), Allocator());
+		success = true;
+	}
+
+	return success;
+}
+
+// use a strange sting so that it won't conflict with other
+static const wchar_t* VERSION_STRING = L"$serialization_version";
+
+void SerializationContext::SetVersion(int version)
+{
+	if (!IsLoading())
+	{
+		SerializeProperty(VERSION_STRING, version);
+	}
+}
+
+int SerializationContext::GetVersion()
+{
+	int version = -1;
+
+	if (value.HasMember(VERSION_STRING))
+	{
+		SerializeProperty(VERSION_STRING, version);
+	}
+
+	return version;
 }
