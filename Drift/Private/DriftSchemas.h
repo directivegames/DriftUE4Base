@@ -12,7 +12,9 @@
 
 #pragma once
 
+#include "Containers/UnrealString.h"
 #include "JsonArchive.h"
+#include "Misc/DateTime.h"
 
 
 class SerializationContext;
