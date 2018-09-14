@@ -113,6 +113,8 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     ConfigurePlacement();
     ConfigureBuildReference();
 
+    FParse::Value(FCommandLine::Get(), TEXT("-server_url="), cli.server_url);
+
     rootRequestManager_->SetApiKey(GetApiKeyHeader());
     rootRequestManager_->SetCache(httpCache_);
 
@@ -2838,7 +2840,6 @@ bool FDriftBase::RegisterServer()
 
     FParse::Value(FCommandLine::Get(), TEXT("-public_ip="), cli.public_ip);
     FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-    FParse::Value(FCommandLine::Get(), TEXT("-server_url="), cli.server_url);
     FParse::Value(FCommandLine::Get(), TEXT("-port="), cli.port);
     FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
 
