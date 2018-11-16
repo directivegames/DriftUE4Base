@@ -885,8 +885,8 @@ void FDriftBase::AuthenticatePlayer()
 
     if (credentialType.IsEmpty())
     {
-        DRIFT_LOG(Base, Warning, TEXT("No credential type specified, falling back to device credentials."));
-        credentialType = TEXT("device");
+        DRIFT_LOG(Base, Warning, TEXT("No credential type specified, falling back to uuid credentials."));
+        credentialType = TEXT("uuid");
     }
 
     GetRootEndpoints([this, credentialType]() {
@@ -1979,7 +1979,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
 
     if (GIsEditor && !IsRunningGame())
     {
-        if (credentialType.Compare(TEXT("device"), ESearchCase::IgnoreCase) != 0)
+        if (credentialType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
         {
             DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
         }
@@ -1993,7 +1993,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
 
     if (!authProvider.IsValid())
     {
-        DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to device credentials"), *credentialType);
+        DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to uuid credentials"), *credentialType);
 
         authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
     }

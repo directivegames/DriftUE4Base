@@ -17,7 +17,7 @@ FDriftUuidAuthProviderFactory::FDriftUuidAuthProviderFactory(int32 instanceIndex
 
 FName FDriftUuidAuthProviderFactory::GetAuthProviderName() const
 {
-	return FName(TEXT("Device"));
+	return FName(TEXT("uuid"));
 }
 
 
