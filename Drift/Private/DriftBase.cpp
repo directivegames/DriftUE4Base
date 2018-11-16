@@ -1993,7 +1993,10 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
 
     if (!authProvider.IsValid())
     {
-        DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to uuid credentials"), *credentialType);
+        if (credentialType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
+        {
+            DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to uuid credentials"), *credentialType);
+        }
 
         authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
     }
