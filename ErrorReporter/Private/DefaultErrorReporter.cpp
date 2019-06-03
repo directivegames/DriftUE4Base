@@ -34,7 +34,7 @@ void Log(const FName& category, const TCHAR* format, ...)
     TCHAR buffer[bufferSize];
     va_list args;
     va_start(args, format);
-    int res = FCString::GetVarArgs(buffer, bufferSize, bufferSize - 1, format, args);
+    int res = FCString::GetVarArgs(buffer, bufferSize, format, args);
     if (res < bufferSize && GWarn)
     {
         GWarn->Log(category, ELogVerbosity::Error, buffer);
