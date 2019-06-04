@@ -57,7 +57,7 @@ public class DriftHttp : ModuleRules
                 // ... add private dependencies that you statically link with here ...    
                 "Engine",
                 "HTTP",
-                "RapidJson",
+                "JsonArchive",
                 "ErrorReporter",
                 "Json",
             }

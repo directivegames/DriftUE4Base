@@ -144,11 +144,11 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
         JsonValue temp(rapidjson::kObjectType);
         for (const auto& item : userContext_)
         {
-            JsonArchive::AddMember(temp, *item.Key, *item.Value);
+			temp.SetField(item.Key, item.Value);
         }
         
 #if !UE_BUILD_SHIPPING
-        JsonArchive::AddMember(temp, TEXT("request_id"), *wrapper->RequestID().ToString());
+		temp.SetField(TEXT("request_id"), *wrapper->RequestID().ToString());
 #endif
         FString contextValue;
         JsonArchive::SaveObject(temp, contextValue);

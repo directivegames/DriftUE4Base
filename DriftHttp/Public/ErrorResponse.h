@@ -21,18 +21,18 @@ struct GenericRequestErrorResponse
     
     FString GetErrorString(const FString& name) const
     {
-        if (!error.IsNull() && error.HasMember(*name) && error[*name].IsString())
+        if (!error.IsNull() && error.HasField(*name) && error[name].IsString())
         {
-            return FString(error[*name].GetString());
+            return FString(error[name].GetString());
         }
         return TEXT("undefined");
     }
     
     int GetErrorInt(const FString& name) const
     {
-        if (!error.IsNull() && error.HasMember(*name) && error[*name].IsInt())
+        if (!error.IsNull() && error.HasField(*name) && error[name].IsInt())
         {
-            return error[*name].GetInt();
+            return error[name].GetInt();
         }
         return -1;
     }
@@ -44,9 +44,9 @@ struct GenericRequestErrorResponse
         {
             result &= context.SerializeProperty(TEXT("status_code"), status_code);
             result &= context.SerializeProperty(TEXT("message"), message);
-            if (context.GetValue().HasMember(*errorName))
+            if (context.GetValue().HasField(errorName))
             {
-                JsonValue& errorValue = context.GetValue()[*errorName];
+                JsonValue errorValue = context.GetValue()[errorName];
                 if (errorValue.IsObject())
                 {
                     result &= context.SerializeProperty(*errorName, error);

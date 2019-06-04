@@ -10,13 +10,9 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "RapidJsonPCH.h"
-
 #include "JsonArchive.h"
+#include "Json.h"
 
-using namespace rapidjson;
-
-CrtAllocator JsonArchive::allocator_;
 
 bool SerializationContext::IsLoading() const
 {
@@ -109,6 +105,28 @@ bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValu
     }
     
     return success;
+}
+
+template<>
+bool JsonArchive::SerializeObject<unsigned long long>(JsonValue& jValue, unsigned long long& cValue)
+{
+	bool success = false;
+	
+	if (isLoading_)
+	{
+		if (jValue.IsUint64())
+		{
+			cValue = jValue.GetUint64();
+			success = true;
+		}
+	}
+	else
+	{
+		jValue.SetUint64(cValue);
+		success = true;
+	}
+	
+	return success;
 }
 
 template<>
@@ -243,7 +261,7 @@ bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue)
     }
     else
     {
-        jValue.SetString(*cValue, allocator_);
+        jValue.SetString(*cValue);
         success = true;
     }
 
@@ -259,7 +277,7 @@ bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue)
     {
         if (jValue.IsString())
         {
-            cValue = jValue.GetString();
+            cValue = *jValue.GetString();
             success = true;
         }
     }
@@ -267,7 +285,7 @@ bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue)
     {
         FString temp;
         cValue.ToString(temp);
-        jValue.SetString(*temp, allocator_);
+        jValue.SetString(*temp);
         success = true;
     }
     
@@ -306,7 +324,7 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
     else
     {
         FString temp = cValue.ToIso8601();
-        jValue.SetString(*temp, allocator_);
+        jValue.SetString(*temp);
         success = true;
     }
     
@@ -340,11 +358,11 @@ bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValu
 {
     if (isLoading_)
     {
-        cValue.CopyFrom(jValue, allocator_);
+        cValue.CopyFrom(jValue);
     }
     else
     {
-        jValue.CopyFrom(cValue, allocator_);
+        jValue.CopyFrom(cValue);
     }
 
     return true;
@@ -356,80 +374,14 @@ bool JsonArchive::SerializeObject<JsonValueWrapper>(JsonValue& jValue, JsonValue
 	return SerializeObject(jValue, cValue.value);
 }
 
-JsonValueWrapper::JsonValueWrapper(const JsonValueWrapper& other)
-{
-	value.CopyFrom(other.value, JsonArchive::Allocator());
-}
-
-JsonValueWrapper::JsonValueWrapper(JsonValueWrapper&& other) :
-	value(std::move(other.value))
-{
-}
-
-JsonValueWrapper::JsonValueWrapper(const JsonValue& other)
-{
-	value.CopyFrom(other, JsonArchive::Allocator());
-}
-
-JsonValueWrapper::JsonValueWrapper(JsonValue&& other) :
-	value(std::move(other))
-{
-}
-
-JsonValueWrapper& JsonValueWrapper::operator=(const JsonValueWrapper& other)
-{
-	if (this != &other)
-	{
-		value.CopyFrom(other.value, JsonArchive::Allocator());
-	}
-
-	return *this;
-}
-
-JsonValueWrapper& JsonValueWrapper::operator=(JsonValueWrapper&& other)
-{
-	if (this != &other)
-	{
-		value = std::move(other.value);
-	}
-
-	return *this;
-}
-
-template<>
-bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue)
-{
-	bool success = false;
-
-	if (IsLoading())
-	{
-		if (jValue.IsString())
-		{
-			cValue = jValue.GetString();
-			success = true;
-		}
-		else
-		{
-			//AddTypeMismatchError(rapidjson::kStringType, jValue.GetType());
-		}
-	}
-	else
-	{
-		jValue.SetString(cValue.c_str(), Allocator());
-		success = true;
-	}
-
-	return success;
-}
-
 // use a strange sting so that it won't conflict with other
-static const wchar_t* VERSION_STRING = L"$serialization_version";
+static const FString VERSION_STRING(TEXT("$serialization_version"));
 
 void SerializationContext::SetVersion(int version)
 {
 	if (!IsLoading())
 	{
-		SerializeProperty(VERSION_STRING, version);
+		SerializeProperty(*VERSION_STRING, version);
 	}
 }
 
@@ -437,9 +389,9 @@ int SerializationContext::GetVersion()
 {
 	int version = -1;
 
-	if (value.HasMember(VERSION_STRING))
+	if (value.HasField(VERSION_STRING))
 	{
-		SerializeProperty(VERSION_STRING, version);
+		SerializeProperty(*VERSION_STRING, version);
 	}
 
 	return version;

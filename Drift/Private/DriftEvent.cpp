@@ -30,7 +30,7 @@ public:
         {
             for (auto& member : details_.GetObject())
             {
-                context.SerializeProperty(member.name.GetString(), member.value);
+                context.SerializeProperty(*member.Key, member.Value);
             }
             
             auto temp = timestamp_.ToIso8601();
@@ -87,7 +87,7 @@ public:
         {
             e->AddEvent([this, &array](FDriftEvent& event)
             {
-                array.PushBack(event.details_, JsonArchive::Allocator());
+                array.PushBack(event.details_);
             });
         }
         JsonArchive::AddMember(details_, name, array);

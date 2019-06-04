@@ -10,21 +10,7 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#pragma once
-
-#include "ModuleManager.h"
+#include "JsonUtils.h"
 
 
-class FRapidJsonModule : public IModuleInterface
-{
-public:
-    FRapidJsonModule();
-    
-    bool IsGameModule() const override
-    {
-        return true;
-    }
-
-    void StartupModule() override;
-    void ShutdownModule() override;
-};
+DEFINE_LOG_CATEGORY(JsonUtilsLog);

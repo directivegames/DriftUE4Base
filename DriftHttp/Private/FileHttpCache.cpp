@@ -164,13 +164,13 @@ void FileHttpCache::LoadCache()
         return;
     }
 
-    if (!indexObject.HasMember(TEXT("entries")) || !indexObject.HasMember(TEXT("version")))
+    if (!indexObject.HasField(TEXT("entries")) || !indexObject.HasField(TEXT("version")))
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index file missing expected content"));
         return;
     }
 
-    auto& versionValue = indexObject[TEXT("version")];
+    auto versionValue = indexObject[TEXT("version")];
     if (!versionValue.IsInt())
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index version is invalid"));
@@ -184,7 +184,7 @@ void FileHttpCache::LoadCache()
         return;
     }
 
-    auto& entries = indexObject[TEXT("entries")];
+    auto entries = indexObject[TEXT("entries")];
     if (!entries.IsObject())
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index entries are invalid"));
@@ -195,7 +195,7 @@ void FileHttpCache::LoadCache()
     {
         FString key;
         FString value;
-        if (JsonArchive::LoadObject(member.name, key) && JsonArchive::LoadObject(member.value, value))
+        if (JsonArchive::LoadObject(*member.Key, key) && JsonArchive::LoadObject(member.Value, value))
         {
             index.Add(key, value);
         }

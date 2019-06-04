@@ -131,9 +131,9 @@ struct FMessageQueue
             }
             for (auto& member : jValue.GetObject())
             {
-                const auto& queue = member.name.GetString();
+                const auto& queue = member.Key;
                 auto& entry = queues.Emplace(queue);
-                context.SerializeProperty(queue, entry);
+                context.SerializeProperty(*queue, entry);
             }
             return true;
         }

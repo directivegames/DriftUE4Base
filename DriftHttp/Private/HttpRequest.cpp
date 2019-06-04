@@ -105,7 +105,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                 else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
                 {
                     context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
-                    if (doc.HasMember(TEXT("message")))
+                    if (doc.HasField(TEXT("message")))
                     {
                         context.message = doc[TEXT("message")].GetString();
                     }
