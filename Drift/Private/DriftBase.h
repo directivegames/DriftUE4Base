@@ -410,6 +410,8 @@ private:
     FString previousDeprecationHeader_;
 
     bool ignoreCommandLineArguments_ = false;
+	
+	FString tenantOverride_;
 };
 
 

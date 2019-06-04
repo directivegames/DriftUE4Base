@@ -69,6 +69,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
+	GConfig->GetString(*settingsSection_, TEXT("TenantOverride"), tenantOverride_, GGameIni);
 
     if (!ignoreCommandLineArguments_)
     {
@@ -116,6 +117,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     FParse::Value(FCommandLine::Get(), TEXT("-server_url="), cli.server_url);
 
     rootRequestManager_->SetApiKey(GetApiKeyHeader());
+	rootRequestManager_->SetTenantOverride(tenantOverride_);
     rootRequestManager_->SetCache(httpCache_);
 
     CreatePlayerCounterManager();
@@ -865,6 +867,7 @@ void FDriftBase::AuthenticatePlayer()
             manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
             manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
             manager->SetApiKey(GetApiKeyHeader());
+			manager->SetTenantOverride(tenantOverride_);
             manager->SetCache(httpCache_);
             SetGameRequestManager(manager);
             GetUserInfo();
@@ -2078,6 +2081,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
+		manager->SetTenantOverride(tenantOverride_);
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         GetUserInfo();
@@ -2193,6 +2197,7 @@ void FDriftBase::RegisterClient()
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
+		manager->SetTenantOverride(tenantOverride_);
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         playerCounterManager->SetRequestManager(manager);
@@ -2411,6 +2416,7 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
+		manager->SetTenantOverride(tenantOverride_);
         secondaryIdentityRequestManager_ = manager;
 
         BindUserIdentity(provider->GetNickname(), progressDelegate);
@@ -2670,6 +2676,7 @@ void FDriftBase::InitServerAuthentication()
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
+		manager->SetTenantOverride(tenantOverride_);
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         eventManager->SetRequestManager(manager);
@@ -2712,6 +2719,7 @@ void FDriftBase::InitServerAuthentication()
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
+		manager->SetTenantOverride(tenantOverride_);
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         eventManager->SetRequestManager(manager);
@@ -3414,7 +3422,15 @@ FString FDriftBase::GetApiKeyHeader() const
     {
         return versionedApiKey;
     }
-    return FString::Printf(TEXT("%s:%s"), *apiKey, IsRunningAsServer() ? TEXT("service") : *gameVersion);
+	
+	if (apiKey.IsEmpty())
+	{
+		return {};
+	}
+	else
+	{
+		return FString::Printf(TEXT("%s:%s"), *apiKey, IsRunningAsServer() ? TEXT("service") : *gameVersion);
+	}
 }
 
 

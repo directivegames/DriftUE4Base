@@ -54,12 +54,15 @@ public:
     }
 
     void SetApiKey(const FString& apiKey);
+	
+	void SetTenantOverride(const FString& tenantOverride);
 
 protected:
     virtual void AddCustomHeaders(TSharedRef<HttpRequest> request) const override;
     
 private:
     FString apiKey_;
+	FString tenantOverride_;
 };
 
 
