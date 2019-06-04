@@ -47,23 +47,15 @@ JsonValue::JsonValue(rapidjson::Type Type)
 
 FString JsonValue::ToString() const
 {
-	if (!InternalValue)
+	if (auto JsonObject = AsObject())
 	{
-		return {};
-	}
-	
-	if (IsObject())
-	{
-		const auto& JsonObject = InternalValue->AsObject();
 		FString JsonString;
 		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 		FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 		return MoveTemp(JsonString);
 	}
-	else
-	{
-		return GetString();
-	}
+	
+	return GetString();
 }
 
 bool JsonValue::IsNull() const
@@ -225,7 +217,8 @@ void JsonValue::PushBack(const JsonValue& Value)
 
 void JsonValue::SetObject()
 {
-	InternalValue = MakeShared<FJsonValueObject>(nullptr);
+	auto JsonObject = MakeShared<FJsonObject>();
+	InternalValue = MakeShared<FJsonValueObject>(JsonObject);
 }
 
 JsonValue JsonValue::FindField(const FString& Name) const
@@ -373,6 +366,18 @@ TSharedPtr<FJsonObject> JsonValue::AsObject() const
 void JsonValue::SetNumber(double Number)
 {
 	InternalValue = MakeShared<FJsonValueNumber>(Number);
+}
+
+void JsonDocument::Parse(const FString& JsonString)
+{
+	InternalValue = nullptr;
+	const TSharedRef<TJsonReader<>>& Reader = TJsonReaderFactory<>::Create(JsonString);
+	FJsonSerializer::Deserialize(Reader, InternalValue);
+}
+
+bool JsonDocument::HasParseError()
+{
+	return IsNull();
 }
 
 JsonValueWrapper::JsonValueWrapper(const JsonValueWrapper& other)

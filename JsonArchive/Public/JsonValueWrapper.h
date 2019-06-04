@@ -91,13 +91,13 @@ public:
 	
 	const TSharedPtr<FJsonValue>& GetInternalValue() const { return InternalValue; }
 	
-private:
+protected:
 	TSharedPtr<FJsonObject> AsObject() const;
 	bool IsNumber() const;
 	void SetNumber(double Number);
 	void SetNumberField(const FString& Name, double Value);
 	
-private:
+protected:
 	TSharedPtr<FJsonValue> InternalValue;
 };
 
@@ -105,15 +105,8 @@ private:
 class JSONARCHIVE_API JsonDocument : public JsonValue
 {
 public:
-	void Parse(const FString& JsonString)
-	{
-		
-	};
-	
-	bool HasParseError()
-	{
-		return false;
-	}
+	void Parse(const FString& JsonString);
+	bool HasParseError();
 	
 	int GetErrorOffset() const { return 0; }
 	int GetParseError() const { return 0; }
