@@ -3,6 +3,7 @@
 #pragma once
 
 #include "JsonValueWrapper.h"
+#include "Serialization/JsonSerializerMacros.h"
 
 #include <type_traits>
 
@@ -64,8 +65,7 @@ public:
 	 */
 	static bool LoadDocument(const TCHAR* jsonString, JsonDocument& document)
 	{
-		document.Parse(jsonString);
-		return !document.HasParseError();
+		return document.FromString(jsonString);
 	}
 	
 	/**
@@ -133,7 +133,7 @@ public:
 	 * Serialize between a Json and C++ object
 	 */
 	template<class T>
-	typename std::enable_if<!std::is_enum<T>::value, bool>::type
+	typename std::enable_if<!std::is_enum<T>::value && !std::is_base_of<FJsonSerializable, T>::value, bool>::type
 	SerializeObject(JsonValue& jValue, T& cValue)
 	{
 		auto context = SerializationContext(*this, jValue);
@@ -151,6 +151,28 @@ public:
 		}
 		
 		return cValue.Serialize(context);
+	}
+	
+	template<class T>
+	typename std::enable_if<!std::is_enum<T>::value && std::is_base_of<FJsonSerializable, T>::value, bool>::type
+	SerializeObject(JsonValue& jValue, T& cValue)
+	{
+		auto context = SerializationContext(*this, jValue);
+		
+		if (isLoading_)
+		{
+			if (!jValue.IsObject())
+			{
+				return false;
+			}
+			
+			return cValue.FromJson(jValue.ToString());
+		}
+		else
+		{
+			const auto JsonString = cValue.ToJson(false);
+			return jValue.FromString(JsonString);
+		}
 	}
 	
 	template<class T>

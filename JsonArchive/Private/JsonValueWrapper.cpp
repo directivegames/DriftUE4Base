@@ -58,6 +58,15 @@ FString JsonValue::ToString() const
 	return GetString();
 }
 
+bool JsonValue::FromString(const FString& JsonString)
+{
+	InternalValue = nullptr;
+	const TSharedRef<TJsonReader<>>& Reader = TJsonReaderFactory<>::Create(JsonString);
+	FJsonSerializer::Deserialize(Reader, InternalValue);
+	
+	return !IsNull();
+}
+
 bool JsonValue::IsNull() const
 {
 	return !InternalValue || InternalValue->Type == EJson::Null;
@@ -366,18 +375,6 @@ TSharedPtr<FJsonObject> JsonValue::AsObject() const
 void JsonValue::SetNumber(double Number)
 {
 	InternalValue = MakeShared<FJsonValueNumber>(Number);
-}
-
-void JsonDocument::Parse(const FString& JsonString)
-{
-	InternalValue = nullptr;
-	const TSharedRef<TJsonReader<>>& Reader = TJsonReaderFactory<>::Create(JsonString);
-	FJsonSerializer::Deserialize(Reader, InternalValue);
-}
-
-bool JsonDocument::HasParseError()
-{
-	return IsNull();
 }
 
 JsonValueWrapper::JsonValueWrapper(const JsonValueWrapper& other)

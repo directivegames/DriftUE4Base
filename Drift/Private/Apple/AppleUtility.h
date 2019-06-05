@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "UnrealString.h"
+#include "Containers/UnrealString.h"
 
 #if PLATFORM_APPLE
 class AppleUtility

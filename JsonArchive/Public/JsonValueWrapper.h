@@ -30,6 +30,7 @@ public:
 	JsonValue(const TSharedPtr<FJsonValue>& InValue);
 	
 	FString ToString() const;
+	bool FromString(const FString& JsonString);
 	
 	bool IsNull() const;
 	bool IsObject() const;
@@ -91,8 +92,9 @@ public:
 	
 	const TSharedPtr<FJsonValue>& GetInternalValue() const { return InternalValue; }
 	
-protected:
 	TSharedPtr<FJsonObject> AsObject() const;
+	
+protected:
 	bool IsNumber() const;
 	void SetNumber(double Number);
 	void SetNumberField(const FString& Name, double Value);
@@ -104,12 +106,6 @@ protected:
 
 class JSONARCHIVE_API JsonDocument : public JsonValue
 {
-public:
-	void Parse(const FString& JsonString);
-	bool HasParseError();
-	
-	int GetErrorOffset() const { return 0; }
-	int GetParseError() const { return 0; }
 };
 
 

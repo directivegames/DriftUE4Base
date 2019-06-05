@@ -16,41 +16,29 @@ public class DriftHttp : ModuleRules
         Definitions.Add("WITH_PROJECT_SAVE_DIR");
 #endif
 
-        PublicIncludePaths.AddRange(
-            new string[]
-            {
-                // ... add public include paths required here ...
-            }
-        );
+        PublicIncludePaths.AddRange(new string[]
+		{
+		});
 
 
-        PrivateIncludePaths.AddRange(
-            new string[]
-            {
-                // ... add other private include paths required here ...
-            }
-        );
+        PrivateIncludePaths.AddRange(new string[]
+		{
+		});
 
 
-        PublicDependencyModuleNames.AddRange(
-            new string[]
-            {
-                "Core",
-                // ... add other public dependencies that you statically link with here ...
-            }
-        );
+        PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"JsonArchive",
+		});
 
 
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
-                // ... add private dependencies that you statically link with here ...    
-                "Engine",
-                "HTTP",
-                "JsonArchive",
-                "ErrorReporter",
-                "Json",
-            }
-        );
+        PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Engine",
+			"HTTP",
+			"ErrorReporter",
+			"Json",
+		});
     }
 }

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "JsonArchive.h"
-#include "IHttpRequest.h"
+#include "Interfaces/IHttpRequest.h"
 
 #include "Core.h"
 #include "Interfaces/IHttpRequest.h"

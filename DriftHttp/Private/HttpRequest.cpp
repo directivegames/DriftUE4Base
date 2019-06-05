@@ -85,12 +85,10 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                 {
                     content = TEXT("{}");
                 }
-                doc.Parse(*content);
-                if (doc.HasParseError())
+				
+				if (!doc.FromString(content))
                 {
-                    context.error = FString::Printf(TEXT("JSON response is broken at position %i. RapidJson error: %i"),
-                        static_cast<int32>(doc.GetErrorOffset()),
-                        static_cast<int32>(doc.GetParseError()));
+					context.error = TEXT("JSON response is broken.");
                 }
                 else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
                 {
@@ -350,8 +348,8 @@ bool HttpRequest::Dispatch(bool forceQueued)
             {
                 ResponseContext context{ wrappedRequest_, cachedResponse, sent_, true };
                 JsonDocument doc;
-                doc.Parse(*cachedResponse->GetContentAsString());
-
+				doc.FromString(cachedResponse->GetContentAsString());
+				
                 OnResponse.ExecuteIfBound(context, doc);
                 OnCompleted.ExecuteIfBound(SharedThis(this));
 

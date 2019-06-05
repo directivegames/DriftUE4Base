@@ -3,6 +3,7 @@
 #pragma once
 
 #include "DriftAPI.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 
 #include "DriftFriendsBlueprintLibrary.generated.h"
 

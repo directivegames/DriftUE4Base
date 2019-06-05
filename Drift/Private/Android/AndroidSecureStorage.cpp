@@ -3,7 +3,7 @@
 #include "DriftPrivatePCH.h"
 
 #include "AndroidSecureStorage.h"
-#include "FileHelper.h"
+#include "Misc/FileHelper.h"
 
 
 #if PLATFORM_ANDROID
