@@ -1,6 +1,11 @@
 
 #pragma once
 
+#include "Templates/SharedPointer.h"
+#include "Templates/Function.h"
+#include "Containers/UnrealString.h"
+
+
 class FOnlineFriend;
 
 

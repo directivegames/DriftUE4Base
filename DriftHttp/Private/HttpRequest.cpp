@@ -9,6 +9,7 @@
 #include "JsonUtils.h"
 #include "ErrorResponse.h"
 #include "IErrorReporter.h"
+#include "Async/Async.h"
 
 
 #define LOCTEXT_NAMESPACE "Drift"
@@ -33,11 +34,11 @@ void HttpRequest::SetCache(TSharedPtr<IHttpCache> cache)
 void HttpRequest::BindActualRequest(TSharedRef<IHttpRequest> request)
 {
     wrappedRequest_ = request;
-    wrappedRequest_->OnProcessRequestComplete().BindSP(this, &HttpRequest::InternalRequestCompleted);
+    wrappedRequest_->OnProcessRequestComplete().BindSP(this, &HttpRequest::InternalRequestCompleted, false);
 }
 
 
-void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpResponsePtr response, bool bWasSuccessful)
+void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpResponsePtr response, bool bWasSuccessful, bool bIsCachedResponse)
 {
     if (discarded_)
     {
@@ -72,48 +73,60 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             /**
              * We got a non-error response code
              */
-            auto contentType = context.response->GetHeader(TEXT("Content-Type"));
-            if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
-            {
-                context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
-            }
-            else
-            {
-                JsonDocument doc;
-                FString content = response->GetContentAsString();
-                if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
-                {
-                    content = TEXT("{}");
-                }
+			const auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+			if (expectedContextType_.Len() && !contentType.StartsWith(expectedContextType_)) // to handle cases like `application/json; charset=UTF-8`
+			{
+				context.error = FString::Printf(TEXT("Expected Content-Type '%s', but got '%s'"), *expectedContextType_, *contentType);
+			}
+			else
+			{
+				if (contentType.StartsWith(TEXT("application/json")))
+				{
+					// this is a json response
+					JsonDocument doc;
+					FString content = response->GetContentAsString();
+					if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
+					{
+						content = TEXT("{}");
+					}
+					
+					if (!doc.FromString(content))
+					{
+						context.error = TEXT("JSON response is broken.");
+					}
+					else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
+					{
+						context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
+						if (doc.HasField(TEXT("message")))
+						{
+							context.message = doc[TEXT("message")].GetString();
+						}
+					}
+					else
+					{
+						context.successful = true;
+						OnResponse.ExecuteIfBound(context, doc);
+						const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
+						if (!deprecationHeader.IsEmpty())
+						{
+							OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
+						}
+					}
+				}
+				else
+				{
+					context.successful = true;
+					OnNonJsonResponse.ExecuteIfBound(context);
+				}
 				
-				if (!doc.FromString(content))
-                {
-					context.error = TEXT("JSON response is broken.");
-                }
-                else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
-                {
-                    context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
-                    if (doc.HasField(TEXT("message")))
-                    {
-                        context.message = doc[TEXT("message")].GetString();
-                    }
-                }
-                else
-                {
-                    // All default validation passed, process response
-                    if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
-                    {
-                        cache_->CacheResponse(context);
-                    }
-                    context.successful = true;
-                    OnResponse.ExecuteIfBound(context, doc);
-                    const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
-                    if (!deprecationHeader.IsEmpty())
-                    {
-                        OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
-                    }
-                }
-            }
+				// Cache the response if successful
+				if (!bIsCachedResponse &&
+					context.successful &&
+					cache_ && request->GetVerb() == TEXT("GET"))
+				{
+					cache_->CacheResponse(context);
+				}
+			}
             /**
              * If the error is set, but also handled, that means the caller
              * found some problem and dealt with it itself.
@@ -346,26 +359,14 @@ bool HttpRequest::Dispatch(bool forceQueued)
             auto cachedResponse = cache_->GetCachedResponse(wrappedRequest_->GetURL());
             if (cachedResponse.IsValid())
             {
-                ResponseContext context{ wrappedRequest_, cachedResponse, sent_, true };
-                JsonDocument doc;
-				doc.FromString(cachedResponse->GetContentAsString());
+				auto sharedThis = SharedThis(this);
+				AsyncTask(ENamedThreads::GameThread, [sharedThis, cachedResponse]()
+				{
+					sharedThis->InternalRequestCompleted(sharedThis->wrappedRequest_, cachedResponse, true, true);
+				});
 				
-                OnResponse.ExecuteIfBound(context, doc);
-                OnCompleted.ExecuteIfBound(SharedThis(this));
-
-                if (!context.error.IsEmpty() && !context.errorHandled)
-                {
-                    /**
-                     * Otherwise, pass it through the error handling chain.
-                     */
-                    BroadcastError(context);
-                    LogError(context);
-                }
-                else
-                {
-                    UE_LOG(LogHttpClient, Verbose, TEXT("'%s' SUCCEEDED from CACHE in %.3f seconds"), *GetAsDebugString(), (FDateTime::UtcNow() - sent_).GetTotalSeconds());
-                }
-
+				UE_LOG(LogHttpClient, Verbose, TEXT("'%s' SUCCEEDED from CACHE in %.3f seconds"), *GetAsDebugString(), (FDateTime::UtcNow() - sent_).GetTotalSeconds());
+				
                 return true;
             }
         }

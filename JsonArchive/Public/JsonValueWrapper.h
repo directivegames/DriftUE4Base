@@ -86,7 +86,7 @@ public:
 	void SetField(const FString& Name, const FString& Value);
 	void SetField(const JsonValue& Name, const JsonValue& Value);
 	
-	TMap<FString, JsonValue> GetObject() const;
+	TMap<FString, JsonValue> GetKeyValues() const;
 	
 	int MemberCount() const;
 	

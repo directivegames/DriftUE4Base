@@ -737,7 +737,11 @@ public:
     * Return API key with version
     */
     virtual FString GetVersionedAPIKey() const = 0;
-
+	/**
+	 * Return the tenant override string
+	 */
+	virtual FString GetTenantOverride() const = 0;
+	
     virtual ~IDriftAPI() {}
 };
 

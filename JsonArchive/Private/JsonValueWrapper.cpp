@@ -332,7 +332,7 @@ void JsonValue::SetField(const JsonValue& Name, const JsonValue& Value)
 	}
 }
 
-TMap<FString, JsonValue> JsonValue::GetObject() const
+TMap<FString, JsonValue> JsonValue::GetKeyValues() const
 {
 	TMap<FString, JsonValue> Values;
 	

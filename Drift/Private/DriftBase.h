@@ -119,6 +119,7 @@ public:
     FString GetGameVersion() const override;
     FString GetGameBuild() const override;
     FString GetVersionedAPIKey() const override;
+	FString GetTenantOverride() const override;
 
     FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
     FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
@@ -400,6 +401,7 @@ private:
     FString previousDeprecationHeader_;
 
     bool ignoreCommandLineArguments_ = false;
+	bool bypassExternalAuthenticationInEditor_ = true;
 	
 	FString tenantOverride_;
 };

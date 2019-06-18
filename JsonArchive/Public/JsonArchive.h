@@ -275,8 +275,8 @@ public:
 	/**
 	 * Serialize between a Json and a TMap<> object
 	 */
-	template<class TKey, class TValue>
-	bool SerializeObject(JsonValue& jValue, TMap<TKey, TValue>& cValue)
+	template<class TValue>
+	bool SerializeObject(JsonValue& jValue, TMap<FString, TValue>& cValue)
 	{
 		auto context = SerializationContext(*this, jValue);
 		
@@ -287,13 +287,12 @@ public:
 				return false;
 			}
 			
-			for (auto& member : jValue.GetObject())
+			for (const auto& member : jValue.GetKeyValues())
 			{
-				TKey key;
 				TValue value;
-				if (SerializeObject(member.Key, key) && SerializeObject(member.Value, value))
+				if (SerializeObject(member.Value, value))
 				{
-					cValue[key] = value;
+					cValue[member.Key] = value;
 				}
 			}
 		}
@@ -302,10 +301,10 @@ public:
 			jValue.SetObject();
 			for (auto& itr : cValue)
 			{
-				JsonValue key, value;
-				if (SerializeObject(key, itr.Key) && SerializeObject(value, itr.Value))
+				JsonValue value;
+				if (SerializeObject(value, itr.Value))
 				{
-					jValue.SetField(key, value);
+					jValue.SetField(itr.Key, value);
 				}
 			}
 		}

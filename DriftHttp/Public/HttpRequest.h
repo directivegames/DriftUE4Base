@@ -79,6 +79,7 @@ public:
 DECLARE_DELEGATE_OneParam(FRequestErrorDelegate, ResponseContext&);
 DECLARE_DELEGATE_OneParam(FUnhandledErrorDelegate, ResponseContext&);
 DECLARE_DELEGATE_TwoParams(FResponseRecievedDelegate, ResponseContext&, JsonDocument&);
+DECLARE_DELEGATE_OneParam(FNonJsonResponseRecievedDelegate, ResponseContext&);
 DECLARE_DELEGATE_OneParam(FProcessResponseDelegate, ResponseContext&);
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FDispatchRequestDelegate, TSharedRef<class HttpRequest>, bool);
@@ -127,7 +128,13 @@ public:
     void SetRetries(int32 retries) { retriesLeft_ = retries; }
 
     void SetContentType(const FString& contentType) { contentType_ = contentType; }
-    
+	
+	/**
+	 * Set the expected response content type, set empty string to allow any response content
+	 * The default expected content type is 'application/json'
+	 */
+	void SetExpectedContentType(const FString& contentType) { expectedContextType_ = contentType; }
+	
     void SetCache(TSharedPtr<IHttpCache> cache);
     
     FString GetAsDebugString() const;
@@ -136,6 +143,7 @@ public:
     FRequestErrorDelegate DefaultErrorHandler;
     FUnhandledErrorDelegate OnUnhandledError;
     FResponseRecievedDelegate OnResponse;
+	FNonJsonResponseRecievedDelegate OnNonJsonResponse;
     FOnDriftDeprecationMessageDelegate OnDriftDeprecationMessage;
 
     FProcessResponseDelegate ProcessResponse;
@@ -152,7 +160,7 @@ public:
     
 private:
     void BindActualRequest(TSharedRef<IHttpRequest> request);
-    void InternalRequestCompleted(FHttpRequestPtr request, FHttpResponsePtr response, bool bWasSuccessful);
+    void InternalRequestCompleted(FHttpRequestPtr request, FHttpResponsePtr response, bool bWasSuccessful, bool bIsCachedResponse);
     void BroadcastError(ResponseContext& context);
     void LogError(ResponseContext& context);
 
@@ -183,6 +191,8 @@ protected:
 #endif
 
     int32 expectedResponseCode_;
+	FString expectedContextType_ = TEXT("application/json");
+	
     bool discarded_ = false;
     
     TSharedPtr<IHttpCache> cache_;

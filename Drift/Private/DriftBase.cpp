@@ -57,6 +57,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     GetRootRequestManager()->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
 
     GConfig->GetBool(*settingsSection_, TEXT("IgnoreCommandLineArguments"), ignoreCommandLineArguments_, GGameIni);
+	GConfig->GetBool(*settingsSection_, TEXT("BypassExternalAuthenticationInEditor"), bypassExternalAuthenticationInEditor_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("ProjectName"), projectName_, GGameIni);
     GConfig->GetString(*settingsSection_, TEXT("StaticDataReference"), staticDataReference, GGameIni);
 	GConfig->GetString(*settingsSection_, TEXT("TenantOverride"), tenantOverride_, GGameIni);
@@ -396,6 +397,12 @@ FString FDriftBase::GetGameBuild() const
 FString FDriftBase::GetVersionedAPIKey() const
 {
     return GetApiKeyHeader();
+}
+
+
+FString FDriftBase::GetTenantOverride() const
+{
+	return tenantOverride_;
 }
 
 
@@ -1969,7 +1976,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
 {
     authProvider.Reset();
 
-    if (GIsEditor && !IsRunningGame())
+    if (GIsEditor && !IsRunningGame() && bypassExternalAuthenticationInEditor_)
     {
         if (credentialType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
         {
