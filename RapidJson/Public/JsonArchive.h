@@ -152,24 +152,7 @@ public:
         return false;
     }
 
-	/**
-	* Serialize a C++ object into a json string, return if the operation succeeds
-	*/
 	template<class T>
-	static bool SaveObject(const T& object, std::wstring& jsonString)
-	{
-		JsonValue jValue;
-		if (SaveObject(object, jValue))
-		{
-			jsonString = *ToString(jValue);
-			return true;
-		}
-
-		return false;
-	}
-
-
-    template<class T>
     static bool SaveObject(const T& object, JsonValue& jValue)
     {
         JsonArchive writer(false);
@@ -526,6 +509,11 @@ public:
             AddMember(parent, name, MoveTemp(temp));
         }
     }
+	
+	static void AddMember(JsonValue& parent, const FString& name, const TCHAR* value)
+	{
+		AddMember(parent, name, FString(value));
+	}
 
     static void AddMember(JsonValue& parent, const FString& name, float value)
     {
@@ -561,33 +549,6 @@ public:
     {
         parent.AddMember(JsonValue(*name, name.Len(), allocator_), Forward<JsonValue>(value), allocator_);
     }
-
-	static void AddMember(JsonValue& parent, const std::wstring& name, const JsonValue& value)
-	{
-		if (parent.HasMember(name.c_str()))
-		{
-			parent[name.c_str()].CopyFrom(value, Allocator());
-		}
-		else
-		{
-			parent.AddMember(JsonValue(name.c_str(), name.length(), Allocator()), JsonValue(value, Allocator()), Allocator());
-		}
-	}
-
-	static void AddMember(JsonValue& parent, const std::wstring& name, const wchar_t* value)
-	{
-		AddMember(parent, name, JsonValue(value, Allocator()));
-	}
-
-	template<typename TValue>
-	static void AddMember(JsonValue& parent, const std::wstring& name, const TValue& value)
-	{
-		JsonValue temp;
-		if (SaveObject(value, temp))
-		{
-			AddMember(parent, name, temp);
-		}
-	}
     
 //private:
     JsonArchive(bool loading)
@@ -660,9 +621,6 @@ RAPIDJSON_API bool JsonArchive::SerializeObject<FTimespan>(JsonValue& jValue, FT
 
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValue);
-
-template<>
-RAPIDJSON_API bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue);
 
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<JsonValueWrapper>(JsonValue& jValue, JsonValueWrapper& cValue);

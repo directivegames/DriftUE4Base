@@ -396,40 +396,14 @@ JsonValueWrapper& JsonValueWrapper::operator=(JsonValueWrapper&& other)
 	return *this;
 }
 
-template<>
-bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue)
-{
-	bool success = false;
-
-	if (IsLoading())
-	{
-		if (jValue.IsString())
-		{
-			cValue = jValue.GetString();
-			success = true;
-		}
-		else
-		{
-			//AddTypeMismatchError(rapidjson::kStringType, jValue.GetType());
-		}
-	}
-	else
-	{
-		jValue.SetString(cValue.c_str(), Allocator());
-		success = true;
-	}
-
-	return success;
-}
-
 // use a strange sting so that it won't conflict with other
-static const wchar_t* VERSION_STRING = L"$serialization_version";
+static const FString VERSION_STRING(TEXT("$serialization_version"));
 
 void SerializationContext::SetVersion(int version)
 {
 	if (!IsLoading())
 	{
-		SerializeProperty(VERSION_STRING, version);
+		SerializeProperty(*VERSION_STRING, version);
 	}
 }
 
@@ -437,9 +411,9 @@ int SerializationContext::GetVersion()
 {
 	int version = -1;
 
-	if (value.HasMember(VERSION_STRING))
+	if (value.HasMember(*VERSION_STRING))
 	{
-		SerializeProperty(VERSION_STRING, version);
+		SerializeProperty(*VERSION_STRING, version);
 	}
 
 	return version;
