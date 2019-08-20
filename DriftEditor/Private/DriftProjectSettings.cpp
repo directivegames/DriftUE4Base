@@ -11,8 +11,8 @@
 */
 
 
-#include "DriftEditor.h"
 #include "DriftProjectSettings.h"
+#include "DriftEditor.h"
 
 
 UDriftProjectSettings::UDriftProjectSettings(const FObjectInitializer& ObjectInitializer)
