@@ -1,6 +1,4 @@
 
-#include "DriftPrivatePCH.h"
-
 #include "LoadStaticDataProxy.h"
 
 #include "DriftUtils.h"

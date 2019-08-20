@@ -1,7 +1,5 @@
 // Copyright 2016-2017 Directive Games Limited - All Rights Reserved
 
-#include "DriftHttpPCH.h"
-
 #include "FileHttpCache.h"
 #include "HttpRequest.h"
 #include "FileHttpCacheFactory.h"

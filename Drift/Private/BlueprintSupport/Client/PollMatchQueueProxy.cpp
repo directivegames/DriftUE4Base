@@ -1,8 +1,6 @@
 // Copyright 2016-2017 Directive Games Limited - All Rights Reserved
 
 
-#include "DriftPrivatePCH.h"
-
 #include "PollMatchQueueProxy.h"
 #include "DriftAPI.h"
 #include "DriftUtils.h"

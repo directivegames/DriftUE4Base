@@ -1,6 +1,4 @@
 
-#include "DriftPrivatePCH.h"
-
 #include "LoadFriendsListProxy.h"
 
 #include "DriftUtils.h"
