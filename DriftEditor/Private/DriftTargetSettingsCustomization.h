@@ -16,6 +16,8 @@
 #include "PropertyEditorModule.h"
 #include "DriftProjectSettings.h"
 
+#include "IDetailCustomization.h"
+
 
 class FDriftTargetSettingsCustomization : public IDetailCustomization
 {
