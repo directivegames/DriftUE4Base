@@ -1,6 +1,6 @@
 
-#include "PlatformMisc.h"
 #include "PlatformName.h"
+#include "PlatformMisc.h"
 
 
 namespace details

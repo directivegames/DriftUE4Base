@@ -10,7 +10,6 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftEditorPrivatePCH.h"
 
 #include "DriftTargetSettingsCustomization.h"
 #include "DetailLayoutBuilder.h"
@@ -42,11 +41,11 @@ TSharedRef<IDetailCustomization> FDriftTargetSettingsCustomization::MakeInstance
 }
 
 
-void FDriftTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
+void FDriftTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	SavedLayoutBuilder = &DetailLayout;
+	SavedLayoutBuilder = &DetailBuilder;
 
-	IDetailCategoryBuilder& SetupCategory = DetailLayout.EditCategory(TEXT("Account"), FText::GetEmpty(), ECategoryPriority::Variable);
+	IDetailCategoryBuilder& SetupCategory = DetailBuilder.EditCategory(TEXT("Account"), FText::GetEmpty(), ECategoryPriority::Variable);
 
 	SetupCategory.AddCustomRow(LOCTEXT("DocumentationInfo", "Documentation Info"), false)
 		.WholeRowWidget

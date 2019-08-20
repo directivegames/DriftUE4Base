@@ -16,6 +16,7 @@ namespace UnrealBuildTool.Rules
     {
         public DriftEditor(ReadOnlyTargetRules TargetRules) : base(TargetRules)
         {
+            PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
             PrivateDependencyModuleNames.AddRange(
                 new string[]
                 {

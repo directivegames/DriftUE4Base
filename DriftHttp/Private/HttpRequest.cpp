@@ -10,8 +10,8 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "Http.h"
 #include "HttpRequest.h"
+#include "Http.h"
 #include "HttpCache.h"
 #include "JsonArchive.h"
 #include "JsonUtils.h"
