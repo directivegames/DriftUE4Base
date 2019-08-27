@@ -6,8 +6,6 @@
 //  Copyright (c) 2013-2014 Sam Soffes. All rights reserved.
 //
 
-#include "../../DriftPrivatePCH.h"
-
 #if PLATFORM_APPLE
 #import "SSKeychainQuery.h"
 #import "SSKeychain.h"
@@ -113,7 +111,7 @@
 		return nil;
 	}
     
-#if WITH_DIRECTIVE
+#if 1 // WITH_DIRECTIVE
     // TODO: investigate if we're introducing a mem leak here
     return (__bridge NSArray *)result;
 #else
@@ -144,7 +142,7 @@
 		return NO;
 	}
     
-#if WITH_DIRECTIVE
+#if 1 // WITH_DIRECTIVE
     // TODO: investigate if we're introducing a mem leak here
     self.passwordData = (__bridge NSData *)result;
 #else
@@ -292,7 +290,7 @@
 		}
 #else
 		default:
-#if WITH_DIRECTIVE
+#if 1 // WITH_DIRECTIVE
             message = (__bridge NSString *)SecCopyErrorMessageString(code, NULL);
 #else
 			message = (__bridge_transfer NSString *)SecCopyErrorMessageString(code, NULL);

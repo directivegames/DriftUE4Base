@@ -11,8 +11,6 @@
 */
 
 #include "AppleUtility.h"
-#include "DriftPrivatePCH.h"
-
 
 #if PLATFORM_IOS
 #include <sys/sysctl.h>
