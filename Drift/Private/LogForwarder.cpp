@@ -1,6 +1,5 @@
-// Copyright 2016-2017 Directive Games Limited - All Rights Reserved
+// Copyright 2016-2019 Directive Games Limited - All Rights Reserved
 
-#include "DriftPrivatePCH.h"
 
 #include "LogForwarder.h"
 

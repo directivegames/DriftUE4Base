@@ -97,7 +97,7 @@ struct FMessageQueueEntry
     , timestamp(other.timestamp)
     , expires(other.expires)
     {
-        payload.CopyFrom(other.payload, JsonArchive::Allocator());
+        payload.CopyFrom(other.payload);
     }
     
     FMessageQueueEntry(FMessageQueueEntry&& other)

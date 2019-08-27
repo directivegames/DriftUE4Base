@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2017 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2019 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -10,38 +10,32 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "RapidJsonPCH.h"
-
 #include "JsonArchive.h"
+#include "Json.h"
 
-using namespace rapidjson;
 
-CrtAllocator JsonArchive::allocator_;
+IMPLEMENT_MODULE(FDefaultModuleImpl, JsonArchive)
 
-bool SerializationContext::IsLoading() const
-{
-    return archive.IsLoading();
-}
 
 template<>
-bool JsonArchive::SerializeObject<int>(JsonValue& jValue, int& cValue)
+bool JsonArchive::SerializeObject<int>(JsonValue& jValue, int32& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
-        if (jValue.IsInt())
+        if (jValue.IsInt32())
         {
-            cValue = jValue.GetInt();
+            cValue = jValue.GetInt32();
             success = true;
         }
     }
     else
     {
-        jValue.SetInt(cValue);
+        jValue.SetInt32(cValue);
         success = true;
     }
-    
+
     return success;
 }
 
@@ -49,43 +43,43 @@ template<>
 bool JsonArchive::SerializeObject<uint8>(JsonValue& jValue, uint8& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
-        if (jValue.IsInt())
+        if (jValue.IsInt32())
         {
-            cValue = jValue.GetInt();
+            cValue = jValue.GetInt32();
             success = true;
         }
     }
     else
     {
-        jValue.SetInt(cValue);
+        jValue.SetInt32(cValue);
         success = true;
     }
-    
+
     return success;
 }
 
 template<>
-bool JsonArchive::SerializeObject<unsigned>(JsonValue& jValue, unsigned& cValue)
+bool JsonArchive::SerializeObject<unsigned>(JsonValue& jValue, uint32& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
-        if (jValue.IsUint())
+        if (jValue.IsUint32())
         {
-            cValue = jValue.GetUint();
+            cValue = jValue.GetUint32();
             success = true;
         }
     }
     else
     {
-        jValue.SetUint(cValue);
+        jValue.SetUint32(cValue);
         success = true;
     }
-    
+
     return success;
 }
 
@@ -93,7 +87,7 @@ template<>
 bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
         if (jValue.IsInt64())
@@ -107,8 +101,30 @@ bool JsonArchive::SerializeObject<long long>(JsonValue& jValue, long long& cValu
         jValue.SetInt64(cValue);
         success = true;
     }
-    
+
     return success;
+}
+
+template<>
+bool JsonArchive::SerializeObject<unsigned long long>(JsonValue& jValue, unsigned long long& cValue)
+{
+	bool success = false;
+
+	if (isLoading_)
+	{
+		if (jValue.IsUint64())
+		{
+			cValue = jValue.GetUint64();
+			success = true;
+		}
+	}
+	else
+	{
+		jValue.SetUint64(cValue);
+		success = true;
+	}
+
+	return success;
 }
 
 template<>
@@ -142,17 +158,17 @@ bool JsonArchive::SerializeObject<float>(JsonValue& jValue, float& cValue)
     {
         if (jValue.IsDouble())
         {
-            cValue = (float)jValue.GetDouble();
+            cValue = static_cast<float>(jValue.GetDouble());
             success = true;
         }
-        else if (jValue.IsInt())
+        else if (jValue.IsInt32())
         {
-            cValue = (float)jValue.GetInt();
+            cValue = static_cast<float>(jValue.GetInt32());
             success = true;
         }
         else if (jValue.IsInt64())
         {
-            cValue = (float)jValue.GetInt64();
+            cValue = static_cast<float>(jValue.GetInt64());
             success = true;
         }
     }
@@ -169,22 +185,22 @@ template<>
 bool JsonArchive::SerializeObject<double>(JsonValue& jValue, double& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
         if (jValue.IsDouble())
         {
-            cValue = (double)jValue.GetDouble();
+            cValue = static_cast<double>(jValue.GetDouble());
             success = true;
         }
-        else if (jValue.IsInt())
+        else if (jValue.IsInt32())
         {
-            cValue = (double)jValue.GetInt();
+            cValue = static_cast<double>(jValue.GetInt32());
             success = true;
         }
         else if (jValue.IsInt64())
         {
-            cValue = (double)jValue.GetInt64();
+            cValue = static_cast<double>(jValue.GetInt64());
             success = true;
         }
     }
@@ -193,7 +209,7 @@ bool JsonArchive::SerializeObject<double>(JsonValue& jValue, double& cValue)
         jValue.SetDouble(cValue);
         success = true;
     }
-    
+
     return success;
 }
 
@@ -243,7 +259,7 @@ bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue)
     }
     else
     {
-        jValue.SetString(*cValue, allocator_);
+        jValue.SetString(*cValue);
         success = true;
     }
 
@@ -254,12 +270,12 @@ template<>
 bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
         if (jValue.IsString())
         {
-            cValue = jValue.GetString();
+            cValue = *jValue.GetString();
             success = true;
         }
     }
@@ -267,10 +283,10 @@ bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue)
     {
         FString temp;
         cValue.ToString(temp);
-        jValue.SetString(*temp, allocator_);
+        jValue.SetString(*temp);
         success = true;
     }
-    
+
     return success;
 }
 
@@ -278,7 +294,7 @@ template<>
 bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
         if (jValue.IsString())
@@ -306,10 +322,10 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
     else
     {
         FString temp = cValue.ToIso8601();
-        jValue.SetString(*temp, allocator_);
+        jValue.SetString(*temp);
         success = true;
     }
-    
+
     return success;
 }
 
@@ -317,7 +333,7 @@ template<>
 bool JsonArchive::SerializeObject<FTimespan>(JsonValue& jValue, FTimespan& cValue)
 {
     bool success = false;
-    
+
     if (isLoading_)
     {
         if (jValue.IsInt64())
@@ -331,7 +347,7 @@ bool JsonArchive::SerializeObject<FTimespan>(JsonValue& jValue, FTimespan& cValu
         jValue.SetInt64(cValue.GetTicks());
         success = true;
     }
-    
+
     return success;
 }
 
@@ -340,11 +356,11 @@ bool JsonArchive::SerializeObject<JsonValue>(JsonValue& jValue, JsonValue& cValu
 {
     if (isLoading_)
     {
-        cValue.CopyFrom(jValue, allocator_);
+        cValue.CopyFrom(jValue);
     }
     else
     {
-        jValue.CopyFrom(cValue, allocator_);
+        jValue.CopyFrom(cValue);
     }
 
     return true;
@@ -356,48 +372,16 @@ bool JsonArchive::SerializeObject<JsonValueWrapper>(JsonValue& jValue, JsonValue
 	return SerializeObject(jValue, cValue.value);
 }
 
-JsonValueWrapper::JsonValueWrapper(const JsonValueWrapper& other)
-{
-	value.CopyFrom(other.value, JsonArchive::Allocator());
-}
 
-JsonValueWrapper::JsonValueWrapper(JsonValueWrapper&& other) :
-	value(std::move(other.value))
-{
-}
-
-JsonValueWrapper::JsonValueWrapper(const JsonValue& other)
-{
-	value.CopyFrom(other, JsonArchive::Allocator());
-}
-
-JsonValueWrapper::JsonValueWrapper(JsonValue&& other) :
-	value(std::move(other))
-{
-}
-
-JsonValueWrapper& JsonValueWrapper::operator=(const JsonValueWrapper& other)
-{
-	if (this != &other)
-	{
-		value.CopyFrom(other.value, JsonArchive::Allocator());
-	}
-
-	return *this;
-}
-
-JsonValueWrapper& JsonValueWrapper::operator=(JsonValueWrapper&& other)
-{
-	if (this != &other)
-	{
-		value = std::move(other.value);
-	}
-
-	return *this;
-}
-
-// use a strange sting so that it won't conflict with other
+// use a strange string so that it won't conflict with other
 static const FString VERSION_STRING(TEXT("$serialization_version"));
+
+
+bool SerializationContext::IsLoading() const
+{
+	return archive.IsLoading();
+}
+
 
 void SerializationContext::SetVersion(int version)
 {
@@ -411,7 +395,7 @@ int SerializationContext::GetVersion()
 {
 	int version = -1;
 
-	if (value.HasMember(*VERSION_STRING))
+	if (value.HasField(VERSION_STRING))
 	{
 		SerializeProperty(*VERSION_STRING, version);
 	}

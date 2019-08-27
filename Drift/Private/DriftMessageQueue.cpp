@@ -1,8 +1,7 @@
-// Copyright 2016-2017 Directive Games Limited - All Rights Reserved
-
-#include "DriftPrivatePCH.h"
+// Copyright 2016-2019 Directive Games Limited - All Rights Reserved
 
 #include "DriftMessageQueue.h"
+
 #include "DriftSchemas.h"
 #include "Details/UrlHelper.h"
 #include "JsonArchive.h"
@@ -131,9 +130,9 @@ struct FMessageQueue
             }
             for (auto& member : jValue.GetObject())
             {
-                const auto& queue = member.name.GetString();
+                const auto& queue = member.Key;
                 auto& entry = queues.Emplace(queue);
-                context.SerializeProperty(queue, entry);
+                context.SerializeProperty(*queue, entry);
             }
             return true;
         }

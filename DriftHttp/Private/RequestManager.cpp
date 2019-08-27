@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2017 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2019 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -10,9 +10,9 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftHttpPCH.h"
 
 #include "RequestManager.h"
+
 #include "HttpRequest.h"
 #include "HttpCache.h"
 #include "JsonArchive.h"
@@ -144,11 +144,11 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
         JsonValue temp(rapidjson::kObjectType);
         for (const auto& item : userContext_)
         {
-            JsonArchive::AddMember(temp, *item.Key, *item.Value);
+			temp.SetField(item.Key, item.Value);
         }
         
 #if !UE_BUILD_SHIPPING
-        JsonArchive::AddMember(temp, TEXT("request_id"), *wrapper->RequestID().ToString());
+		temp.SetField(TEXT("request_id"), *wrapper->RequestID().ToString());
 #endif
         FString contextValue;
         JsonArchive::SaveObject(temp, contextValue);

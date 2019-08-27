@@ -18,9 +18,8 @@ public class Drift : ModuleRules
     public Drift(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
         bFasterWithoutUnity = true;
-        //PCHUsage = PCHUsageMode.NoSharedPCHs;
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        
         PublicIncludePaths.AddRange(
             new string[] {
                 Path.Combine(ModuleDirectory, "Public")
@@ -64,7 +63,7 @@ public class Drift : ModuleRules
                 "OnlineSubsystem",
                 "OnlineSubsystemUtils",
                 "DriftHttp",
-                "RapidJson",
+                "JsonArchive",
                 "ErrorReporter",
                 "Json",
             }
@@ -74,7 +73,7 @@ public class Drift : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.Mac)
         {
             // Needed for the keychain access
-            PublicAdditionalFrameworks.Add(new UEBuildFramework("Security"));
+            PublicAdditionalFrameworks.Add(new Framework("Security"));
         }
 
 #if UE_4_19_OR_LATER
