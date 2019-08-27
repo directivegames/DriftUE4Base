@@ -17,7 +17,7 @@ public class DriftHttp : ModuleRules
     public DriftHttp(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
         bFasterWithoutUnity = true;
-        PCHUsage = PCHUsageMode.NoSharedPCHs;
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 #if UE_4_19_OR_LATER
         PublicDefinitions.Add("WITH_ENGINE_VERSION_MACROS");
@@ -57,7 +57,7 @@ public class DriftHttp : ModuleRules
                 // ... add private dependencies that you statically link with here ...    
                 "Engine",
                 "HTTP",
-                "RapidJson",
+                "JsonArchive",
                 "ErrorReporter",
                 "Json",
             }

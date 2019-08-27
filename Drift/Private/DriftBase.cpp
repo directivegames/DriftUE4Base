@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2017 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2019 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -10,8 +10,8 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftPrivatePCH.h"
 #include "DriftBase.h"
+
 #include "JsonRequestManager.h"
 #include "JsonArchive.h"
 #include "JsonUtils.h"
@@ -284,7 +284,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
         }
         else
         {
-            heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt();
+            heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt32();
         }
 
         DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs. Timeout at: %s"), *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
@@ -706,7 +706,7 @@ void FDriftBase::LoadPlayerGameStateImpl(const FString& name, const FDriftGameSt
     request->OnResponse.BindLambda([this, name, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FPlayerGameStateResponse response;
-        if (!JsonArchive::LoadObject(doc, response) || response.data.IsNull() || !response.data.HasMember(TEXT("data")))
+        if (!JsonArchive::LoadObject(doc, response) || response.data.IsNull() || !response.data.HasField(TEXT("data")))
         {
             context.error = TEXT("Failed to parse game state response");
             return;
@@ -1055,27 +1055,26 @@ void FDriftBase::JoinMatchQueue(const FDriftJoinedMatchQueueDelegate& delegate)
 
 void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
 {
-    const auto tokenIt = message.payload.FindMember(TEXT("token"));
-    if (tokenIt == message.payload.MemberEnd() || !(*tokenIt).value.IsString())
+    const auto tokenIt = message.payload.FindField(TEXT("token"));
+	if (!tokenIt.IsString())
     {
         UE_LOG(LogDriftMessages, Error, TEXT("Match queue message contains no valid token"));
         
         return;
     }
-    const FString token = (*tokenIt).value.GetString();
-
-    const auto actionIt = message.payload.FindMember(TEXT("action"));
-    if (actionIt != message.payload.MemberEnd())
+    const FString token = tokenIt.GetString();
+	
+    const auto action = message.payload.FindField(TEXT("action"));
+    if (action)
     {
-        auto& value = (*actionIt).value;
-        if (!value.IsString())
+        if (!action.IsString())
         {
             UE_LOG(LogDriftMessages, Error, TEXT("Can't parse match queue action"));
 
             return;
         }
-        const FString action = value.GetString();
-        if (action == TEXT("challenge"))
+		
+		if (action.GetString() == TEXT("challenge"))
         {
             UE_LOG(LogDriftMessages, Verbose, TEXT("Got match challenge from player: %d, token: %s"), message.sender_id, *token);
 
@@ -1094,14 +1093,14 @@ void FDriftBase::HandleMatchQueueMessage(const FMessageQueueEntry& message)
 
 void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry& message)
 {
-    const auto eventIt = message.payload.FindMember(TEXT("event"));
-    if (eventIt == message.payload.MemberEnd() || !(*eventIt).value.IsString())
+    const auto event = message.payload.FindField(TEXT("event"));
+    if (!event.IsString())
     {
         UE_LOG(LogDriftMessages, Error, TEXT("Friend event message contains no event"));
 
         return;
     }
-    const FString eventName = (*eventIt).value.GetString();
+    const FString eventName = event.GetString();
     if (eventName == TEXT("friend_added"))
     {
         UE_LOG(LogDriftMessages, Verbose, TEXT("Got friend added confirmation from player %d"), message.sender_id);
@@ -1796,10 +1795,10 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FString token;
-        const auto member = doc.FindMember(TEXT("token"));
-        if (member != doc.MemberEnd() && member->value.IsString())
+        const auto member = doc.FindField(TEXT("token"));
+        if (member.IsString())
         {
-            token = member->value.GetString();
+            token = member.GetString();
         }
         if (token.IsEmpty()) 
         {
@@ -1845,10 +1844,10 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         int32 friendID{ 0 };
-        const auto member = doc.FindMember(TEXT("friend_id"));
-        if (member != doc.MemberEnd() && member->value.IsInt())
+        const auto member = doc.FindField(TEXT("friend_id"));
+        if (member.IsInt32())
         {
-            friendID = member->value.GetInt();
+            friendID = member.GetInt32();
         }
 
         if (friendID == 0)
@@ -2062,10 +2061,10 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
-        const auto member = doc.FindMember(TEXT("jti"));
-        if (member != doc.MemberEnd() && member->value.IsString())
+        const auto member = doc.FindField(TEXT("jti"));
+        if (member.IsString())
         {
-            jti = member->value.GetString();
+            jti = member.GetString();
         }
         if (jti.IsEmpty())
         {
@@ -2106,22 +2105,21 @@ void FDriftBase::GetUserInfo()
     auto request = GetGameRequestManager()->Get(driftEndpoints.root, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        auto currentUser = doc.FindMember(TEXT("current_user"));
-        if (currentUser == doc.MemberEnd() || !currentUser->value.IsObject())
+        auto currentUser = doc.FindField(TEXT("current_user"));
+        if (!currentUser.IsObject())
         {
             context.error = TEXT("Failed to read user info");
             return;
         }
-
-        auto userObject = currentUser->value.GetObject();
-        const auto userId = userObject.FindMember(TEXT("user_id"));
-        if (userId == userObject.MemberEnd() || !userId->value.IsUint64())
+		
+        const auto userId = currentUser.FindField(TEXT("user_id"));
+        if (!userId.IsUint64())
         {
             context.error = TEXT("Failed to read user id");
             return;
         }
 
-        if (userId->value.GetUint64() == 0)
+        if (userId.GetUint64() == 0)
         {
             context.error = TEXT("User creation failed");
             return;
@@ -2396,10 +2394,10 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     request->OnResponse.BindLambda([this, progressDelegate, provider](ResponseContext& context, JsonDocument& doc)
     {
         FString jti;
-        const auto member = doc.FindMember(TEXT("jti"));
-        if (member != doc.MemberEnd() && member->value.IsString())
+        const auto member = doc.FindField(TEXT("jti"));
+        if (member.IsString())
         {
-            jti = member->value.GetString();
+            jti = member.GetString();
         }
         if (jti.IsEmpty())
         {
@@ -2450,7 +2448,7 @@ void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAd
         }
 
         FDriftUserInfoResponse userInfo;
-        if (doc.HasMember(TEXT("current_user")) && JsonArchive::LoadObject(doc[TEXT("current_user")], userInfo))
+        if (doc.HasField(TEXT("current_user")) && JsonArchive::LoadObject(doc[TEXT("current_user")], userInfo))
         {
             if (userInfo.user_id == 0)
             {

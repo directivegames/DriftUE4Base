@@ -1,8 +1,8 @@
+// Copyright 2016-2019 Directive Games Limited - All Rights Reserved
 
-
-#include "DriftPrivatePCH.h"
 
 #include "LeaderboardsProxy.h"
+
 #include "DriftUtils.h"
 #include "DriftBase.h"
 

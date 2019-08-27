@@ -1,8 +1,8 @@
-// Copyright 2016-2017 Directive Games Limited - All Rights Reserved
+// Copyright 2016-2019 Directive Games Limited - All Rights Reserved
 
-#include "DriftPrivatePCH.h"
 
 #include "DriftEvent.h"
+
 #include "JsonArchive.h"
 #include "JsonUtils.h"
 
@@ -30,7 +30,7 @@ public:
         {
             for (auto& member : details_.GetObject())
             {
-                context.SerializeProperty(member.name.GetString(), member.value);
+                context.SerializeProperty(*member.Key, member.Value);
             }
             
             auto temp = timestamp_.ToIso8601();
@@ -87,7 +87,7 @@ public:
         {
             e->AddEvent([this, &array](FDriftEvent& event)
             {
-                array.PushBack(event.details_, JsonArchive::Allocator());
+                array.PushBack(event.details_);
             });
         }
         JsonArchive::AddMember(details_, name, array);

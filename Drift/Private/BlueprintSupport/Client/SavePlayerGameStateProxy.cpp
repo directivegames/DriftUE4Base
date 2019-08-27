@@ -1,5 +1,5 @@
+// Copyright 2016-2019 Directive Games Limited - All Rights Reserved
 
-#include "DriftPrivatePCH.h"
 
 #include "SavePlayerGameStateProxy.h"
 

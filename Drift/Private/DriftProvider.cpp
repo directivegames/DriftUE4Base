@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2017 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2019 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -10,7 +10,6 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftPrivatePCH.h"
 
 #include "DriftProvider.h"
 #include "DriftBase.h"
@@ -41,10 +40,10 @@ IDriftAPI* FDriftProvider::GetInstance(const FName& identifier, const FString& c
     auto instance = instances.Find(keyName);
     if (instance == nullptr)
     {
-        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num(), config), [](IDriftAPI* instance)
+        const DriftBasePtr newInstance = MakeShareable(new FDriftBase(cache, keyName, instances.Num(), config), [](IDriftAPI* drift)
         {
-            instance->Shutdown();
-            delete instance;
+			drift->Shutdown();
+            delete drift;
         });
         instances.Add(keyName, newInstance);
         instance = instances.Find(keyName);

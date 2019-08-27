@@ -16,8 +16,7 @@ public class ErrorReporter : ModuleRules
 {
     public ErrorReporter(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        PCHUsage = PCHUsageMode.NoSharedPCHs;
-        PrivatePCHHeaderFile = "Private/ErrorReporterPCH.h";
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 #if UE_4_19_OR_LATER
         PublicDefinitions.Add("ERROR_REPORTER_PACKAGE=1");

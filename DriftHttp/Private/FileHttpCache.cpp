@@ -1,8 +1,8 @@
-// Copyright 2016-2017 Directive Games Limited - All Rights Reserved
+// Copyright 2016-2019 Directive Games Limited - All Rights Reserved
 
-#include "DriftHttpPCH.h"
 
 #include "FileHttpCache.h"
+
 #include "HttpRequest.h"
 #include "FileHttpCacheFactory.h"
 #include "CachedHttpResponse.h"
@@ -164,27 +164,27 @@ void FileHttpCache::LoadCache()
         return;
     }
 
-    if (!indexObject.HasMember(TEXT("entries")) || !indexObject.HasMember(TEXT("version")))
+    if (!indexObject.HasField(TEXT("entries")) || !indexObject.HasField(TEXT("version")))
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index file missing expected content"));
         return;
     }
 
-    auto& versionValue = indexObject[TEXT("version")];
-    if (!versionValue.IsInt())
+    auto versionValue = indexObject[TEXT("version")];
+    if (!versionValue.IsInt32())
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index version is invalid"));
         return;
     }
 
-    const int32 version = versionValue.GetInt();
+    const int32 version = versionValue.GetInt32();
     if (version > cacheVersion)
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index version is too high"));
         return;
     }
 
-    auto& entries = indexObject[TEXT("entries")];
+    auto entries = indexObject[TEXT("entries")];
     if (!entries.IsObject())
     {
         UE_LOG(LogHttpCache, Error, TEXT("Cache index entries are invalid"));
@@ -195,7 +195,7 @@ void FileHttpCache::LoadCache()
     {
         FString key;
         FString value;
-        if (JsonArchive::LoadObject(member.name, key) && JsonArchive::LoadObject(member.value, value))
+        if (JsonArchive::LoadObject(*member.Key, key) && JsonArchive::LoadObject(member.Value, value))
         {
             index.Add(key, value);
         }
