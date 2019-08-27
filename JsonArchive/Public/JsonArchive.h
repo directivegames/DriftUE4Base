@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "JsonValueWrapper.h"
 
 #include <type_traits>
@@ -356,22 +358,22 @@ public:
 		parent.SetField(name, value);
 	}
 	
-	static void AddMember(JsonValue& parent, const FString& name, int value)
+	static void AddMember(JsonValue& parent, const FString& name, int32 value)
 	{
 		parent.SetField(name, value);
 	}
 	
-	static void AddMember(JsonValue& parent, const FString& name, unsigned value)
+	static void AddMember(JsonValue& parent, const FString& name, uint32 value)
 	{
 		parent.SetField(name, value);
 	}
 	
-	static void AddMember(JsonValue& parent, const FString& name, int64_t value)
+	static void AddMember(JsonValue& parent, const FString& name, int64 value)
 	{
 		parent.SetField(name, value);
 	}
 	
-	static void AddMember(JsonValue& parent, const FString& name, uint64_t value)
+	static void AddMember(JsonValue& parent, const FString& name, uint64 value)
 	{
 		parent.SetField(name, value);
 	}

@@ -279,22 +279,22 @@ void JsonValue::SetField(const FString& Name, double Value)
 	SetNumberField(Name, Value);
 }
 
-void JsonValue::SetField(const FString& Name, int Value)
+void JsonValue::SetField(const FString& Name, int32 Value)
 {
 	SetNumberField(Name, Value);
 }
 
-void JsonValue::SetField(const FString& Name, unsigned Value)
+void JsonValue::SetField(const FString& Name, uint32 Value)
 {
 	SetNumberField(Name, Value);
 }
 
-void JsonValue::SetField(const FString& Name, int64_t Value)
+void JsonValue::SetField(const FString& Name, int64 Value)
 {
 	SetNumberField(Name, Value);
 }
 
-void JsonValue::SetField(const FString& Name, uint64_t Value)
+void JsonValue::SetField(const FString& Name, uint64 Value)
 {
 	SetNumberField(Name, Value);
 }

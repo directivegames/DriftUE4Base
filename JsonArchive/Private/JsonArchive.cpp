@@ -10,8 +10,11 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
+
 #include "JsonArchive.h"
+
 #include "Json.h"
+#include "Modules/ModuleManager.h"
 
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, JsonArchive)
