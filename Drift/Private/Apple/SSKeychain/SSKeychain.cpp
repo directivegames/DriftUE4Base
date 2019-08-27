@@ -6,8 +6,6 @@
 //  Copyright (c) 2010-2014 Sam Soffes. All rights reserved.
 //
 
-#include "../../DriftPrivatePCH.h"
-
 #if PLATFORM_APPLE
 #import "SSKeychain.h"
 
