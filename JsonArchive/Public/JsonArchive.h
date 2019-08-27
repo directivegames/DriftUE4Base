@@ -171,15 +171,15 @@ public:
 		bool success = false;
 		if (isLoading_)
 		{
-			if (jValue.IsInt())
+			if (jValue.IsInt32())
 			{
-				cEnum = (T)jValue.GetInt();
+				cEnum = (T)jValue.GetInt32();
 				success = true;
 			}
 		}
 		else
 		{
-			jValue.SetInt((int)cEnum);
+			jValue.SetInt32((int)cEnum);
 			success = true;
 		}
 		
