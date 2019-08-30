@@ -10,10 +10,10 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftEditorPrivatePCH.h"
 
-#include "DriftEditor.h"
 #include "DriftProjectSettings.h"
+#include "DriftEditor.h"
+#include "DriftEditorPrivatePCH.h"
 
 
 UDriftProjectSettings::UDriftProjectSettings(const FObjectInitializer& ObjectInitializer)

@@ -10,9 +10,9 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftEditorPrivatePCH.h"
 
 #include "DriftTargetSettingsCustomization.h"
+#include "DriftEditorPrivatePCH.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "PropertyEditing.h"
