@@ -54,6 +54,14 @@ FString JsonValue::ToString() const
 		FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 		return MoveTemp(JsonString);
 	}
+	if (IsArray())
+	{
+		auto JsonArray = AsArray();
+		FString JsonString;
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+		FJsonSerializer::Serialize(JsonArray, Writer);
+		return MoveTemp(JsonString);
+	}
 	
 	return GetString();
 }
@@ -361,6 +369,16 @@ TSharedPtr<FJsonObject> JsonValue::AsObject() const
 	}
 	
 	return nullptr;
+}
+
+TArray<TSharedPtr<FJsonValue>> JsonValue::AsArray() const
+{
+	if (IsArray())
+	{
+		return InternalValue->AsArray();
+	}
+	
+	return {};
 }
 
 void JsonValue::SetNumber(double Number)

@@ -94,6 +94,7 @@ public:
 
 protected:
 	TSharedPtr<FJsonObject> AsObject() const;
+	TArray<TSharedPtr<FJsonValue>> AsArray() const;
 	bool IsNumber() const;
 	void SetNumber(double Number);
 	void SetNumberField(const FString& Name, double Value);
