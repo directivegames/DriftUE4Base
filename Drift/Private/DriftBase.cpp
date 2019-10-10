@@ -2153,7 +2153,7 @@ void FDriftBase::RegisterClient()
     JsonArchive::AddMember(payload.platform_info, TEXT("gpu_device_id"), GRHIDeviceId);
 
     const auto& stats = FPlatformMemory::GetConstants();
-    JsonArchive::AddMember(payload.platform_info, TEXT("total_physical_ram"), static_cast<uint64>(stats.TotalPhysical));
+    JsonArchive::AddMember(payload.platform_info, TEXT("total_physical_ram"), static_cast<int64>(stats.TotalPhysical));
 
     JsonArchive::AddMember(payload.platform_info, TEXT("os_version"), *FPlatformMisc::GetOSVersion());
 
