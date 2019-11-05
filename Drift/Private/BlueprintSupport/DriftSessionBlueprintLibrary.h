@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "Kismet/BlueprintFunctionLibrary.h"
+
 #include "DriftSessionBlueprintLibrary.generated.h"
 
 

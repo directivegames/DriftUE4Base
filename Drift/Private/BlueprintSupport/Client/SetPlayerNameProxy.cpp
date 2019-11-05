@@ -2,7 +2,7 @@
 
 
 #include "SetPlayerNameProxy.h"
-
+#include "GameFramework/PlayerController.h"
 #include "DriftAPI.h"
 #include "DriftUtils.h"
 
