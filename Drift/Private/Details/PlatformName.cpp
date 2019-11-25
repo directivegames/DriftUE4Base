@@ -3,7 +3,7 @@
 
 #include "PlatformName.h"
 
-#include "PlatformMisc.h"
+#include "HAL/PlatformMisc.h"
 
 
 namespace details

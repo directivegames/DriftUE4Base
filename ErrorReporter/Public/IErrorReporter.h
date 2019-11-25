@@ -2,11 +2,9 @@
 
 #pragma once
 
-#include "Map.h"
-#include "UnrealString.h"
+#include "Containers/Map.h"
+#include "Containers/UnrealString.h"
 #include "Json.h"
-
-#include <type_traits>
 
 
 class ERRORREPORTER_API IErrorReporter

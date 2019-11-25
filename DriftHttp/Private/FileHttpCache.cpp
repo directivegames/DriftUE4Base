@@ -9,9 +9,9 @@
 #include "JsonArchive.h"
 #include "Details/DateHelper.h"
 
-#include "FileHelper.h"
-#include "Paths.h"
-#include "SecureHash.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/SecureHash.h"
 
 #if PLATFORM_PS4
 #include "PS4File.h"

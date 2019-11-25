@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "ModuleManager.h"
-#include "../Public/IErrorReporter.h"
+#include "Modules/ModuleManager.h"
+#include "IErrorReporter.h"
 
 
 class FErrorReporterModule : public IModuleInterface

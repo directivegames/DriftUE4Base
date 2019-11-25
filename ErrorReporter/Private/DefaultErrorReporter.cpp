@@ -1,8 +1,8 @@
 
 #include "DefaultErrorReporter.h"
 #include "IErrorReporter.h"
-#include "JsonWriter.h"
-#include "JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
+#include "Serialization/JsonSerializer.h"
 
 
 DefaultErrorReporter defaultErrorReporter;

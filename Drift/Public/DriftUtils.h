@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "NameTypes.h"
+#include "UObject/NameTypes.h"
 
 
 class FString;

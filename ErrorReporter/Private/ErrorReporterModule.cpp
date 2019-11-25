@@ -11,8 +11,9 @@
 */
 
 #include "ErrorReporterModule.h"
+
 #include "CoreGlobals.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 
 IMPLEMENT_MODULE(FErrorReporterModule, ErrorReporter)

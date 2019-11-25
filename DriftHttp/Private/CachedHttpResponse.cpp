@@ -3,7 +3,7 @@
 
 #include "CachedHttpResponse.h"
 
-#include "StringConv.h"
+#include "Containers/StringConv.h"
 
 
 #ifdef WITH_ENGINE_VERSION_MACROS

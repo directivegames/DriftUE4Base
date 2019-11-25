@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "OnlineBlueprintCallProxyBase.h"
+#include "Net/OnlineBlueprintCallProxyBase.h"
 #include "CommonDelegates.h"
 
 #include "AddPlayerProxy.generated.h"

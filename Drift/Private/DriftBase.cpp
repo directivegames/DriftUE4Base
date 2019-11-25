@@ -32,7 +32,7 @@
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
-#include "Internationalization.h"
+#include "Internationalization/Internationalization.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
