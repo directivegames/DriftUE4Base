@@ -17,8 +17,7 @@ public class RapidJson : ModuleRules
     public RapidJson(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
         bFasterWithoutUnity = true;
-        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-
+        PrivatePCHHeaderFile = "Private/RapidJsonPCH.h";
         
         PublicIncludePaths.AddRange(
             new string[] {

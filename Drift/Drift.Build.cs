@@ -74,7 +74,10 @@ public class Drift : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.Mac)
         {
             // Needed for the keychain access
-            PublicAdditionalFrameworks.Add(new Framework("Security"));
+            PublicFrameworks.AddRange(new string[]
+			{
+				"Security"
+			});
         }
 
 #if UE_4_19_OR_LATER

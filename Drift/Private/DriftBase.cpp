@@ -707,6 +707,12 @@ void FDriftBase::LoadPlayerGameStateImpl(const FString& name, const FDriftGameSt
         FPlayerGameStateResponse response;
         if (!JsonArchive::LoadObject(doc, response) || response.data.IsNull() || !response.data.HasMember(TEXT("data")))
         {
+            for (auto itr = response.data.MemberBegin(); itr != response.data.MemberEnd(); ++itr)
+            {
+                const auto nnn = itr->name.GetString();
+                UE_LOG(LogTemp, Log, TEXT("member: %s"), nnn);
+            }
+
             context.error = TEXT("Failed to parse game state response");
             return;
         }
@@ -775,7 +781,7 @@ void FDriftBase::SavePlayerGameStateImpl(const FString& name, const FString& gam
     }
 
     FPlayerGameStatePayload payload{};
-    JsonArchive::AddMember(payload.gamestate, TEXT("data"), *gameState);
+    JsonArchive::AddMember(payload.gamestate, TEXT("data"), gameState);
     auto request = GetGameRequestManager()->Put(url, payload);
     request->OnResponse.BindLambda([this, name, delegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -1405,8 +1411,8 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
             const int inviteTimeoutSeconds = 180;
 
             JsonValue message{ rapidjson::kObjectType };
-            JsonArchive::AddMember(message, TEXT("action"), TEXT("challenge"));
-            JsonArchive::AddMember(message, TEXT("token"), *token.ToString());
+            JsonArchive::AddMember(message, TEXT("action"), FString(TEXT("challenge")));
+            JsonArchive::AddMember(message, TEXT("token"), token.ToString());
             const auto messageUrlTemplate = playerInfo->messagequeue_url;
             messageQueue->SendMessage(messageUrlTemplate, TEXT("matchqueue"), MoveTemp(message), inviteTimeoutSeconds);
         }
@@ -1839,7 +1845,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     DRIFT_LOG(Base, Verbose, TEXT("Accepting a friend request with token %s"), *token);
 
     JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("token"), *token);
+    JsonArchive::AddMember(payload, TEXT("token"), token);
     auto request = GetGameRequestManager()->Post(driftEndpoints.my_friends, payload);
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -1865,7 +1871,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
             if (const auto f = friendInfos.Find(friendID))
             {
                 JsonValue message{ rapidjson::kObjectType };
-                JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_added"));
+                JsonArchive::AddMember(message, TEXT("event"), FString(TEXT("friend_added")));
                 const auto messageUrlTemplate = f->messagequeue_url;
                 messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
             }
@@ -1915,7 +1921,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
         if (auto f = friendInfos.Find(friendID))
         {
             JsonValue message{ rapidjson::kObjectType };
-            JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_removed"));
+            JsonArchive::AddMember(message, TEXT("event"), FString(TEXT("friend_removed")));
             const auto messageUrlTemplate = f->messagequeue_url;
             messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
         }
@@ -2039,7 +2045,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     payload.provider = provider->GetProviderName();
     payload.automatic_account_creation = true;
     provider->FillProviderDetails([&payload](const FString& key, const FString& value) {
-        JsonArchive::AddMember(payload.provider_details, *key, *value);
+        JsonArchive::AddMember(payload.provider_details, key, value);
     });
 
     /**
@@ -2147,20 +2153,20 @@ void FDriftBase::RegisterClient()
 
     JsonArchive::AddMember(payload.platform_info, TEXT("cpu_physical_cores"), FPlatformMisc::NumberOfCores());
     JsonArchive::AddMember(payload.platform_info, TEXT("cpu_logical_cores"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
-    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_vendor"), *FPlatformMisc::GetCPUVendor());
-    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_brand"), *FPlatformMisc::GetCPUBrand());
-    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_adapter"), *GRHIAdapterName);
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_vendor"), FPlatformMisc::GetCPUVendor());
+    JsonArchive::AddMember(payload.platform_info, TEXT("cpu_brand"), FPlatformMisc::GetCPUBrand());
+    JsonArchive::AddMember(payload.platform_info, TEXT("gpu_adapter"), GRHIAdapterName);
     JsonArchive::AddMember(payload.platform_info, TEXT("gpu_vendor_id"), GRHIVendorId);
     JsonArchive::AddMember(payload.platform_info, TEXT("gpu_device_id"), GRHIDeviceId);
 
     const auto& stats = FPlatformMemory::GetConstants();
     JsonArchive::AddMember(payload.platform_info, TEXT("total_physical_ram"), static_cast<uint64>(stats.TotalPhysical));
 
-    JsonArchive::AddMember(payload.platform_info, TEXT("os_version"), *FPlatformMisc::GetOSVersion());
+    JsonArchive::AddMember(payload.platform_info, TEXT("os_version"), FPlatformMisc::GetOSVersion());
 
     const auto& I18N = FInternationalization::Get();
-    JsonArchive::AddMember(payload.platform_info, TEXT("language"), *I18N.GetCurrentLanguage()->GetName());
-    JsonArchive::AddMember(payload.platform_info, TEXT("locale"), *I18N.GetCurrentLocale()->GetName());
+    JsonArchive::AddMember(payload.platform_info, TEXT("language"), I18N.GetCurrentLanguage()->GetName());
+    JsonArchive::AddMember(payload.platform_info, TEXT("locale"), I18N.GetCurrentLocale()->GetName());
 
 #if PLATFORM_IOS
     payload.platform_version = IOSUtility::GetIOSVersion();
@@ -2386,7 +2392,7 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     payload.provider = provider->GetProviderName();
     payload.automatic_account_creation = false;
     provider->FillProviderDetails([&payload](const FString& key, const FString& value) {
-        JsonArchive::AddMember(payload.provider_details, *key, *value);
+        JsonArchive::AddMember(payload.provider_details, key, value);
     });
 
     DRIFT_LOG(Base, Verbose, TEXT("Adding player identity: %s"), *provider->ToString());
@@ -2799,7 +2805,7 @@ void FDriftBase::InitServerInfo(const FString& serverUrl)
     DRIFT_LOG(Base, Log, TEXT("Fetching server info"));
     
     JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("status"), TEXT("initializing"));
+    JsonArchive::AddMember(payload, TEXT("status"), FString(TEXT("initializing")));
     auto request = GetGameRequestManager()->Put(cli.server_url, payload);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
@@ -3008,11 +3014,11 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
     DRIFT_LOG(Base, Log, TEXT("Updating server status to '%s'"), *status);
 
     JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("status"), *status);
+    JsonArchive::AddMember(payload, TEXT("status"), status);
     if (!reason.IsEmpty())
     {
         JsonValue details{ rapidjson::kObjectType };
-        JsonArchive::AddMember(details, TEXT("status-reason"), *reason);
+        JsonArchive::AddMember(details, TEXT("status-reason"), reason);
         JsonArchive::AddMember(payload, TEXT("details"), details);
     }
 
@@ -3045,11 +3051,11 @@ void FDriftBase::UpdateMatch(const FString& status, const FString& reason, const
     DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *status);
     
     JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("status"), *status);
+    JsonArchive::AddMember(payload, TEXT("status"), status);
     if (!reason.IsEmpty())
     {
         JsonValue details{ rapidjson::kObjectType };
-        JsonArchive::AddMember(details, TEXT("status-reason"), *reason);
+        JsonArchive::AddMember(details, TEXT("status-reason"), reason);
         JsonArchive::AddMember(payload, TEXT("details"), details);
     }
 

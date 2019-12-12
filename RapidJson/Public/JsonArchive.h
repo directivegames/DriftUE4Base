@@ -26,6 +26,7 @@
 #include <memory>
 
 typedef rapidjson::UTF16<TCHAR> StringType;
+
 typedef rapidjson::GenericValue<StringType, rapidjson::CrtAllocator> JsonValue;
 typedef rapidjson::GenericDocument<StringType, rapidjson::CrtAllocator> JsonDocument;
 typedef rapidjson::GenericStringBuffer<StringType, rapidjson::CrtAllocator> JsonStringBuffer;
@@ -549,7 +550,6 @@ public:
     {
         parent.AddMember(JsonValue(*name, name.Len(), allocator_), Forward<JsonValue>(value), allocator_);
     }
-    
 //private:
     JsonArchive(bool loading)
         : isLoading_{ loading }
@@ -609,6 +609,9 @@ RAPIDJSON_API bool JsonArchive::SerializeObject<bool>(JsonValue& jValue, bool& c
 
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<FString>(JsonValue& jValue, FString& cValue);
+
+template<>
+RAPIDJSON_API bool JsonArchive::SerializeObject<std::wstring>(JsonValue& jValue, std::wstring& cValue);
 
 template<>
 RAPIDJSON_API bool JsonArchive::SerializeObject<FName>(JsonValue& jValue, FName& cValue);

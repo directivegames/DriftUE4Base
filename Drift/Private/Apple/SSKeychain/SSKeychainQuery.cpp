@@ -9,7 +9,6 @@
 #include "../../DriftPrivatePCH.h"
 
 #if PLATFORM_APPLE
-
 #import "SSKeychainQuery.h"
 #import "SSKeychain.h"
 

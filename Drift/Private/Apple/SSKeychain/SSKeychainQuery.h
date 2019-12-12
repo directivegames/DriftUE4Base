@@ -6,6 +6,7 @@
 //  Copyright (c) 2013-2014 Sam Soffes. All rights reserved.
 //
 
+#if PLATFORM_APPLE
 #if 0
 @import Foundation;
 @import Security;
@@ -133,3 +134,4 @@ typedef NS_ENUM(NSUInteger, SSKeychainQuerySynchronizationMode) {
 #endif
 
 @end
+#endif

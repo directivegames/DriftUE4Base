@@ -210,7 +210,7 @@ void FileHttpCache::SaveIndex()
     JsonValue indexEntries{ rapidjson::kObjectType };
     for (const auto& entry : index)
     {
-        JsonArchive::AddMember(indexEntries, *entry.Key, *entry.Value);
+        JsonArchive::AddMember(indexEntries, entry.Key, entry.Value);
     }
     JsonArchive::AddMember(indexObject, TEXT("entries"), indexEntries);
 

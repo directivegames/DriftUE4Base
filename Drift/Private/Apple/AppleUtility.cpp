@@ -10,9 +10,9 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
+#include "AppleUtility.h"
 #include "DriftPrivatePCH.h"
 
-#include "AppleUtility.h"
 
 #if PLATFORM_IOS
 #include <sys/sysctl.h>
