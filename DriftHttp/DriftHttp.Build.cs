@@ -16,7 +16,12 @@ public class DriftHttp : ModuleRules
 {
     public DriftHttp(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
+#if UE_4_24_OR_LATER
+		bUseUnity = false;
+#else
         bFasterWithoutUnity = true;
+#endif
+
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 #if UE_4_19_OR_LATER

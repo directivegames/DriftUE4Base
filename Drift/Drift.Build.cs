@@ -17,7 +17,12 @@ public class Drift : ModuleRules
 {
     public Drift(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
+#if UE_4_24_OR_LATER
+		bUseUnity = false;
+#else
+		bFasterWithoutUnity = true;
+#endif
+
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PublicIncludePaths.AddRange(

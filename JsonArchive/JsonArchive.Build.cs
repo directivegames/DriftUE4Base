@@ -16,7 +16,12 @@ public class JsonArchive : ModuleRules
 {
     public JsonArchive(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
+#if UE_4_24_OR_LATER
+		bUseUnity = false;
+#else
+		bFasterWithoutUnity = true;
+#endif
+
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         
