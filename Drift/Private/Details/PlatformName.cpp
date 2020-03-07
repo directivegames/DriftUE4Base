@@ -23,8 +23,6 @@ const TCHAR* GetPlatformName()
     return FIOSPlatformMisc::GetDefaultDeviceProfileName();
 #elif PLATFORM_ANDROID
     return TEXT("Android");
-#elif PLATFORM_HTML5
-    return TEXT("HTML5");
 #elif PLATFORM_LINUX
     return TEXT("Linux");
 #else
