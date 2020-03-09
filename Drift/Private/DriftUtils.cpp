@@ -95,8 +95,13 @@ IDriftAPI* FDriftWorldHelper::GetInstance(const FString& config)
         identifier = internal::GetIdentifierFromWorld(world_);
     }
 #endif // UE_EDITOR
-    auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
-    return provider.GetInstance(identifier, config);
+	if (!IModularFeatures::Get().IsModularFeatureAvailable(DriftModuleName))
+	{
+		// Might happen during shutdown
+		return nullptr;
+	}
+	auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
+	return provider.GetInstance(identifier, config);
 }
 
 
