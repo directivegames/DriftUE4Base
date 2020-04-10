@@ -2836,7 +2836,14 @@ bool FDriftBase::RegisterServer()
         return true;
     }
 
-    state_ = DriftSessionState::Connecting;
+	if (state_ == DriftSessionState::Connecting)
+	{
+        DRIFT_LOG(Base, Log, TEXT("Ignoring attempt to authenticate while another attempt is in progress."));
+
+		return true;
+	}
+
+	state_ = DriftSessionState::Connecting;
 
     FParse::Value(FCommandLine::Get(), TEXT("-public_ip="), cli.public_ip);
     FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
