@@ -1470,24 +1470,7 @@ void FDriftBase::AddAnalyticsEvent(const FString& eventName, const TArray<FAnaly
     for (const auto& attribute : attributes)
     {
 #ifdef WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES
-        switch (attribute.AttrType)
-        {
-        case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
-            event->Add(attribute.AttrName, attribute.AttrValueBool);
-            break;
-        case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
-            event->Add(attribute.AttrName, attribute.AttrValueString);
-            break;
-        case FAnalyticsEventAttribute::AttrTypeEnum::Null:
-            event->Add(attribute.AttrName, nullptr);
-            break;
-        case FAnalyticsEventAttribute::AttrTypeEnum::Number:
-            event->Add(attribute.AttrName, attribute.AttrValueNumber);
-            break;
-        case FAnalyticsEventAttribute::AttrTypeEnum::String:
-            event->Add(attribute.AttrName, attribute.AttrValueString);
-            break;
-        }
+		event->Add(attribute.GetName(), attribute.GetValue());
 #else
         event->Add(attribute.AttrName, attribute.AttrValue);
 #endif

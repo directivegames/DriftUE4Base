@@ -161,7 +161,7 @@ public:
 #endif
     
 private:
-    void BindActualRequest(TSharedRef<IHttpRequest> request);
+    void BindActualRequest(FHttpRequestPtr request);
     void InternalRequestCompleted(FHttpRequestPtr request, FHttpResponsePtr response, bool bWasSuccessful);
     void BroadcastError(ResponseContext& context);
     void LogError(ResponseContext& context);
@@ -176,7 +176,7 @@ protected:
     void Retry();
 
     /** The actual http request object created by the engine */
-    TSharedPtr<IHttpRequest> wrappedRequest_;
+    FHttpRequestPtr wrappedRequest_;
 
     /** Delegate called to determine if the request should be retried */
     FShouldRetryDelegate shouldRetryDelegate_;
