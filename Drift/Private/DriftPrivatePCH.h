@@ -17,6 +17,6 @@
 #include "CoreUObject.h"
 #include "Engine.h"
 
-#include "Delegate.h"
+#include "Delegates/Delegate.h"
 #include "Http.h"
 #include "Map.h"

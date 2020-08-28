@@ -10,9 +10,8 @@
 * level directory of this module, and at https://mit-license.org/
 */
 
-#include "DriftPrivatePCH.h"
-
 #include "AndroidSecureStorage.h"
+#include "DriftPrivatePCH.h"
 #include "FileHelper.h"
 
 
