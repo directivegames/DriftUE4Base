@@ -169,6 +169,12 @@ public:
     FDriftPlayerRemovedFromMatchDelegate& OnPlayerRemovedFromMatch() override { return onPlayerRemovedFromMatch; }
     FDriftMatchAddedDelegate& OnMatchAdded() override { return onMatchAdded; }
     FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
+	
+	FDriftReceivedTextMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
+	FDriftReceivedJsonMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
+	
+	bool SendFriendMessage(int32 FriendId, const FString& Message) override;
+	bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
 private:
     void ConfigureSettingsSection(const FString& config);
@@ -245,7 +251,10 @@ private:
     FDriftPlayerRemovedFromMatchDelegate onPlayerRemovedFromMatch;
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
-    
+	
+	FDriftReceivedTextMessageDelegate onReceivedTextMessage;
+	FDriftReceivedJsonMessageDelegate onReceivedJsonMessage;
+	
     TSharedPtr<JsonRequestManager> GetRootRequestManager() const;
     TSharedPtr<JsonRequestManager> GetGameRequestManager() const;
     void SetGameRequestManager(TSharedPtr<JsonRequestManager> manager)
@@ -270,6 +279,7 @@ private:
 
     void HandleMatchQueueMessage(const FMessageQueueEntry& message);
     void HandleFriendEventMessage(const FMessageQueueEntry& message);
+	void HandleFriendMessage(const FMessageQueueEntry& message);
 
     bool IsPreAuthenticated() const;
     bool IsPreRegistered() const;
@@ -322,6 +332,8 @@ private:
     const FString& GetProjectName();
     const FGuid& GetAppGuid();
     IDriftAuthProviderFactory* GetDeviceAuthProviderFactory();
+	
+	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
 
 private:
     FString settingsSection_;

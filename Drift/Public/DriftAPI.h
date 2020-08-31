@@ -382,6 +382,7 @@ struct FDriftAddPlayerIdentityProgress
     FDriftPlayerIdentityOverrideContinuationDelegate overrideDelegate;
 };
 
+class JsonValue;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAuthenticatedDelegate, bool, const FPlayerAuthenticatedInfo&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftConnectionStateChangedDelegate, EDriftConnectionState);
@@ -425,6 +426,9 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString&, const FDateTime&);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftReceivedTextMessageDelegate, int32 /*Friend Id*/, const FString& /*Message*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftReceivedJsonMessageDelegate, int32 /*Friend Id*/, const JsonValue& /*Message*/);
 
 
 class IDriftAPI : public IDriftServerAPI
@@ -747,6 +751,18 @@ public:
     * Return API key with version
     */
     virtual FString GetVersionedAPIKey() const = 0;
+	
+	/** Fired when received a text message from friend */
+	virtual FDriftReceivedTextMessageDelegate& OnReceivedTextMessage() = 0;
+	
+	/** Fired when received a json message from friend */
+	virtual FDriftReceivedJsonMessageDelegate& OnReceivedJsonMessage() = 0;
+	
+	/** Send a text message to a friend */
+	virtual bool SendFriendMessage(int32 FriendId, const FString& Message) = 0;
+	
+	/** Send a json message to a friend */
+	virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) = 0;
 
     virtual ~IDriftAPI() {}
 };

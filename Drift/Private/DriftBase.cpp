@@ -53,6 +53,11 @@ static const float UPDATE_FRIENDS_INTERVAL = 3.0f;
 const TCHAR* defaultSettingsSection = TEXT("/Script/DriftEditor.DriftProjectSettings");
 
 
+static const FString MatchQueue(TEXT("matchqueue"));
+static const FString FriendEvent(TEXT("friendevent"));
+static const FString FriendMessage(TEXT("friendmessage"));
+
+
 FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config)
     : instanceName_(instanceName)
     , instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
@@ -153,8 +158,9 @@ void FDriftBase::CreateMessageQueue()
 {
     messageQueue = MakeUnique<FDriftMessageQueue>();
 
-    messageQueue->OnMessageQueueMessage(TEXT("matchqueue")).AddRaw(this, &FDriftBase::HandleMatchQueueMessage);
-    messageQueue->OnMessageQueueMessage(TEXT("friendevent")).AddRaw(this, &FDriftBase::HandleFriendEventMessage);
+    messageQueue->OnMessageQueueMessage(MatchQueue).AddRaw(this, &FDriftBase::HandleMatchQueueMessage);
+    messageQueue->OnMessageQueueMessage(FriendEvent).AddRaw(this, &FDriftBase::HandleFriendEventMessage);
+	messageQueue->OnMessageQueueMessage(FriendMessage).AddRaw(this, &FDriftBase::HandleFriendMessage);
 }
 
 
@@ -1408,7 +1414,7 @@ void FDriftBase::InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueu
             JsonArchive::AddMember(message, TEXT("action"), TEXT("challenge"));
             JsonArchive::AddMember(message, TEXT("token"), *token.ToString());
             const auto messageUrlTemplate = playerInfo->messagequeue_url;
-            messageQueue->SendMessage(messageUrlTemplate, TEXT("matchqueue"), MoveTemp(message), inviteTimeoutSeconds);
+            messageQueue->SendMessage(messageUrlTemplate, MatchQueue, MoveTemp(message), inviteTimeoutSeconds);
         }
         delegate.ExecuteIfBound(success, status);
     }));
@@ -1850,7 +1856,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
                 JsonValue message{ rapidjson::kObjectType };
                 JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_added"));
                 const auto messageUrlTemplate = f->messagequeue_url;
-                messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
+                messageQueue->SendMessage(messageUrlTemplate, FriendEvent, MoveTemp(message));
             }
         }));
 
@@ -1900,7 +1906,7 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
             JsonValue message{ rapidjson::kObjectType };
             JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_removed"));
             const auto messageUrlTemplate = f->messagequeue_url;
-            messageQueue->SendMessage(messageUrlTemplate, TEXT("friendevent"), MoveTemp(message));
+            messageQueue->SendMessage(messageUrlTemplate, FriendEvent, MoveTemp(message));
         }
 
         LoadFriendsList({});
@@ -3541,5 +3547,75 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
     });
 }
 
+
+bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
+{
+	if (state_ != DriftSessionState::Connected)
+	{
+		DRIFT_LOG(Base, Warning, TEXT("DoSendFriendMessage: attempting to send friend message without being connected"));
+
+		return false;
+	}
+
+	if (driftEndpoints.my_friends.IsEmpty())
+	{
+		DRIFT_LOG(Base, Warning, TEXT("DoSendFriendMessage: attempting to send friend message before the player session has been initialized"));
+
+		return false;
+	}
+	
+	if (auto friendInfo = friendInfos.Find(FriendId))
+	{
+		const auto messageUrlTemplate = friendInfo->messagequeue_url;
+		messageQueue->SendMessage(messageUrlTemplate, FriendMessage, MoveTemp(MessagePayload));
+		
+		DRIFT_LOG(Base, Verbose, TEXT("DoSendFriendMessage: message sent to friend Id %d"), FriendId);
+		
+		return true;
+	}
+	else
+	{
+		DRIFT_LOG(Base, Warning, TEXT("DoSendFriendMessage: friend Id is unknown or invalid: %d"), FriendId);
+	}
+	
+	return false;
+}
+
+
+bool FDriftBase::SendFriendMessage(int32 FriendId, const FString& Message)
+{
+	JsonValue message { rapidjson::kObjectType };
+	JsonArchive::AddMember(message, TEXT("message"), *Message);
+	return DoSendFriendMessage(FriendId, MoveTemp(message));
+}
+
+
+bool FDriftBase::SendFriendMessage(int32 FriendId, class JsonValue&& Message)
+{
+	JsonValue message { rapidjson::kObjectType };
+	JsonArchive::AddMember(message, TEXT("message"), Message);
+	return DoSendFriendMessage(FriendId, MoveTemp(message));
+}
+
+
+void FDriftBase::HandleFriendMessage(const FMessageQueueEntry& message)
+{
+	const auto messageField = message.payload.FindField(TEXT("message"));
+	if (messageField.IsString())
+	{
+		const FString messageString = messageField.GetString();
+		UE_LOG(LogDriftMessages, Verbose, TEXT("HandleFriendMessage: received text message from friend Id %d: \"%s\""), message.sender_id, *messageString);
+		onReceivedTextMessage.Broadcast(message.sender_id, messageString);
+	}
+	else if (messageField.IsObject())
+	{
+		UE_LOG(LogDriftMessages, Verbose, TEXT("HandleFriendMessage: received json message from friend Id %d"), message.sender_id);
+		onReceivedJsonMessage.Broadcast(message.sender_id, messageField);
+	}
+	else
+	{
+		UE_LOG(LogDriftMessages, Error, TEXT("HandleFriendMessage: friend message contains no message field"));
+	}
+}
 
 #undef LOCTEXT_NAMESPACE
