@@ -58,6 +58,14 @@ static const FString FriendEvent(TEXT("friendevent"));
 static const FString FriendMessage(TEXT("friendmessage"));
 
 
+static FString GEditorServerPassword;
+static FAutoConsoleVariableRef CVarEditorServerPassword(
+	TEXT("drift.EditorServerPassword"),
+    GEditorServerPassword,
+	TEXT("Password used for drift authentication when running the dedicated server in the editor")
+);
+
+
 FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config)
     : instanceName_(instanceName)
     , instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
@@ -2695,6 +2703,13 @@ void FDriftBase::InitServerAuthentication()
 
     FString password;
     FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), password);
+
+#if WITH_EDITOR
+    if (GIsEditor && password.IsEmpty())
+    {
+        password = GEditorServerPassword;
+    }
+#endif
     
     if (password.IsEmpty())
     {
