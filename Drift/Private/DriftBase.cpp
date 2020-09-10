@@ -367,13 +367,37 @@ const TMap<FString, FDateTime>& FDriftBase::GetDeprecations()
 
 FString FDriftBase::GetJWT() const
 {
-    return driftClient.jwt;
+	if (serverJWT_.Len())
+	{
+		return serverJWT_;
+	}
+	else if (driftClient.jwt.Len())
+	{
+		return driftClient.jwt;
+	}
+    else
+	{
+		DRIFT_LOG(Base, Warning, TEXT("Both the client and server JWTs are empty!"));
+		return {};
+	}
 }
 
 
 FString FDriftBase::GetJTI() const
 {
-    return driftClient.jti;
+	if (serverJTI_.Len())
+	{
+		return serverJTI_;
+	}
+	else if (driftClient.jti.Len())
+	{
+		return driftClient.jti;
+	}
+    else
+	{
+		DRIFT_LOG(Base, Warning, TEXT("Both the client and server JTIs are empty!"));
+		return {};
+	}
 }
 
 
@@ -516,6 +540,9 @@ void FDriftBase::Reset()
 
     deprecations_.Empty();
     previousDeprecationHeader_.Empty();
+	
+	serverJTI_ = {};
+	serverJWT_ = {};
 }
 
 
@@ -2688,16 +2715,23 @@ void FDriftBase::InitServerAuthentication()
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        FString jti = doc[TEXT("jti")].GetString();
-        if (jti.IsEmpty())
+		serverJTI_ = doc[TEXT("jti")].GetString();
+		serverJWT_ = doc[TEXT("token")].GetString();
+        if (serverJTI_.IsEmpty())
         {
             context.error = TEXT("Session 'jti' missing.");
             return;
         }
+		
+		if (serverJWT_.IsEmpty())
+		{
+			context.error = TEXT("Session 'jwt' missing.");
+			return;
+		}
+		
+        DRIFT_LOG(Base, Verbose, TEXT("GOT JTI %s"), *serverJTI_);
 
-        DRIFT_LOG(Base, Verbose, TEXT("GOT JTI %s"), *jti);
-
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(serverJTI_));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
