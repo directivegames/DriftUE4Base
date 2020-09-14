@@ -3654,12 +3654,13 @@ void FDriftBase::HandleFriendMessage(const FMessageQueueEntry& message)
 	{
 		const FString messageString = messageField.GetString();
 		UE_LOG(LogDriftMessages, Verbose, TEXT("HandleFriendMessage: received text message from friend Id %d: \"%s\""), message.sender_id, *messageString);
-		onReceivedTextMessage.Broadcast(message.sender_id, messageString);
+		
+		onReceivedTextMessage.Broadcast({ EMessageType::Text, message.sender_id, message.message_number, message.message_id, message.timestamp, message.expires, messageString });
 	}
 	else if (messageField.IsObject())
 	{
 		UE_LOG(LogDriftMessages, Verbose, TEXT("HandleFriendMessage: received json message from friend Id %d"), message.sender_id);
-		onReceivedJsonMessage.Broadcast(message.sender_id, messageField);
+		onReceivedTextMessage.Broadcast({ EMessageType::Json, message.sender_id, message.message_number, message.message_id, message.timestamp, message.expires, messageField.ToString() });
 	}
 	else
 	{

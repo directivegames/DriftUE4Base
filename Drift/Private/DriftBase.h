@@ -170,8 +170,8 @@ public:
     FDriftMatchAddedDelegate& OnMatchAdded() override { return onMatchAdded; }
     FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
 	
-	FDriftReceivedTextMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
-	FDriftReceivedJsonMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
+	FDriftReceivedMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
+	FDriftReceivedMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
 	
 	bool SendFriendMessage(int32 FriendId, const FString& Message) override;
 	bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
@@ -252,8 +252,8 @@ private:
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
 	
-	FDriftReceivedTextMessageDelegate onReceivedTextMessage;
-	FDriftReceivedJsonMessageDelegate onReceivedJsonMessage;
+	FDriftReceivedMessageDelegate onReceivedTextMessage;
+	FDriftReceivedMessageDelegate onReceivedJsonMessage;
 	
     TSharedPtr<JsonRequestManager> GetRootRequestManager() const;
     TSharedPtr<JsonRequestManager> GetGameRequestManager() const;

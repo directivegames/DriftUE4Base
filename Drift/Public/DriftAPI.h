@@ -384,6 +384,37 @@ struct FDriftAddPlayerIdentityProgress
 
 class JsonValue;
 
+enum class EMessageType : uint8
+{
+	Text,
+	Json,
+};
+
+struct FDriftMessage
+{
+	// the type of the message
+	EMessageType messageType = EMessageType::Text;
+	
+	// the id of the player who sends the message
+	int32 senderId = 0;
+	
+	// increasing message number, might get reset after a period
+	int32 messageNumber = 0;
+	
+	// unique id of the message
+	FString messageId;
+	
+	// when the message was sent
+	FDateTime sendTime;
+	
+	// when the message expires
+	FDateTime expireTime;
+	
+	// for text message this is the text itself
+	// for json message this is the json object string
+	FString messageBody;
+};
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAuthenticatedDelegate, bool, const FPlayerAuthenticatedInfo&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftConnectionStateChangedDelegate, EDriftConnectionState);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftStaticDataLoadedDelegate, bool, const FString&);
@@ -427,8 +458,7 @@ DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString&, const FDateTime&);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftReceivedTextMessageDelegate, int32 /*Friend Id*/, const FString& /*Message*/);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftReceivedJsonMessageDelegate, int32 /*Friend Id*/, const JsonValue& /*Message*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftReceivedMessageDelegate, const FDriftMessage& /*Message*/);
 
 
 class IDriftAPI : public IDriftServerAPI
@@ -753,10 +783,10 @@ public:
     virtual FString GetVersionedAPIKey() const = 0;
 	
 	/** Fired when received a text message from friend */
-	virtual FDriftReceivedTextMessageDelegate& OnReceivedTextMessage() = 0;
+	virtual FDriftReceivedMessageDelegate& OnReceivedTextMessage() = 0;
 	
 	/** Fired when received a json message from friend */
-	virtual FDriftReceivedJsonMessageDelegate& OnReceivedJsonMessage() = 0;
+	virtual FDriftReceivedMessageDelegate& OnReceivedJsonMessage() = 0;
 	
 	/** Send a text message to a friend */
 	virtual bool SendFriendMessage(int32 FriendId, const FString& Message) = 0;
