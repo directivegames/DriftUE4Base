@@ -82,50 +82,72 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             /**
              * We got a non-error response code
              */
-            auto contentType = context.response->GetHeader(TEXT("Content-Type"));
-            if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
-            {
-                context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
-            }
-            else
-            {
-                JsonDocument doc;
-                FString content = response->GetContentAsString();
-                if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
-                {
-                    content = TEXT("{}");
-                }
-                doc.Parse(*content);
-                if (doc.HasParseError())
-                {
-                    context.error = FString::Printf(TEXT("JSON response is broken at position %i. RapidJson error: %i"),
-                        static_cast<int32>(doc.GetErrorOffset()),
-                        static_cast<int32>(doc.GetParseError()));
-                }
-                else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
-                {
-                    context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
-                    if (doc.HasField(TEXT("message")))
-                    {
-                        context.message = doc[TEXT("message")].GetString();
-                    }
-                }
-                else
-                {
-                    // All default validation passed, process response
-                    if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
-                    {
-                        cache_->CacheResponse(context);
-                    }
-                    context.successful = true;
-                    OnResponse.ExecuteIfBound(context, doc);
-                    const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
-                    if (!deprecationHeader.IsEmpty())
-                    {
-                        OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
-                    }
-                }
-            }
+			if (expectJsonResponse_)
+			{
+				auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+				if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
+				{
+					context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
+				}
+				else
+				{
+					JsonDocument doc;
+					FString content = response->GetContentAsString();
+					if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
+					{
+						content = TEXT("{}");
+					}
+					doc.Parse(*content);
+					if (doc.HasParseError())
+					{
+						context.error = FString::Printf(TEXT("JSON response is broken at position %i. RapidJson error: %i"),
+							static_cast<int32>(doc.GetErrorOffset()),
+							static_cast<int32>(doc.GetParseError()));
+					}
+					else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
+					{
+						context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
+						if (doc.HasField(TEXT("message")))
+						{
+							context.message = doc[TEXT("message")].GetString();
+						}
+					}
+					else
+					{
+						// All default validation passed, process response
+						if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
+						{
+							cache_->CacheResponse(context);
+						}
+						context.successful = true;
+						OnResponse.ExecuteIfBound(context, doc);
+						const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
+						if (!deprecationHeader.IsEmpty())
+						{
+							OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
+						}
+					}
+				}
+			}
+			else
+			{
+				// Non-Json response code path
+				if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
+				{
+					context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
+				}
+				else
+				{
+					if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
+					{
+						cache_->CacheResponse(context);
+					}
+					
+					context.successful = true;
+					JsonDocument doc;
+					OnResponse.ExecuteIfBound(context, doc);
+				}
+			}
             /**
              * If the error is set, but also handled, that means the caller
              * found some problem and dealt with it itself.
