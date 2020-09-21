@@ -72,7 +72,7 @@ public:
     TStatId GetStatId() const;
 
     // Generic API
-    void AuthenticatePlayer() override;
+	void AuthenticatePlayer(const FString Username, const FString Password) override;
     EDriftConnectionState GetConnectionState() const override;
     FString GetPlayerName() override;
     int32 GetPlayerID() override;
@@ -180,7 +180,7 @@ private:
     void ConfigureSettingsSection(const FString& config);
 
     void GetRootEndpoints(TFunction<void()> onSuccess);
-    void InitAuthentication(const FString& credentialType);
+    void InitAuthentication(const FString& credentialType, const FString& Username, const FString& Password);
     void GetUserInfo();
     void RegisterClient();
     void GetPlayerEndpoints();
@@ -331,7 +331,7 @@ private:
 
     const FString& GetProjectName();
     const FGuid& GetAppGuid();
-    IDriftAuthProviderFactory* GetDeviceAuthProviderFactory();
+    IDriftAuthProviderFactory* GetDeviceAuthProviderFactory(const FString& Username, const FString& Password);
 	
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
 

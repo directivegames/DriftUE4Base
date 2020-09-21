@@ -876,7 +876,7 @@ bool FDriftBase::GetCount(const FString& counterName, float& value)
 }
 
 
-void FDriftBase::AuthenticatePlayer()
+void FDriftBase::AuthenticatePlayer(const FString Username, const FString Password)
 {
     if (state_ >= DriftSessionState::Connecting)
     {
@@ -892,7 +892,14 @@ void FDriftBase::AuthenticatePlayer()
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Config, TEXT("No Drift URL configured") });
         return;
     }
-
+	
+	if (Username.IsEmpty() != Password.IsEmpty())
+	{
+		DRIFT_LOG(Base, Error, TEXT("Username and password must be empty or non-empty at the same time!"));
+		onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_InvalidCredentials, TEXT("Invalid username or password") });
+		return;
+	}
+	
     if (!ignoreCommandLineArguments_)
     {
         FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
@@ -923,6 +930,12 @@ void FDriftBase::AuthenticatePlayer()
     {
         GConfig->GetString(*settingsSection_, TEXT("CredentialsType"), credentialType, GGameIni);
     }
+	
+	if (!Username.IsEmpty())
+	{
+		DRIFT_LOG(Base, Log, TEXT("Explicit username and password provided, using"));
+		credentialType = TEXT("uuid");
+	}
 
     if (credentialType.IsEmpty())
     {
@@ -930,8 +943,9 @@ void FDriftBase::AuthenticatePlayer()
         credentialType = TEXT("uuid");
     }
 
-    GetRootEndpoints([this, credentialType]() {
-        InitAuthentication(credentialType);
+    GetRootEndpoints([this, credentialType, Username, Password]()
+	{
+		InitAuthentication(credentialType, Username, Password);
     });
 }
 
@@ -1023,11 +1037,11 @@ const FGuid& FDriftBase::GetAppGuid()
 }
 
 
-IDriftAuthProviderFactory* FDriftBase::GetDeviceAuthProviderFactory()
+IDriftAuthProviderFactory* FDriftBase::GetDeviceAuthProviderFactory(const FString& Username, const FString& Password)
 {
     if (!deviceAuthProviderFactory_.IsValid())
     {
-        deviceAuthProviderFactory_ = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, GetProjectName());
+        deviceAuthProviderFactory_ = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, GetProjectName(), Username, Password);
     }
     return deviceAuthProviderFactory_.Get();
 }
@@ -1996,7 +2010,7 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
 }
 
 
-void FDriftBase::InitAuthentication(const FString& credentialType)
+void FDriftBase::InitAuthentication(const FString& credentialType, const FString& Username, const FString& Password)
 {
     authProvider.Reset();
 
@@ -2007,7 +2021,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
             DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
         }
 
-        authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
+        authProvider = MakeShareable(GetDeviceAuthProviderFactory(Username, Password)->GetAuthProvider().Release());
     }
     else
     {
@@ -2021,7 +2035,7 @@ void FDriftBase::InitAuthentication(const FString& credentialType)
             DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to uuid credentials"), *credentialType);
         }
 
-        authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
+        authProvider = MakeShareable(GetDeviceAuthProviderFactory(Username, Password)->GetAuthProvider().Release());
     }
 
     authProvider->InitCredentials([this](bool credentialSuccess)

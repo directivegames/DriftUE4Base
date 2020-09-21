@@ -218,6 +218,7 @@ enum class EAuthenticationResult : uint8
     Error_Forbidden,
     Error_NoOnlineSubsystemCredentials,
     Error_Failed,
+	Error_InvalidCredentials,
 };
 
 
@@ -473,7 +474,7 @@ public:
     * Fires OnGameVersionMismatch if the game version is invalid
     * Fires OnPlayerAuthenticated() when finished.
     */
-    virtual void AuthenticatePlayer() = 0;
+	virtual void AuthenticatePlayer(const FString Username = {}, const FString Password = {}) = 0;
 
     /**
      * Get connection state
