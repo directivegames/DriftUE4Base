@@ -72,7 +72,8 @@ public:
     TStatId GetStatId() const;
 
     // Generic API
-	void AuthenticatePlayer(const FString Username, const FString Password) override;
+	void AuthenticatePlayer() override;
+	void AuthenticatePlayer(const FString& Username, const FString& Password) override;
     EDriftConnectionState GetConnectionState() const override;
     FString GetPlayerName() override;
     int32 GetPlayerID() override;

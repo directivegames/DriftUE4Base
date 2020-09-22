@@ -470,11 +470,12 @@ public:
      */
     
     /**
-    * Authenticate a player using credentialtype defined in config
+    * Authenticate a player using credential type defined in config
     * Fires OnGameVersionMismatch if the game version is invalid
     * Fires OnPlayerAuthenticated() when finished.
     */
-	virtual void AuthenticatePlayer(const FString Username = {}, const FString Password = {}) = 0;
+	   virtual void AuthenticatePlayer() = 0;
+    virtual void AuthenticatePlayer(const FString& Username, const FString& Password) = 0;
 
     /**
      * Get connection state

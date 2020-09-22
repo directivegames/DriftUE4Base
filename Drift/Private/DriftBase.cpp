@@ -876,7 +876,13 @@ bool FDriftBase::GetCount(const FString& counterName, float& value)
 }
 
 
-void FDriftBase::AuthenticatePlayer(const FString Username, const FString Password)
+void FDriftBase::AuthenticatePlayer()
+{
+    AuthenticatePlayer({}, {});
+}
+
+
+void FDriftBase::AuthenticatePlayer(const FString& Username, const FString& Password)
 {
     if (state_ >= DriftSessionState::Connecting)
     {
@@ -2025,6 +2031,11 @@ void FDriftBase::InitAuthentication(const FString& credentialType, const FString
     }
     else
     {
+        /**
+         * Note that the "uuid" auth provider factory is not registered anywhere, it's always created as a fallback,
+         * so this is expected to fail for "uuid" and will be dealt with below.
+         * TODO: Make this not so confusing?
+         */ 
         authProvider = MakeShareable(MakeAuthProvider(credentialType).Release());
     }
 
