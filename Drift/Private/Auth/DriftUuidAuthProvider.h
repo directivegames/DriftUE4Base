@@ -10,8 +10,8 @@ class ISecureStorage;
 class FDriftUuidAuthProvider : public IDriftAuthProvider
 {
 public:
-    FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage, const FString& Username, const FString& Password);
-    
+    FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage);
+
     FString GetProviderName() const override { return TEXT("uuid"); }
     void InitCredentials(InitCredentialsCallback callback) override;
     void GetFriends(GetFriendsCallback callback) override;

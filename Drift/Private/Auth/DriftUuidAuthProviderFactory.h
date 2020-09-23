@@ -8,7 +8,7 @@
 class FDriftUuidAuthProviderFactory : public IDriftAuthProviderFactory
 {
 public:
-    FDriftUuidAuthProviderFactory(int32 instanceIndex, const FString& projectName, const FString& Username, const FString& Password);
+    FDriftUuidAuthProviderFactory(int32 instanceIndex, const FString& projectName);
 
     FName GetAuthProviderName() const override;
     TUniquePtr<IDriftAuthProvider> GetAuthProvider() override;
@@ -16,6 +16,4 @@ public:
 private:
     int32 instanceIndex_;
     FString projectName_;
-	FString username_;
-	FString password_;
 };

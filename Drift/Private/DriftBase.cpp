@@ -25,6 +25,7 @@
 #include "IDriftAuthProvider.h"
 #include "IErrorReporter.h"
 #include "Auth/DriftUuidAuthProviderFactory.h"
+#include "Auth/DriftUserPassAuthProviderFactory.h"
 
 #include "SocketSubsystem.h"
 #include "GeneralProjectSettings.h"
@@ -530,6 +531,8 @@ void FDriftBase::Reset()
     matchQueue = FMatchQueueResponse{};
     matchQueueState = EMatchQueueState::Idle;
 
+	userPassAuthProviderFactory_.Reset();
+
     CreatePlayerCounterManager();
     CreateEventManager();
     CreateLogForwarder();
@@ -879,11 +882,11 @@ bool FDriftBase::GetCount(const FString& counterName, float& value)
 
 void FDriftBase::AuthenticatePlayer()
 {
-    AuthenticatePlayer({}, {});
+    AuthenticatePlayer(FAuthenticationSettings{});
 }
 
 
-void FDriftBase::AuthenticatePlayer(const FString& Username, const FString& Password)
+void FDriftBase::AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings)
 {
     if (state_ >= DriftSessionState::Connecting)
     {
@@ -900,7 +903,8 @@ void FDriftBase::AuthenticatePlayer(const FString& Username, const FString& Pass
         return;
     }
 
-	if (Username.IsEmpty() != Password.IsEmpty())
+	if ((AuthenticationSettings.CredentialsType.IsEmpty() || AuthenticationSettings.CredentialsType == TEXT("user+pass"))
+		&& AuthenticationSettings.Username.IsEmpty() != AuthenticationSettings.Password.IsEmpty())
 	{
 		DRIFT_LOG(Base, Error, TEXT("Username and password must be empty or non-empty at the same time!"));
 		onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_InvalidCredentials, TEXT("Invalid username or password") });
@@ -927,32 +931,30 @@ void FDriftBase::AuthenticatePlayer(const FString& Username, const FString& Pass
         return;
     }
 
-    FString credentialType;
-    if (!ignoreCommandLineArguments_)
-    {
-        FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
-    }
-
-    if (credentialType.IsEmpty())
-    {
-        GConfig->GetString(*settingsSection_, TEXT("CredentialsType"), credentialType, GGameIni);
-    }
-
-	if (!Username.IsEmpty())
+	if (AuthenticationSettings.CredentialsType.IsEmpty())
 	{
-		DRIFT_LOG(Base, Log, TEXT("Explicit username and password provided, using"));
-		credentialType = TEXT("uuid");
+		FString credentialType;
+		if (!ignoreCommandLineArguments_)
+		{
+			FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+		}
+
+		if (credentialType.IsEmpty())
+		{
+			GConfig->GetString(*settingsSection_, TEXT("CredentialsType"), credentialType, GGameIni);
+		}
+
+		if (credentialType.IsEmpty())
+		{
+			DRIFT_LOG(Base, Warning, TEXT("No credential type specified, falling back to uuid credentials."));
+			credentialType = TEXT("uuid");
+		}
+		AuthenticationSettings.CredentialsType = credentialType;
 	}
 
-    if (credentialType.IsEmpty())
-    {
-        DRIFT_LOG(Base, Warning, TEXT("No credential type specified, falling back to uuid credentials."));
-        credentialType = TEXT("uuid");
-    }
-
-    GetRootEndpoints([this, credentialType, Username, Password]()
+    GetRootEndpoints([this, AuthenticationSettings]()
 	{
-		InitAuthentication(credentialType, Username, Password);
+		InitAuthentication(AuthenticationSettings);
     });
 }
 
@@ -1044,13 +1046,23 @@ const FGuid& FDriftBase::GetAppGuid()
 }
 
 
-IDriftAuthProviderFactory* FDriftBase::GetDeviceAuthProviderFactory(const FString& Username, const FString& Password)
+IDriftAuthProviderFactory* FDriftBase::GetDeviceAuthProviderFactory()
 {
     if (!deviceAuthProviderFactory_.IsValid())
     {
-        deviceAuthProviderFactory_ = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, GetProjectName(), Username, Password);
+        deviceAuthProviderFactory_ = MakeUnique<FDriftUuidAuthProviderFactory>(instanceIndex_, GetProjectName());
     }
     return deviceAuthProviderFactory_.Get();
+}
+
+
+IDriftAuthProviderFactory* FDriftBase::GetUserPassAuthProviderFactory(const FString& Username, const FString& Password, bool bAllowAutomaticAccountCreation)
+{
+	if (!userPassAuthProviderFactory_.IsValid())
+	{
+		userPassAuthProviderFactory_ = MakeUnique<FDriftUserPassAuthProviderFactory>(instanceIndex_, GetProjectName(), Username, Password, bAllowAutomaticAccountCreation);
+	}
+	return userPassAuthProviderFactory_.Get();
 }
 
 
@@ -2040,37 +2052,42 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
 }
 
 
-void FDriftBase::InitAuthentication(const FString& credentialType, const FString& Username, const FString& Password)
+void FDriftBase::InitAuthentication(const FAuthenticationSettings& AuthenticationSettings)
 {
     authProvider.Reset();
 
     if (GIsEditor && !IsRunningGame())
     {
-        if (credentialType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
+        if (AuthenticationSettings.CredentialsType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
         {
             DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
         }
-
-        authProvider = MakeShareable(GetDeviceAuthProviderFactory(Username, Password)->GetAuthProvider().Release());
     }
     else
     {
         /**
-         * Note that the "uuid" auth provider factory is not registered anywhere, it's always created as a fallback,
-         * so this is expected to fail for "uuid" and will be dealt with below.
+         * Note that the "uuid" and "user+pass" auth provider factories are not registered anywhere, they're always
+         * created as a fallback, so this is expected to fail for "uuid" and "user+pass" and will be dealt with below.
          * TODO: Make this not so confusing?
          */
-        authProvider = MakeShareable(MakeAuthProvider(credentialType).Release());
+        authProvider = MakeShareable(MakeAuthProvider(AuthenticationSettings.CredentialsType).Release());
     }
 
     if (!authProvider.IsValid())
     {
-        if (credentialType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
-        {
-            DRIFT_LOG(Base, Warning, TEXT("Failed to find auth provider for '%s', falling back to uuid credentials"), *credentialType);
-        }
+    	if (AuthenticationSettings.CredentialsType == TEXT("user+pass") && !AuthenticationSettings.Username.IsEmpty() && !AuthenticationSettings.Password.IsEmpty())
+    	{
+	        authProvider = MakeShareable(GetUserPassAuthProviderFactory(AuthenticationSettings.Username, AuthenticationSettings.Password, AuthenticationSettings.bAutoCreateAccount)->GetAuthProvider().Release());
+    	}
+    	else
+    	{
+    		if (AuthenticationSettings.CredentialsType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
+    		{
+    			DRIFT_LOG(Base, Warning, TEXT("Failed to find or auth provider for '%s', falling back to uuid credentials"), *AuthenticationSettings.CredentialsType);
+    		}
 
-        authProvider = MakeShareable(GetDeviceAuthProviderFactory(Username, Password)->GetAuthProvider().Release());
+    		authProvider = MakeShareable(GetDeviceAuthProviderFactory()->GetAuthProvider().Release());
+    	}
     }
 
     authProvider->InitCredentials([this](bool credentialSuccess)
@@ -2101,7 +2118,6 @@ void FDriftBase::InitAuthentication(const FString& credentialType, const FString
             Reset();
             onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_NoOnlineSubsystemCredentials, TEXT("Failed to aquire credentials") });
         }
-        return;
     });
 }
 
@@ -2110,7 +2126,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
 {
     FUserPassAuthenticationPayload payload{};
     payload.provider = provider->GetProviderName();
-    payload.automatic_account_creation = true;
+    payload.automatic_account_creation = provider->AllowAutomaticAccountCreation();
     provider->FillProviderDetails([&payload](const FString& key, const FString& value) {
         JsonArchive::AddMember(payload.provider_details, *key, *value);
     });
@@ -2124,6 +2140,11 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         payload.username = payload.provider_details[TEXT("key")].GetString();
         payload.password = payload.provider_details[TEXT("secret")].GetString();
     }
+	else if (provider->GetProviderName() == "user+pass")
+	{
+		payload.username = payload.provider_details[TEXT("username")].GetString();
+		payload.password = payload.provider_details[TEXT("password")].GetString();
+	}
 
     DRIFT_LOG(Base, Verbose, TEXT("Authenticating player with: %s"), *provider->ToString());
 

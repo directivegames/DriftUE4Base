@@ -5,22 +5,17 @@
 #include "ISecureStorage.h"
 
 
-FDriftUuidAuthProvider::FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage, const FString& Username, const FString& Password)
+FDriftUuidAuthProvider::FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage)
 : instanceIndex_(instanceIndex)
 , credentialsFactory_(credentialsFactory.Release())
 , secureStorage_(secureStorage)
-, key_(Username)
-, secret_(Password)
 {
 }
 
 
 void FDriftUuidAuthProvider::InitCredentials(TFunction<void(bool)> callback)
 {
-	if (key_.IsEmpty() && secret_.IsEmpty())
-	{
-		GetDeviceIDCredentials();
-	}
+	GetDeviceIDCredentials();
     callback(true);
 }
 

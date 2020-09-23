@@ -6,11 +6,9 @@
 #include "SecureStorageFactory.h"
 
 
-FDriftUuidAuthProviderFactory::FDriftUuidAuthProviderFactory(int32 instanceIndex, const FString& projectName, const FString& Username, const FString& Password)
+FDriftUuidAuthProviderFactory::FDriftUuidAuthProviderFactory(int32 instanceIndex, const FString& projectName)
 : instanceIndex_(instanceIndex)
 , projectName_(projectName)
-, username_(Username)
-, password_(Password)
 {
 
 }
@@ -24,5 +22,5 @@ FName FDriftUuidAuthProviderFactory::GetAuthProviderName() const
 
 TUniquePtr<IDriftAuthProvider> FDriftUuidAuthProviderFactory::GetAuthProvider()
 {
-    return MakeUnique<FDriftUuidAuthProvider>(instanceIndex_, MakeUnique<FDriftCredentialsFactory>(), SecureStorageFactory::GetSecureStorage(projectName_, TEXT("Drift")), username_, password_);
+    return MakeUnique<FDriftUuidAuthProvider>(instanceIndex_, MakeUnique<FDriftCredentialsFactory>(), SecureStorageFactory::GetSecureStorage(projectName_, TEXT("Drift")));
 }
