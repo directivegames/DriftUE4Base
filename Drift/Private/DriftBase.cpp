@@ -33,6 +33,7 @@
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
 #include "Internationalization/Internationalization.h"
+#include "Misc/EngineVersionComparison.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -1531,7 +1532,30 @@ void FDriftBase::AddAnalyticsEvent(const FString& eventName, const TArray<FAnaly
     for (const auto& attribute : attributes)
     {
 #ifdef WITH_ANALYTICS_EVENT_ATTRIBUTE_TYPES
-		event->Add(attribute.GetName(), attribute.GetValue());
+#ifdef WITH_ENGINE_VERSION_MACROS
+#if UE_VERSION_OLDER_THAN(4, 26, 0)
+        switch (attribute.AttrType)
+        {
+            case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
+                 event->Add(attribute.AttrName, attribute.AttrValueBool);
+                break;
+            case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
+                event->Add(attribute.AttrName, attribute.AttrValueString);
+                break;
+            case FAnalyticsEventAttribute::AttrTypeEnum::Null:
+                event->Add(attribute.AttrName, nullptr);
+                break;
+            case FAnalyticsEventAttribute::AttrTypeEnum::Number:
+                event->Add(attribute.AttrName, attribute.AttrValueNumber);
+                break;
+            case FAnalyticsEventAttribute::AttrTypeEnum::String:
+                event->Add(attribute.AttrName, attribute.AttrValueString);
+                break;
+            }
+#else
+        event->Add(attribute.GetName(), attribute.GetValue());
+#endif
+#endif
 #else
         event->Add(attribute.AttrName, attribute.AttrValue);
 #endif
