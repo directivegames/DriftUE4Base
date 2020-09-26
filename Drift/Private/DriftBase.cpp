@@ -818,6 +818,7 @@ void FDriftBase::SavePlayerGameStateImpl(const FString& name, const FString& gam
     else
     {
         url = driftEndpoints.my_gamestate.Replace(TEXT("{namespace}"), *name);
+        playerGameStateInfosLoaded = false;
     }
 
     FPlayerGameStatePayload payload{};
