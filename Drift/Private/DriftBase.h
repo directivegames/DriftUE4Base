@@ -177,6 +177,8 @@ public:
 	bool SendFriendMessage(int32 FriendId, const FString& Message) override;
 	bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
+    int32 GetInstanceIndex() const override { return instanceIndex_; }
+
 private:
     void ConfigureSettingsSection(const FString& config);
 

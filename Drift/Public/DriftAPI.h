@@ -828,6 +828,9 @@ public:
 	/** Send a json message to a friend */
 	virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) = 0;
 
+    /** Return the index of this drift instance */
+    virtual int32 GetInstanceIndex() const = 0;
+
     virtual ~IDriftAPI() {}
 };
 
