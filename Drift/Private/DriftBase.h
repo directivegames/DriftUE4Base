@@ -159,6 +159,8 @@ public:
     void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+	void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
     void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
     void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;

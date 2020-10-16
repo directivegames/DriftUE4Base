@@ -70,6 +70,15 @@ struct FAnalyticsEventAttribute;
 class IDriftEvent;
 
 
+struct FDriftUpdateMatchProperties
+{
+	TOptional<FString> gameMode;
+	TOptional<FString> mapName;
+	TOptional<FString> status;
+	TOptional<int32> maxPlayers;
+};
+
+
 class IDriftServerAPI
 {
 public:
@@ -99,6 +108,8 @@ public:
      * Update a match to set it's status for the match maker. A status of "completed" means the match has ended.
      */
     virtual void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
+    virtual void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
+    virtual void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
 
     /**
      * Get the match ID if currently hosting a match, or 0.

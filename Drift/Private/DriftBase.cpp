@@ -3147,36 +3147,57 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
 
 void FDriftBase::UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate)
 {
+	UpdateMatch(FDriftUpdateMatchProperties{ status }, delegate);
+}
+
+
+void FDriftBase::UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate)
+{
+	UpdateMatch(FDriftUpdateMatchProperties{ status }, delegate);
+}
+
+
+void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate)
+{
     if (state_ != DriftSessionState::Connected || match_info.url.IsEmpty())
     {
         /**
          * TODO: Is this the best approach? This should only ever happen in the editor,
          * as in the real game no client can connect before the match has been initialized.
          */
-        delegate.ExecuteIfBound(false);
+        (void)delegate.ExecuteIfBound(false);
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *status);
-
     JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("status"), *status);
-    if (!reason.IsEmpty())
-    {
-        JsonValue details{ rapidjson::kObjectType };
-        JsonArchive::AddMember(details, TEXT("status-reason"), *reason);
-        JsonArchive::AddMember(payload, TEXT("details"), details);
-    }
+	if (properties.status.IsSet())
+	{
+	    DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *properties.status.GetValue());
+
+	    JsonArchive::AddMember(payload, TEXT("status"), *properties.status.GetValue());
+	}
+	if (properties.mapName.IsSet())
+	{
+	    JsonArchive::AddMember(payload, TEXT("map_name"), *properties.mapName.GetValue());
+	}
+	if (properties.gameMode.IsSet())
+	{
+	    JsonArchive::AddMember(payload, TEXT("game_mode"), *properties.gameMode.GetValue());
+	}
+	if (properties.maxPlayers.IsSet())
+	{
+	    JsonArchive::AddMember(payload, TEXT("max_players"), properties.maxPlayers.GetValue());
+	}
 
     auto request = GetGameRequestManager()->Put(match_info.url, payload);
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
-        delegate.ExecuteIfBound(true);
+        (void)delegate.ExecuteIfBound(true);
         onMatchUpdated.Broadcast(true);
     });
     request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
-        delegate.ExecuteIfBound(false);
+        (void)delegate.ExecuteIfBound(false);
         onMatchUpdated.Broadcast(false);
         context.errorHandled = true;
     });
