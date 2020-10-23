@@ -3147,13 +3147,15 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
 
 void FDriftBase::UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate)
 {
-	UpdateMatch(FDriftUpdateMatchProperties{ status }, delegate);
+	UpdateMatch(status, delegate);
 }
 
 
 void FDriftBase::UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate)
 {
-	UpdateMatch(FDriftUpdateMatchProperties{ status }, delegate);
+    FDriftUpdateMatchProperties Properties{};
+    Properties.status = status;
+    UpdateMatch(Properties, delegate);
 }
 
 
