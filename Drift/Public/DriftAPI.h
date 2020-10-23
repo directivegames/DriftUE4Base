@@ -72,10 +72,10 @@ class IDriftEvent;
 
 struct FDriftUpdateMatchProperties
 {
-	TOptional<FString> gameMode;
-	TOptional<FString> mapName;
-	TOptional<FString> status;
-	TOptional<int32> maxPlayers;
+    TOptional<FString> gameMode;
+    TOptional<FString> mapName;
+    TOptional<FString> status;
+    TOptional<int32> maxPlayers;
 };
 
 
