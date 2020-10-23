@@ -3187,7 +3187,11 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 	{
 		JsonArchive::AddMember(payload, TEXT("game_mode"), *properties.gameMode.GetValue());
 	}
-	if (properties.maxPlayers.IsSet())
+    if (properties.uniqueKey.IsSet())
+    {
+        JsonArchive::AddMember(payload, TEXT("unique_key"), *properties.uniqueKey.GetValue());
+    }
+    if (properties.maxPlayers.IsSet())
 	{
 		JsonArchive::AddMember(payload, TEXT("max_players"), properties.maxPlayers.GetValue());
 	}

@@ -76,6 +76,12 @@ struct FDriftUpdateMatchProperties
     TOptional<FString> mapName;
     TOptional<FString> status;
     TOptional<int32> maxPlayers;
+
+    /**
+     * uniqueKey enforces uniqueness of running matches by not allowing Drift to accept two matches with the same
+     * unique key. What the unique key is, and what it means to an individual product is left to the product to define
+     */
+    TOptional<FString> uniqueKey;
 };
 
 
@@ -916,6 +922,7 @@ struct FGetMatchesResponseItem
     FString server_status;
     FString server_url;
     FString ue4_connection_url;
+    FString unique_key;
     FString version;
 
     FString matchplayers_url;

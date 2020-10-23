@@ -22,7 +22,7 @@ bool FGetActiveMatchesResponse::Serialize(SerializationContext& context)
 
 bool FGetMatchesResponseItem::Serialize(SerializationContext& context)
 {
-    return SERIALIZE_PROPERTY(context, create_date)
+    const bool result = SERIALIZE_PROPERTY(context, create_date)
         && SERIALIZE_PROPERTY(context, game_mode)
         && SERIALIZE_PROPERTY(context, map_name)
         && SERIALIZE_PROPERTY(context, match_id)
@@ -35,4 +35,6 @@ bool FGetMatchesResponseItem::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, ue4_connection_url)
         && SERIALIZE_PROPERTY(context, matchplayers_url)
         && SERIALIZE_PROPERTY(context, ref);
+    SERIALIZE_OPTIONAL_PROPERTY(context, unique_key);
+    return result;
 }
