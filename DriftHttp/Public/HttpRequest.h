@@ -141,6 +141,8 @@ public:
     void SetCache(TSharedPtr<IHttpCache> cache);
     
     FString GetAsDebugString() const;
+
+    FString GetRequestURL() const;
     
     FRequestErrorDelegate OnError;
     FRequestErrorDelegate DefaultErrorHandler;

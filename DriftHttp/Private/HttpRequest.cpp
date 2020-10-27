@@ -406,6 +406,11 @@ void HttpRequest::Destroy()
     wrappedRequest_->CancelRequest();
 }
 
+FString HttpRequest::GetRequestURL() const
+{
+    return *wrappedRequest_->GetURL();
+}
+
 
 FString HttpRequest::GetAsDebugString() const
 {
