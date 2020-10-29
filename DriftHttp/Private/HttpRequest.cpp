@@ -429,13 +429,42 @@ void HttpRequest::Destroy()
 }
 
 
-FString HttpRequest::GetAsDebugString() const
+FString HttpRequest::GetAsDebugString(bool detailed) const
 {
 #if !UE_BUILD_SHIPPING
-    return FString::Printf(TEXT("Http Request(%s): %s - %s"), *guid_.ToString(), *wrappedRequest_->GetVerb(), *wrappedRequest_->GetURL());
+    FString ret = FString::Printf(TEXT("Http Request(%s): %s - %s"), *guid_.ToString(), *wrappedRequest_->GetVerb(), *wrappedRequest_->GetURL());
+    if (detailed)
+    {
+        ret += LINE_TERMINATOR TEXT("Headers:") LINE_TERMINATOR;
+        for(auto& header: wrappedRequest_->GetAllHeaders())
+        {
+            ret += header + LINE_TERMINATOR;
+        }
+        auto body = GetContentAsString();
+        if (body.Len() > 0)
+        {
+            ret += TEXT("Body:") LINE_TERMINATOR;
+            ret += body;
+        }
+    }
+    return ret;
 #else
     return FString::Printf(TEXT("Http Request: %s - %s"), *wrappedRequest_->GetVerb(), *wrappedRequest_->GetURL());
 #endif
+}
+
+
+FString HttpRequest::GetContentAsString() const
+{
+    auto zeroTerminatedPayload(wrappedRequest_->GetContent());
+    zeroTerminatedPayload.Add(0);
+    return UTF8_TO_TCHAR(zeroTerminatedPayload.GetData());
+}
+
+
+FString HttpRequest::GetRequestURL() const
+{
+    return *wrappedRequest_->GetURL();
 }
 
 

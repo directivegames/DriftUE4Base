@@ -2796,9 +2796,10 @@ void FDriftBase::InitServerAuthentication()
         *SERVER_CREDENTIALS_USERNAME, *password, *SERVER_CREDENTIALS_PROVIDER
         );
 
-    DRIFT_LOG(Base, Log, TEXT("Authenticating server"));
-
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
+
+    DRIFT_LOG(Base, Log, TEXT("Authenticating server: %s"), *request->GetAsDebugString(true));
+    
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
 		serverJTI_ = doc[TEXT("jti")].GetString();

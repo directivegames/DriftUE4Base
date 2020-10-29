@@ -142,7 +142,11 @@ public:
 	
 	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
 	
-    FString GetAsDebugString() const;
+    FString GetAsDebugString(bool detailed=false) const;
+
+    FString GetRequestURL() const;
+
+    FString GetContentAsString() const;
     
     FRequestErrorDelegate OnError;
     FRequestErrorDelegate DefaultErrorHandler;
