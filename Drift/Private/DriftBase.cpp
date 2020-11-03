@@ -3768,4 +3768,12 @@ void FDriftBase::HandleFriendMessage(const FMessageQueueEntry& message)
 	}
 }
 
+void FDriftBase::SetForwardedLogLevel(ELogVerbosity::Type Level)
+{
+    if (logForwarder)
+    {
+        logForwarder->SetForwardedLogLevel(Level);
+    }
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -181,6 +181,8 @@ public:
 
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
+    void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
+
 private:
     void ConfigureSettingsSection(const FString& config);
 

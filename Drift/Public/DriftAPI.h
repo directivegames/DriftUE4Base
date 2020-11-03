@@ -848,6 +848,9 @@ public:
     /** Return the index of this drift instance */
     virtual int32 GetInstanceIndex() const = 0;
 
+    /** Set the min level of the forwarded logs */
+    virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) = 0;
+
     virtual ~IDriftAPI() {}
 };
 
