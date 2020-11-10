@@ -2014,13 +2014,12 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
     return true;
 }
 
-
-bool FDriftBase::FindPlayerByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate)
+bool FDriftBase::FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate)
 {
     DRIFT_LOG(Base, Verbose, TEXT("Searching for %s"), *SearchString);
     if (state_ != DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend without being connected"));
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to search without being connected"));
         return false;
     }
     FString url = driftEndpoints.players;

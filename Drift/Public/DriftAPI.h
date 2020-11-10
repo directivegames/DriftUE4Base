@@ -707,7 +707,7 @@ public:
      * Searches for players by player_name (not username). If searchString contains a '*' for a wildcard search, the
      * search will be case-insensitive. 
      */
-    virtual bool FindPlayerByName(const FString& searchString, const FDriftFindPlayerByNameDelegate& delegate) = 0;
+    virtual bool FindPlayersByName(const FString& searchString, const FDriftFindPlayerByNameDelegate& delegate) = 0;
 
     /**
      * Load the avatar url of the currently logged in player
