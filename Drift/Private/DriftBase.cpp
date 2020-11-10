@@ -2015,6 +2015,38 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
 }
 
 
+bool FDriftBase::FindPlayerByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate)
+{
+    DRIFT_LOG(Base, Verbose, TEXT("Searching for %s"), *SearchString);
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend without being connected"));
+        return false;
+    }
+    FString url = driftEndpoints.players;
+    internal::UrlHelper::AddUrlOption(url, TEXT("player_name"), FString::Printf(TEXT("%s"), *SearchString));
+    auto request = GetGameRequestManager()->Get(url);
+    request->OnResponse.BindLambda([this, SearchString, delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        DRIFT_LOG(Base, Verbose, TEXT("Search for %s yielded %s"), *SearchString, *doc.ToString());
+        TArray<FDriftPlayerResponse> results;
+        if (!JsonArchive::LoadObject(doc, results))
+        {
+            context.error = TEXT("Failed to parse search response");
+            return;
+        }
+        delegate.ExecuteIfBound(true, results);
+    });
+    request->OnError.BindLambda([this, SearchString, delegate](ResponseContext& context)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Failed to search for %s: %s"), *SearchString, *context.error);
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false, {});
+    });
+    request->Dispatch();
+    return true;
+}
+
 void FDriftBase::ConfigureSettingsSection(const FString& config)
 {
     if (config.IsEmpty())

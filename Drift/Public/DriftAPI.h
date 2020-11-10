@@ -450,6 +450,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftPlayerResponse>&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -690,6 +691,7 @@ public:
      * Request a friend request token to be sent to a friend via external means
      */
     virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+ 
     /**
      * Accept a friend request via an external token
      */
@@ -702,10 +704,16 @@ public:
     virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) = 0;
 
     /**
-	* Load the avatar url of the currently logged in player
-	* Fires delegate when finished
-	*/
-	virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
+     * Searches for players by player_name (not username). If searchString contains a '*' for a wildcard search, the
+     * search will be case-insensitive. 
+     */
+    virtual bool FindPlayerByName(const FString& searchString, const FDriftFindPlayerByNameDelegate& delegate) = 0;
+
+    /**
+     * Load the avatar url of the currently logged in player
+     * Fires delegate when finished
+    */
+    virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
 
     /**
      * Flush all counters. Requires at least one tick to actually flush.

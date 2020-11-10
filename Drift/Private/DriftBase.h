@@ -116,6 +116,8 @@ public:
     bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
+    bool FindPlayerByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
+
     void FlushCounters() override;
     void FlushEvents() override;
 
