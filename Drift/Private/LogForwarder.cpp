@@ -138,22 +138,24 @@ void FLogForwarder::Log(const TCHAR* text, ELogVerbosity::Type level, const FNam
 
 const FString& FLogForwarder::GetLogLevelName(ELogVerbosity::Type level) const
 {
-    static const FString LEVEL_FATAL(TEXT("Fatal"));
-    static const FString LEVEL_ERROR(TEXT("Error"));
-    static const FString LEVEL_WARNING(TEXT("Warning"));
-    static const FString LEVEL_OTHER(TEXT("Other"));
-
-    switch(level)
+    static const TMap<ELogVerbosity::Type, FString> LogLevelNames =
     {
-        case ELogVerbosity::Fatal:
-            return LEVEL_FATAL;
-        case ELogVerbosity::Error:
-            return LEVEL_ERROR;
-        case ELogVerbosity::Warning:
-            return LEVEL_WARNING;
-        default:
-            return LEVEL_OTHER;
+        { ELogVerbosity::Fatal, TEXT("Fatal") },
+        { ELogVerbosity::Error, TEXT("Error") },
+        { ELogVerbosity::Warning, TEXT("Warning") },
+        { ELogVerbosity::Display, TEXT("Display") },
+        { ELogVerbosity::Log, TEXT("Log") },
+        { ELogVerbosity::Verbose, TEXT("Verbose") },
+        { ELogVerbosity::VeryVerbose, TEXT("VeryVerbose") }
+    };
+
+    if (auto LevelName = LogLevelNames.Find(level))
+    {
+        return *LevelName;
     }
+
+    static const FString LEVEL_OTHER(TEXT("Other"));
+    return LEVEL_OTHER;
 }
 
 void FLogForwarder::SetForwardedLogLevel(ELogVerbosity::Type Level)
