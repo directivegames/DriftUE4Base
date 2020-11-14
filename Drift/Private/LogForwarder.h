@@ -55,6 +55,4 @@ private:
     float flushLogsInSeconds = FLT_MAX;
 
     ELogVerbosity::Type minLogLevel = ELogVerbosity::Error;
-
-    FString CorrelationId;
 };

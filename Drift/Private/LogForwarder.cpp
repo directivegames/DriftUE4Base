@@ -13,7 +13,6 @@ static const float FLUSH_LOGS_INTERVAL = 5.0f;
 FLogForwarder::FLogForwarder()
 {
     GLog->AddOutputDevice(this);
-    CorrelationId = FGuid::NewGuid().ToString();
 }
 
 
@@ -133,7 +132,7 @@ void FLogForwarder::Log(const TCHAR* text, ELogVerbosity::Type level, const FNam
         return;
     }
 
-    pendingLogs.Emplace(text, *GetLogLevelName(level), category, FDateTime::UtcNow(), CorrelationId);
+    pendingLogs.Emplace(text, *GetLogLevelName(level), category, FDateTime::UtcNow());
 }
 
 

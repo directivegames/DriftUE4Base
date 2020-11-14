@@ -345,7 +345,6 @@ bool FDriftLogMessage::Serialize(SerializationContext& context)
     SERIALIZE_PROPERTY(context, category);
     
     SERIALIZE_PROPERTY(context, timestamp);
-    SERIALIZE_PROPERTY(context, correlation_id);
 
     return true;
 }

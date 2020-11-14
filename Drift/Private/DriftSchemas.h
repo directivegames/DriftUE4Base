@@ -444,15 +444,13 @@ struct FDriftLogMessage
     FString level;
     FName category;
     FDateTime timestamp;
-    FString correlation_id;
     
     FDriftLogMessage() {}
-    FDriftLogMessage(const FString& _message, const FString& _level, const FName& _category, const FDateTime& _timestamp, const FString& _correlation_id)
+    FDriftLogMessage(const FString& _message, const FString& _level, const FName& _category, const FDateTime& _timestamp)
     : message(_message)
     , level(_level)
     , category(_category)
     , timestamp(_timestamp)
-    , correlation_id(_correlation_id)
     {
     }
 
