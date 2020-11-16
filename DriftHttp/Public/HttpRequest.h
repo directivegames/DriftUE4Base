@@ -139,10 +139,14 @@ public:
     void SetContentType(const FString& contentType) { contentType_ = contentType; }
     
     void SetCache(TSharedPtr<IHttpCache> cache);
-    
-    FString GetAsDebugString() const;
+	
+	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
+	
+    FString GetAsDebugString(bool detailed=false) const;
 
     FString GetRequestURL() const;
+
+    FString GetContentAsString() const;
     
     FRequestErrorDelegate OnError;
     FRequestErrorDelegate DefaultErrorHandler;
@@ -196,6 +200,7 @@ protected:
 
     int32 expectedResponseCode_;
     bool discarded_ = false;
+	bool expectJsonResponse_ = true;
     
     TSharedPtr<IHttpCache> cache_;
 };

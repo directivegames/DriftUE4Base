@@ -193,12 +193,7 @@ void FileHttpCache::LoadCache()
 
     for (auto& member : entries.GetObject())
     {
-        FString key;
-        FString value;
-        if (JsonArchive::LoadObject(*member.Key, key) && JsonArchive::LoadObject(member.Value, value))
-        {
-            index.Add(key, value);
-        }
+        index.Add(member.Key, member.Value.ToString());
     }
 
     UE_LOG(LogHttpCache, Verbose, TEXT("Loaded %d cache entires"), entries.MemberCount());

@@ -69,9 +69,9 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
         }
     }
 #endif
-    
+
     ResponseContext context(request, response, sent_, false);
-    
+
     if (response.IsValid())
     {
         /**
@@ -82,50 +82,72 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
             /**
              * We got a non-error response code
              */
-            auto contentType = context.response->GetHeader(TEXT("Content-Type"));
-            if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
-            {
-                context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
-            }
-            else
-            {
-                JsonDocument doc;
-                FString content = response->GetContentAsString();
-                if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
-                {
-                    content = TEXT("{}");
-                }
-                doc.Parse(*content);
-                if (doc.HasParseError())
-                {
-                    context.error = FString::Printf(TEXT("JSON response is broken at position %i. RapidJson error: %i"),
-                        static_cast<int32>(doc.GetErrorOffset()),
-                        static_cast<int32>(doc.GetParseError()));
-                }
-                else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
-                {
-                    context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
-                    if (doc.HasField(TEXT("message")))
-                    {
-                        context.message = doc[TEXT("message")].GetString();
-                    }
-                }
-                else
-                {
-                    // All default validation passed, process response
-                    if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
-                    {
-                        cache_->CacheResponse(context);
-                    }
-                    context.successful = true;
-                    OnResponse.ExecuteIfBound(context, doc);
-                    const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
-                    if (!deprecationHeader.IsEmpty())
-                    {
-                        OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
-                    }
-                }
-            }
+			if (expectJsonResponse_)
+			{
+				auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+				if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
+				{
+					context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
+				}
+				else
+				{
+					JsonDocument doc;
+					FString content = response->GetContentAsString();
+					if (context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent))
+					{
+						content = TEXT("{}");
+					}
+					doc.Parse(*content);
+					if (doc.HasParseError())
+					{
+						context.error = FString::Printf(TEXT("JSON response is broken at position %i. RapidJson error: %i"),
+							static_cast<int32>(doc.GetErrorOffset()),
+							static_cast<int32>(doc.GetParseError()));
+					}
+					else if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
+					{
+						context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
+						if (doc.HasField(TEXT("message")))
+						{
+							context.message = doc[TEXT("message")].GetString();
+						}
+					}
+					else
+					{
+						// All default validation passed, process response
+						if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
+						{
+							cache_->CacheResponse(context);
+						}
+						context.successful = true;
+						OnResponse.ExecuteIfBound(context, doc);
+						const auto deprecationHeader = response->GetHeader(TEXT("Drift-Feature-Deprecation"));
+						if (!deprecationHeader.IsEmpty())
+						{
+							OnDriftDeprecationMessage.ExecuteIfBound(deprecationHeader);
+						}
+					}
+				}
+			}
+			else
+			{
+				// Non-Json response code path
+				if (expectedResponseCode_ != -1 && context.responseCode != expectedResponseCode_)
+				{
+					context.error = FString::Printf(TEXT("Expected '%i', but got '%i'"), expectedResponseCode_, context.responseCode);
+				}
+				else
+				{
+					if (cache_.IsValid() && request->GetVerb() == TEXT("GET"))
+					{
+						cache_->CacheResponse(context);
+					}
+
+					context.successful = true;
+					JsonDocument doc;
+					OnResponse.ExecuteIfBound(context, doc);
+				}
+			}
             /**
              * If the error is set, but also handled, that means the caller
              * found some problem and dealt with it itself.
@@ -196,7 +218,7 @@ void HttpRequest::BroadcastError(ResponseContext &context)
 void HttpRequest::LogError(ResponseContext& context)
 {
     FString errorMessage;
-    
+
     auto error = MakeShared<FJsonObject>();
     error->SetNumberField(TEXT("elapsed"), (FDateTime::UtcNow() - sent_).GetTotalSeconds());
     error->SetBoolField(TEXT("error_handled"), context.errorHandled);
@@ -209,12 +231,12 @@ void HttpRequest::LogError(ResponseContext& context)
     {
         error->SetStringField(TEXT("error"), context.error);
     }
-    
+
     auto requestData = MakeShared<FJsonObject>();
     requestData->SetStringField(TEXT("method"), wrappedRequest_->GetVerb());
     requestData->SetStringField(TEXT("url"), wrappedRequest_->GetURL());
-    
-   
+
+
     auto requestHeaders = context.request->GetAllHeaders();
     if (requestHeaders.Num() > 0)
     {
@@ -300,7 +322,7 @@ void HttpRequest::LogError(ResponseContext& context)
             errorMessage = TEXT("HTTP request timeout");
         }
     }
-    
+
     if (errorMessage.IsEmpty())
     {
         /**
@@ -311,7 +333,7 @@ void HttpRequest::LogError(ResponseContext& context)
 
         FString normalizedUrl = wrappedRequest_->GetURL();
         TArray<TSharedPtr<FJsonValue>> params;
-        
+
         int index = 0;
         FRegexMatcher matcher{ urlNormalizationPattern, normalizedUrl };
         while (matcher.FindNext())
@@ -321,7 +343,7 @@ void HttpRequest::LogError(ResponseContext& context)
             matcher = FRegexMatcher{ urlNormalizationPattern, normalizedUrl };
             ++index;
         }
-        
+
         errorMessage = FString::Printf(TEXT("HTTP request failed: %s %s"), *wrappedRequest_->GetVerb(), *normalizedUrl);
 
         if (params.Num() > 0)
@@ -412,13 +434,36 @@ FString HttpRequest::GetRequestURL() const
 }
 
 
-FString HttpRequest::GetAsDebugString() const
+FString HttpRequest::GetAsDebugString(bool detailed) const
 {
 #if !UE_BUILD_SHIPPING
-    return FString::Printf(TEXT("Http Request(%s): %s - %s"), *guid_.ToString(), *wrappedRequest_->GetVerb(), *wrappedRequest_->GetURL());
+    FString ret = FString::Printf(TEXT("Http Request(%s): %s - %s"), *guid_.ToString(), *wrappedRequest_->GetVerb(), *wrappedRequest_->GetURL());
+    if (detailed)
+    {
+        ret += LINE_TERMINATOR TEXT("Headers:") LINE_TERMINATOR;
+        for(auto& header: wrappedRequest_->GetAllHeaders())
+        {
+            ret += header + LINE_TERMINATOR;
+        }
+        auto body = GetContentAsString();
+        if (body.Len() > 0)
+        {
+            ret += TEXT("Body:") LINE_TERMINATOR;
+            ret += body;
+        }
+    }
+    return ret;
 #else
     return FString::Printf(TEXT("Http Request: %s - %s"), *wrappedRequest_->GetVerb(), *wrappedRequest_->GetURL());
 #endif
+}
+
+
+FString HttpRequest::GetContentAsString() const
+{
+    auto zeroTerminatedPayload(wrappedRequest_->GetContent());
+    zeroTerminatedPayload.Add(0);
+    return UTF8_TO_TCHAR(zeroTerminatedPayload.GetData());
 }
 
 

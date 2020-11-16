@@ -15,7 +15,7 @@ FDriftUuidAuthProvider::FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<I
 
 void FDriftUuidAuthProvider::InitCredentials(TFunction<void(bool)> callback)
 {
-    GetDeviceIDCredentials();
+	GetDeviceIDCredentials();
     callback(true);
 }
 

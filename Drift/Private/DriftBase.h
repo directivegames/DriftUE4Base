@@ -72,7 +72,8 @@ public:
     TStatId GetStatId() const;
 
     // Generic API
-    void AuthenticatePlayer() override;
+	void AuthenticatePlayer() override;
+	void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) override;
     EDriftConnectionState GetConnectionState() const override;
     FString GetPlayerName() override;
     int32 GetPlayerID() override;
@@ -154,38 +155,44 @@ public:
 
     // Server API
     bool RegisterServer() override;
-    
+
     void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+	void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
     void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
     void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
     void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
     bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
-    
+
     FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
     FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
     FDriftPlayerRemovedFromMatchDelegate& OnPlayerRemovedFromMatch() override { return onPlayerRemovedFromMatch; }
     FDriftMatchAddedDelegate& OnMatchAdded() override { return onMatchAdded; }
     FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
-	
-	FDriftReceivedTextMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
-	FDriftReceivedJsonMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
-	
+
+	FDriftReceivedMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
+	FDriftReceivedMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
+
 	bool SendFriendMessage(int32 FriendId, const FString& Message) override;
 	bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
+
+    int32 GetInstanceIndex() const override { return instanceIndex_; }
+
+    void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
 
 private:
     void ConfigureSettingsSection(const FString& config);
 
     void GetRootEndpoints(TFunction<void()> onSuccess);
-    void InitAuthentication(const FString& credentialType);
+    void InitAuthentication(const FAuthenticationSettings& AuthenticationSettings);
     void GetUserInfo();
     void RegisterClient();
     void GetPlayerEndpoints();
     void GetPlayerInfo();
-    
+
     void AuthenticatePlayer(IDriftAuthProvider* provider);
 
     void AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
@@ -251,10 +258,10 @@ private:
     FDriftPlayerRemovedFromMatchDelegate onPlayerRemovedFromMatch;
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
-	
-	FDriftReceivedTextMessageDelegate onReceivedTextMessage;
-	FDriftReceivedJsonMessageDelegate onReceivedJsonMessage;
-	
+
+	FDriftReceivedMessageDelegate onReceivedTextMessage;
+	FDriftReceivedMessageDelegate onReceivedJsonMessage;
+
     TSharedPtr<JsonRequestManager> GetRootRequestManager() const;
     TSharedPtr<JsonRequestManager> GetGameRequestManager() const;
     void SetGameRequestManager(TSharedPtr<JsonRequestManager> manager)
@@ -302,7 +309,7 @@ private:
      * Return the instance name to use for the server process
      */
     FString GetInstanceName() const;
-    
+
     /**
      * Return the public IP passed on the command line, or the host address
      */
@@ -332,7 +339,8 @@ private:
     const FString& GetProjectName();
     const FGuid& GetAppGuid();
     IDriftAuthProviderFactory* GetDeviceAuthProviderFactory();
-	
+	IDriftAuthProviderFactory* GetUserPassAuthProviderFactory(const FString& Username, const FString& Password, bool bAllowAutomaticAccountCreation);
+
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
 
 private:
@@ -347,7 +355,7 @@ private:
         FString port;
         FString jti;
     } cli;
-    
+
     const FName instanceName_;
     const FString instanceDisplayName_;
     const int32 instanceIndex_;
@@ -387,7 +395,7 @@ private:
     FDriftCreatePlayerGroupResponse userIdentities;
 
     TArray<FString> externalFriendIDs;
-    
+
     TMap<int32, FDriftFriendResponse> driftFriends;
     TMap<int32, FDriftPlayerResponse> friendInfos;
     bool shouldUpdateFriends = false;
@@ -414,6 +422,7 @@ private:
     FString defaultPlacement;
 
     TUniquePtr<IDriftAuthProviderFactory> deviceAuthProviderFactory_;
+    TUniquePtr<IDriftAuthProviderFactory> userPassAuthProviderFactory_;
     TSharedPtr<IDriftAuthProvider> authProvider;
 
     TSharedPtr<IHttpCache> httpCache_;
@@ -422,7 +431,7 @@ private:
     FString previousDeprecationHeader_;
 
     bool ignoreCommandLineArguments_ = false;
-	
+
 	FString serverJTI_;
 	FString serverJWT_;
 };

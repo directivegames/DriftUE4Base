@@ -70,13 +70,28 @@ struct FAnalyticsEventAttribute;
 class IDriftEvent;
 
 
+struct FDriftUpdateMatchProperties
+{
+    TOptional<FString> gameMode;
+    TOptional<FString> mapName;
+    TOptional<FString> status;
+    TOptional<int32> maxPlayers;
+
+    /**
+     * uniqueKey enforces uniqueness of running matches by not allowing Drift to accept two matches with the same
+     * unique key. What the unique key is, and what it means to an individual product is left to the product to define
+     */
+    TOptional<FString> uniqueKey;
+};
+
+
 class IDriftServerAPI
 {
 public:
     /**
      * Server Specific API
      */
-    
+
     /**
      * Register this server instance with Drift
      * Normally the server manager has already authenticated and is passing the JTI
@@ -84,12 +99,12 @@ public:
      * and fetch session information, before notifying the game.
      */
     virtual bool RegisterServer() = 0;
-    
+
     /**
      * For a match to show up in Drift match making, it needs to be registered.
      */
     virtual void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) = 0;
-    
+
     /**
     * Update a server to set it's status for the match maker.
     */
@@ -99,48 +114,50 @@ public:
      * Update a match to set it's status for the match maker. A status of "completed" means the match has ended.
      */
     virtual void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
-    
+    virtual void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
+    virtual void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) = 0;
+
     /**
      * Get the match ID if currently hosting a match, or 0.
      */
     virtual int32 GetMatchID() const = 0;
-    
+
     /**
      * Register a player with the current match. This lets the backend know the player has
      * successfully connected to the match.
      */
     virtual void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) = 0;
-    
+
     /**
      * Remove a player from the current match. This should be done if the player disconnects,
      * but the match isn't ending. When the match is set to "completed", players are automatically removed.
      */
     virtual void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) = 0;
-    
+
     /**
      * Modify a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.
      */
     virtual void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) = 0;
-    
+
     /**
      * Get a player's counter. Counters are automatically loaded for each player
      * as they are added to the match.
      */
     virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) = 0;
-    
+
     /**
      * Server Specific Notifications
      */
-    
+
     virtual FDriftServerRegisteredDelegate& OnServerRegistered() = 0;
-    
+
     virtual FDriftMatchAddedDelegate& OnMatchAdded() = 0;
     virtual FDriftMatchUpdatedDelegate& OnMatchUpdated() = 0;
-    
+
     virtual FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() = 0;
     virtual FDriftPlayerRemovedFromMatchDelegate& OnPlayerRemovedFromMatch() = 0;
-    
+
     virtual ~IDriftServerAPI() {}
 };
 
@@ -190,7 +207,7 @@ struct FMatchInvite
     FString token;
     FDateTime sent;
     FDateTime expires;
-    
+
     FMatchInvite() = default;
     FMatchInvite(const FMatchInvite& other) = default;
 
@@ -202,7 +219,7 @@ struct FMatchInvite
     {
         // Intentionally empty
     }
-    
+
     bool operator==(const FMatchInvite& other) const
     {
         return (playerID == other.playerID) && (token == other.token);
@@ -218,6 +235,7 @@ enum class EAuthenticationResult : uint8
     Error_Forbidden,
     Error_NoOnlineSubsystemCredentials,
     Error_Failed,
+	Error_InvalidCredentials,
 };
 
 
@@ -227,7 +245,7 @@ struct FPlayerAuthenticatedInfo
     FString playerName;
     EAuthenticationResult result;
     FString error;
-    
+
     FPlayerAuthenticatedInfo(EAuthenticationResult _result, const FString& _error)
     : result{ _result }
     , error{ _error }
@@ -384,6 +402,37 @@ struct FDriftAddPlayerIdentityProgress
 
 class JsonValue;
 
+enum class EMessageType : uint8
+{
+	Text,
+	Json,
+};
+
+struct FDriftMessage
+{
+	// the type of the message
+	EMessageType messageType = EMessageType::Text;
+
+	// the id of the player who sends the message
+	int32 senderId = 0;
+
+	// increasing message number, might get reset after a period
+	int32 messageNumber = 0;
+
+	// unique id of the message
+	FString messageId;
+
+	// when the message was sent
+	FDateTime sendTime;
+
+	// when the message expires
+	FDateTime expireTime;
+
+	// for text message this is the text itself
+	// for json message this is the json object string
+	FString messageBody;
+};
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAuthenticatedDelegate, bool, const FPlayerAuthenticatedInfo&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftConnectionStateChangedDelegate, EDriftConnectionState);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftStaticDataLoadedDelegate, bool, const FString&);
@@ -427,9 +476,40 @@ DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString&, const FDateTime&);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftReceivedTextMessageDelegate, int32 /*Friend Id*/, const FString& /*Message*/);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftReceivedJsonMessageDelegate, int32 /*Friend Id*/, const JsonValue& /*Message*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDriftReceivedMessageDelegate, const FDriftMessage& /*Message*/);
 
+
+struct FAuthenticationSettings
+{
+	FAuthenticationSettings()
+        : FAuthenticationSettings(true)
+	{
+	}
+
+	FAuthenticationSettings(bool bAutoCreateAccount)
+		: bAutoCreateAccount{ bAutoCreateAccount }
+	{
+	}
+
+	FAuthenticationSettings(const FString& CredentialsType, bool bAutoCreateAccount)
+		: CredentialsType{ CredentialsType }
+		, bAutoCreateAccount{ bAutoCreateAccount }
+	{
+	}
+
+	FAuthenticationSettings(const FString& Username, const FString& Password, bool bAutoCreateAccount)
+		: CredentialsType{ TEXT("user+pass") }
+		, Username{ Username }
+		, Password{ Password }
+		, bAutoCreateAccount{ bAutoCreateAccount }
+	{
+	}
+
+	FString CredentialsType;
+	FString Username;
+	FString Password;
+	bool bAutoCreateAccount;
+};
 
 class IDriftAPI : public IDriftServerAPI
 {
@@ -437,29 +517,30 @@ public:
     /**
      * Client Specific API
      */
-    
+
     /**
-    * Authenticate a player using credentialtype defined in config
+    * Authenticate a player using credential type defined in config
     * Fires OnGameVersionMismatch if the game version is invalid
     * Fires OnPlayerAuthenticated() when finished.
     */
     virtual void AuthenticatePlayer() = 0;
+    virtual void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) = 0;
 
     /**
      * Get connection state
      */
     virtual EDriftConnectionState GetConnectionState() const = 0;
-    
+
     /**
      * Return the currently authenticated player's name, or an empty string if not authenticated.
      */
     virtual FString GetPlayerName() = 0;
-    
+
     /**
      * Return the currently authenticated player's ID, or 0 if not authenticated.
      */
     virtual int32 GetPlayerID() = 0;
-    
+
     /**
      * Set the currently authenticated player's name.
      * Fires OnPlayerNameSet() when finished.
@@ -485,13 +566,13 @@ public:
      * Join the match making queue
      */
     virtual void JoinMatchQueue(const FDriftJoinedMatchQueueDelegate& delegate) = 0;
-    
+
     /**
      * Leave the match making queue
      * Trying to leave a queue with the status "matched" is not allowed
      */
     virtual void LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate) = 0;
-    
+
     /**
      * Read the latest status of the match making queue
      */
@@ -501,7 +582,7 @@ public:
      * Reset the state of the match making queue
      */
     virtual void ResetMatchQueue() = 0;
-    
+
     /**
      * Get the current state of the match making queue
      */
@@ -526,36 +607,36 @@ public:
      * Update a counter for the currently authenticated player.
      */
     virtual void AddCount(const FString& counterName, float value, bool absolute) = 0;
-    
+
     /**
      * Return the value of a counter for the currently authenticated player.
      */
     virtual bool GetCount(const FString& counterName, float& value) = 0;
-    
+
     /**
      * Post an event for the metrics system
      */
     virtual void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) = 0;
-    
+
     /**
      * Post an event for the metrics system
      */
     virtual void AddAnalyticsEvent(TUniquePtr<IDriftEvent> event) = 0;
-    
+
     /**
      * Load static data from a CDN. Requires an authenticated player.
      * Fires OnStaticDataProgress() to report progress.
      * Fires OnStaticDataLoaded() when finished.
      */
     virtual void LoadStaticData(const FString& name, const FString& ref) = 0;
-    
+
     /**
      * Cache the currently authenticated player's stats.
      * Needs to be done before AddCount() and GetCount() will work.
      * Fires OnPlayerStatsLoaded() when finished.
      */
     virtual void LoadPlayerStats() = 0;
-    
+
     /**
      * Loads the authenticated player's named game state.
      * Fires delegate when finished.
@@ -581,7 +662,7 @@ public:
      * Fires delegate when finished
      */
     virtual void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) = 0;
-    
+
     /**
      * Read the friends list
      * Fires delegate when finished
@@ -598,7 +679,7 @@ public:
      * Get the list of friends
      */
     virtual bool GetFriendsList(TArray<FDriftFriend>& friends) = 0;
-    
+
     /**
      * Get the name of a friend, if it has been cached by LoadFriendsList()
      */
@@ -637,7 +718,7 @@ public:
      * or before logging out the current player.
      */
     virtual void FlushEvents() = 0;
-    
+
     /**
      * Shuts down the connection and cleans up any outstanding transactions
      */
@@ -751,18 +832,24 @@ public:
     * Return API key with version
     */
     virtual FString GetVersionedAPIKey() const = 0;
-	
+
 	/** Fired when received a text message from friend */
-	virtual FDriftReceivedTextMessageDelegate& OnReceivedTextMessage() = 0;
-	
+	virtual FDriftReceivedMessageDelegate& OnReceivedTextMessage() = 0;
+
 	/** Fired when received a json message from friend */
-	virtual FDriftReceivedJsonMessageDelegate& OnReceivedJsonMessage() = 0;
-	
+	virtual FDriftReceivedMessageDelegate& OnReceivedJsonMessage() = 0;
+
 	/** Send a text message to a friend */
 	virtual bool SendFriendMessage(int32 FriendId, const FString& Message) = 0;
-	
+
 	/** Send a json message to a friend */
 	virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) = 0;
+
+    /** Return the index of this drift instance */
+    virtual int32 GetInstanceIndex() const = 0;
+
+    /** Set the min level of the forwarded logs */
+    virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) = 0;
 
     virtual ~IDriftAPI() {}
 };
@@ -778,7 +865,7 @@ USTRUCT(BlueprintType)
 struct FBlueprintActiveMatch
 {
     GENERATED_BODY()
-    
+
     FActiveMatch match;
 };
 
@@ -787,7 +874,7 @@ USTRUCT(BlueprintType)
 struct FBlueprintMatchQueueStatus
 {
     GENERATED_BODY()
-    
+
     FMatchQueueStatus queue;
 };
 
@@ -796,7 +883,7 @@ USTRUCT(BlueprintType)
 struct FBlueprintLeaderboardEntry
 {
     GENERATED_BODY()
-    
+
     FDriftLeaderboardEntry entry;
 };
 
@@ -805,7 +892,7 @@ USTRUCT(BlueprintType)
 struct FBlueprintFriend
 {
     GENERATED_BODY()
-    
+
     FDriftFriend entry;
 };
 
@@ -838,10 +925,11 @@ struct FGetMatchesResponseItem
     FString server_status;
     FString server_url;
     FString ue4_connection_url;
+    FString unique_key;
     FString version;
-    
+
     FString matchplayers_url;
-    
+
     bool Serialize(class SerializationContext& context);
 };
 
@@ -849,7 +937,7 @@ struct FGetMatchesResponseItem
 struct FGetActiveMatchesResponse
 {
     TArray<FGetMatchesResponseItem> matches;
-    
+
     bool Serialize(class SerializationContext& context);
 };
 
@@ -858,7 +946,7 @@ struct FAddPlayerResponse
 {
     int32 player_id;
     int32 team_id;
-    
+
     bool Serialize(class SerializationContext& context);
 };
 
@@ -866,6 +954,6 @@ struct FAddPlayerResponse
 struct FGetMatchesResponse
 {
     TArray<FGetMatchesResponseItem> matches;
-    
+
     bool Serialize(class SerializationContext& context);
 };

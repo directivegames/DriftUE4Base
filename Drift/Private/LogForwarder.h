@@ -42,6 +42,7 @@ public:
 
     void SetRequestManager(TSharedPtr<JsonRequestManager> newRequestManager);
     void SetLogsUrl(const FString& newLogsUrl);
+    void SetForwardedLogLevel(ELogVerbosity::Type Level);
     
 private:
 	void Log(const TCHAR* text, ELogVerbosity::Type level, const FName& category);
@@ -52,4 +53,6 @@ private:
 
     TArray<FDriftLogMessage> pendingLogs;
     float flushLogsInSeconds = FLT_MAX;
+
+    ELogVerbosity::Type minLogLevel = ELogVerbosity::Error;
 };
