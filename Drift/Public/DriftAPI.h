@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "IDriftPartyManager.h"
 #include "CoreUObject.h"
 
 #include "DriftAPI.generated.h"
@@ -534,6 +535,7 @@ struct FAuthenticationSettings
     bool bAutoCreateAccount;
 };
 
+
 class IDriftAPI : public IDriftServerAPI
 {
 public:
@@ -888,6 +890,9 @@ public:
 
     /** Send a json message to a friend */
     virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) = 0;
+
+	/** Get the player party manager */
+	virtual TSharedPtr<IDriftPartyManager> GetPartyManager() = 0;
 
     /** Return the index of this drift instance */
     virtual int32 GetInstanceIndex() const = 0;

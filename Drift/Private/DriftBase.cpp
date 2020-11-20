@@ -2911,7 +2911,7 @@ void FDriftBase::InitServerAuthentication()
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
 
     DRIFT_LOG(Base, Log, TEXT("Authenticating server: %s"), *request->GetAsDebugString(true));
-    
+
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
 		serverJTI_ = doc[TEXT("jti")].GetString();
@@ -3839,6 +3839,12 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 	}
 
 	return false;
+}
+
+
+TSharedPtr<IDriftPartyManager> FDriftBase::GetPartyManager()
+{
+	return {};
 }
 
 

@@ -349,6 +349,8 @@ private:
 
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
 
+    virtual TSharedPtr<IDriftPartyManager> GetPartyManager() override;
+
 private:
     FString settingsSection_;
 
