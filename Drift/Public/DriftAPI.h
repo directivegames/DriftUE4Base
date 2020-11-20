@@ -164,9 +164,9 @@ public:
 
 struct FActiveMatch
 {
-    int32 match_id{ 0 };
-    int32 max_players{ 0 };
-    int32 num_players{ 0 };
+    int32 match_id{0};
+    int32 max_players{0};
+    int32 num_players{0};
 
     FDateTime create_date;
     FString game_mode;
@@ -212,10 +212,10 @@ struct FMatchInvite
     FMatchInvite(const FMatchInvite& other) = default;
 
     FMatchInvite(int32 _playerID, const FString& _token, const FDateTime& _sent, const FDateTime& _expires)
-    : playerID{ _playerID }
-    , token{ _token }
-    , sent{ _sent }
-    , expires{ _expires }
+        : playerID{_playerID}
+          , token{_token}
+          , sent{_sent}
+          , expires{_expires}
     {
         // Intentionally empty
     }
@@ -235,7 +235,7 @@ enum class EAuthenticationResult : uint8
     Error_Forbidden,
     Error_NoOnlineSubsystemCredentials,
     Error_Failed,
-	Error_InvalidCredentials,
+    Error_InvalidCredentials,
 };
 
 
@@ -247,18 +247,16 @@ struct FPlayerAuthenticatedInfo
     FString error;
 
     FPlayerAuthenticatedInfo(EAuthenticationResult _result, const FString& _error)
-    : result{ _result }
-    , error{ _error }
+        : result{_result}
+          , error{_error}
     {
-
     }
 
     FPlayerAuthenticatedInfo(int32 _playerId, const FString& _playerName)
-    : playerId{ _playerId }
-    , playerName{ _playerName }
-    , result{ EAuthenticationResult::Success }
+        : playerId{_playerId}
+          , playerName{_playerName}
+          , result{EAuthenticationResult::Success}
     {
-
     }
 };
 
@@ -385,12 +383,14 @@ DECLARE_DELEGATE_OneParam(FDriftPlayerIdentityOverrideContinuationDelegate, EPla
 struct FDriftAddPlayerIdentityProgress
 {
     FDriftAddPlayerIdentityProgress()
-    : FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus::Unknown)
-    {}
+        : FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus::Unknown)
+    {
+    }
 
     FDriftAddPlayerIdentityProgress(EAddPlayerIdentityStatus inStatus)
-    : status{inStatus}
-    {}
+        : status{inStatus}
+    {
+    }
 
     EAddPlayerIdentityStatus status;
     FString localUserPlayerName;
@@ -401,36 +401,37 @@ struct FDriftAddPlayerIdentityProgress
 };
 
 class JsonValue;
+struct FDriftPlayerResponse;
 
 enum class EMessageType : uint8
 {
-	Text,
-	Json,
+    Text,
+    Json,
 };
 
 struct FDriftMessage
 {
-	// the type of the message
-	EMessageType messageType = EMessageType::Text;
+    // the type of the message
+    EMessageType messageType = EMessageType::Text;
 
-	// the id of the player who sends the message
-	int32 senderId = 0;
+    // the id of the player who sends the message
+    int32 senderId = 0;
 
-	// increasing message number, might get reset after a period
-	int32 messageNumber = 0;
+    // increasing message number, might get reset after a period
+    int32 messageNumber = 0;
 
-	// unique id of the message
-	FString messageId;
+    // unique id of the message
+    FString messageId;
 
-	// when the message was sent
-	FDateTime sendTime;
+    // when the message was sent
+    FDateTime sendTime;
 
-	// when the message expires
-	FDateTime expireTime;
+    // when the message expires
+    FDateTime expireTime;
 
-	// for text message this is the text itself
-	// for json message this is the json object string
-	FString messageBody;
+    // for text message this is the text itself
+    // for json message this is the json object string
+    FString messageBody;
 };
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAuthenticatedDelegate, bool, const FPlayerAuthenticatedInfo&);
@@ -449,6 +450,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftPlayerResponse>&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -481,34 +483,34 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftReceivedMessageDelegate, const FDriftM
 
 struct FAuthenticationSettings
 {
-	FAuthenticationSettings()
+    FAuthenticationSettings()
         : FAuthenticationSettings(true)
-	{
-	}
+    {
+    }
 
-	FAuthenticationSettings(bool bAutoCreateAccount)
-		: bAutoCreateAccount{ bAutoCreateAccount }
-	{
-	}
+    FAuthenticationSettings(bool bAutoCreateAccount)
+        : bAutoCreateAccount{bAutoCreateAccount}
+    {
+    }
 
-	FAuthenticationSettings(const FString& CredentialsType, bool bAutoCreateAccount)
-		: CredentialsType{ CredentialsType }
-		, bAutoCreateAccount{ bAutoCreateAccount }
-	{
-	}
+    FAuthenticationSettings(const FString& CredentialsType, bool bAutoCreateAccount)
+        : CredentialsType{CredentialsType}
+          , bAutoCreateAccount{bAutoCreateAccount}
+    {
+    }
 
-	FAuthenticationSettings(const FString& Username, const FString& Password, bool bAutoCreateAccount)
-		: CredentialsType{ TEXT("user+pass") }
-		, Username{ Username }
-		, Password{ Password }
-		, bAutoCreateAccount{ bAutoCreateAccount }
-	{
-	}
+    FAuthenticationSettings(const FString& Username, const FString& Password, bool bAutoCreateAccount)
+        : CredentialsType{TEXT("user+pass")}
+          , Username{Username}
+          , Password{Password}
+          , bAutoCreateAccount{bAutoCreateAccount}
+    {
+    }
 
-	FString CredentialsType;
-	FString Username;
-	FString Password;
-	bool bAutoCreateAccount;
+    FString CredentialsType;
+    FString Username;
+    FString Password;
+    bool bAutoCreateAccount;
 };
 
 class IDriftAPI : public IDriftServerAPI
@@ -689,21 +691,29 @@ public:
      * Request a friend request token to be sent to a friend via external means
      */
     virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+ 
     /**
      * Accept a friend request via an external token
      */
     virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+
     /**
-     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
-     * Only supported for friends managed through Drift, i.e. with Type == EDriftFriendType::Drift
-     */
+    * Remove a friendship. This will mutually remove the player's from each other's friends lists.
+    * Only supported for friends managed through Drift, i.e. with Type == EDriftFriendType::Drift
+    */
     virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) = 0;
 
     /**
-	* Load the avatar url of the currently logged in player
-	* Fires delegate when finished
-	*/
-	virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
+     * Searches for players by player_name (not username). If searchString contains a '*' for a wildcard search, the
+     * search will be case-insensitive. 
+     */
+    virtual bool FindPlayersByName(const FString& searchString, const FDriftFindPlayerByNameDelegate& delegate) = 0;
+
+    /**
+     * Load the avatar url of the currently logged in player
+     * Fires delegate when finished
+    */
+    virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
 
     /**
      * Flush all counters. Requires at least one tick to actually flush.
@@ -833,17 +843,17 @@ public:
     */
     virtual FString GetVersionedAPIKey() const = 0;
 
-	/** Fired when received a text message from friend */
-	virtual FDriftReceivedMessageDelegate& OnReceivedTextMessage() = 0;
+    /** Fired when received a text message from friend */
+    virtual FDriftReceivedMessageDelegate& OnReceivedTextMessage() = 0;
 
-	/** Fired when received a json message from friend */
-	virtual FDriftReceivedMessageDelegate& OnReceivedJsonMessage() = 0;
+    /** Fired when received a json message from friend */
+    virtual FDriftReceivedMessageDelegate& OnReceivedJsonMessage() = 0;
 
-	/** Send a text message to a friend */
-	virtual bool SendFriendMessage(int32 FriendId, const FString& Message) = 0;
+    /** Send a text message to a friend */
+    virtual bool SendFriendMessage(int32 FriendId, const FString& Message) = 0;
 
-	/** Send a json message to a friend */
-	virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) = 0;
+    /** Send a json message to a friend */
+    virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) = 0;
 
     /** Return the index of this drift instance */
     virtual int32 GetInstanceIndex() const = 0;
@@ -917,7 +927,7 @@ struct FGetMatchesResponseItem
     FString match_status;
     FString url;
     int32 num_players;
-	int32 max_players;
+    int32 max_players;
     int32 port;
     FString public_ip;
     FString ref;
