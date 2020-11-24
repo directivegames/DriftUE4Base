@@ -688,9 +688,11 @@ public:
     virtual FString GetFriendName(int32 friendID) = 0;
 
     /**
-     * Request a friend request token to be sent to a friend via external means
+     * Issue a friend invite token to 'PlayerID'
+     * If 'playerID' is > 0, a message will be sent to that player with the token, otherwise no message is sent and
+     * the token will be valid for any player who accepts it. In that case, the token must be sent to a friend via external means
      */
-    virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+    virtual bool IssueFriendToken(int32 PlayerID, const FDriftRequestFriendTokenDelegate& delegate) = 0;
  
     /**
      * Accept a friend request via an external token
