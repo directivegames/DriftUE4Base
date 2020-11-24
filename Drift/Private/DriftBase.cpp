@@ -1868,7 +1868,7 @@ FString FDriftBase::GetFriendName(int32 friendID)
 }
 
 
-bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftRequestFriendTokenDelegate& delegate)
+bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {

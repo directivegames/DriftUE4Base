@@ -447,7 +447,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, c
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
-DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
+DECLARE_DELEGATE_TwoParams(FDriftIssueFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftPlayerResponse>&);
@@ -693,7 +693,7 @@ public:
      * If 'playerID' is > 0, a message will be sent to that player with the token, otherwise no message is sent and
      * the token will be valid for any player who accepts it. In that case, the token must be sent to a friend via external means
      */
-    virtual bool IssueFriendToken(int32 PlayerID, const FDriftRequestFriendTokenDelegate& delegate) = 0;
+    virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) = 0;
  
     /**
      * Accept a friend request via an external token
@@ -785,6 +785,7 @@ public:
      * Fired when another player has accepted a friend request.
      */
     virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
+ 
     /**
      * Fired when a friend has terminated the friendship.
      */
