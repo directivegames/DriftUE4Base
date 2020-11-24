@@ -148,6 +148,8 @@ public:
     FDriftFriendAddedDelegate& OnFriendAdded() override { return onFriendAdded;  }
     FDriftFriendRemovedDelegate& OnFriendRemoved() override { return onFriendRemoved; }
 
+    FDriftFriendRequestReceivedDelegate& OnFriendRequestReceived() override { return onFriendRequestReceived; };
+
     FDriftStaticRoutesInitializedDelegate& OnStaticRoutesInitialized() override { return onStaticRoutesInitialized; }
     FDriftPlayerDisconnectedDelegate& OnPlayerDisconnected() override { return onPlayerDisconnected; }
     FDriftGameVersionMismatchDelegate& OnGameVersionMismatch() override { return onGameVersionMismatch; }
@@ -248,6 +250,7 @@ private:
     FDriftPlayerNameSetDelegate onPlayerNameSet;
     FDriftFriendAddedDelegate onFriendAdded;
     FDriftFriendRemovedDelegate onFriendRemoved;
+    FDriftFriendRequestReceivedDelegate onFriendRequestReceived;
     FDriftStaticRoutesInitializedDelegate onStaticRoutesInitialized;
     FDriftPlayerDisconnectedDelegate onPlayerDisconnected;
     FDriftGameVersionMismatchDelegate onGameVersionMismatch;

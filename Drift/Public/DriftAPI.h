@@ -473,6 +473,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftRecievedMatchInviteDelegate, const FMa
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendAddedDelegate, int32);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendRequestReceivedDelegate, int32, const FString&);
 
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
@@ -788,6 +789,11 @@ public:
      * Fired when a friend has terminated the friendship.
      */
     virtual FDriftFriendRemovedDelegate& OnFriendRemoved() = 0;
+
+    /**
+     * Fired when another player sends a friend request our way
+    */
+    virtual FDriftFriendRequestReceivedDelegate& OnFriendRequestReceived() = 0;
 
     /**
      * Fired when the root endpoints have been aquired. The user is not yet

@@ -1188,6 +1188,20 @@ void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry& message)
 
         onFriendRemoved.Broadcast(message.sender_id);
     }
+    else if (eventName == TEXT("friend_request"))
+    {
+        UE_LOG(LogDriftMessages, Verbose, TEXT("Player %d wants to be friends with us. Awwww..."), message.sender_id);
+        auto token = message.payload.FindField(TEXT("token"));
+        if (!token.IsString())
+        {
+            UE_LOG(LogDriftMessages, Error, TEXT("Missing or invalid friend invite token"));
+        }
+        onFriendRequestReceived.Broadcast(message.sender_id, token.ToString());
+    }
+    else
+    {
+        UE_LOG(LogDriftMessages, Warning, TEXT("Unknown event '%s' not handled"), *event.ToString());
+    }
 }
 
 
@@ -1870,9 +1884,13 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftRequestFriendToken
         return false;
     }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Fetching a friend request token"));
+    auto url = driftEndpoints.friend_invites;
+    if (PlayerID > 0)
+        internal::UrlHelper::AddUrlOption(url, TEXT("player_id"), PlayerID);
 
-    auto request = GetGameRequestManager()->Post(driftEndpoints.friend_invites, FString{});
+    DRIFT_LOG(Base, Verbose, TEXT("Issuing a friend request token to %s"), PlayerID > 0 ? *FString::Printf(TEXT("player with ID %d"), PlayerID) : TEXT("any player"));
+
+    auto request = GetGameRequestManager()->Post(url, FString{});
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FString token;
