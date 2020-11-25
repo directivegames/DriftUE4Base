@@ -2046,11 +2046,17 @@ bool FDriftBase::FindPlayersByName(const FString& SearchString, const FDriftFind
     request->OnResponse.BindLambda([this, SearchString, delegate](ResponseContext& context, JsonDocument& doc)
     {
         DRIFT_LOG(Base, Verbose, TEXT("Search for %s yielded %s"), *SearchString, *doc.ToString());
-        TArray<FDriftPlayerResponse> results;
-        if (!JsonArchive::LoadObject(doc, results))
+        TArray<FDriftPlayerResponse> response;
+        if (!JsonArchive::LoadObject(doc, response))
         {
             context.error = TEXT("Failed to parse search response");
+            delegate.ExecuteIfBound(false, {});
             return;
+        }
+        TArray<FDriftFriend> results;
+        for (auto& It: response)
+        {
+            results.Add({It.player_id, It.player_name, EDriftPresence::Unknown, EDriftFriendType::NotFriend});
         }
         delegate.ExecuteIfBound(true, results);
     });
