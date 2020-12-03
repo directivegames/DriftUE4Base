@@ -66,126 +66,126 @@ public:
     virtual ~FDriftBase();
 
     // FTickableGameObject API
-    void Tick(float DeltaTime) override;
+    virtual void Tick(float DeltaTime) override;
     virtual bool IsTickable() const override { return true; }
 
-    TStatId GetStatId() const;
+    virtual TStatId GetStatId() const override;
 
     // Generic API
-	void AuthenticatePlayer() override;
-	void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) override;
-    EDriftConnectionState GetConnectionState() const override;
-    FString GetPlayerName() override;
-    int32 GetPlayerID() override;
-    void SetPlayerName(const FString& name) override;
-    FString GetAuthProviderName() const override;
-    void AddPlayerIdentity(const FString& authProvider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate) override;
+    virtual void AuthenticatePlayer() override;
+    virtual void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) override;
+    virtual EDriftConnectionState GetConnectionState() const override;
+    virtual FString GetPlayerName() override;
+    virtual int32 GetPlayerID() override;
+    virtual void SetPlayerName(const FString& name) override;
+    virtual FString GetAuthProviderName() const override;
+    virtual void AddPlayerIdentity(const FString& authProvider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate) override;
 
-    void GetActiveMatches(const TSharedRef<FMatchesSearch>& search) override;
-    void JoinMatchQueue(const FDriftJoinedMatchQueueDelegate& delegate) override;
-    void LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate) override;
-    void PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate) override;
-    void ResetMatchQueue() override;
-    EMatchQueueState GetMatchQueueState() const override;
-    void InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueueDelegate& delegate) override;
-    void JoinMatch(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
-    void AcceptMatchInvite(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
+    virtual void GetActiveMatches(const TSharedRef<FMatchesSearch>& search) override;
+    virtual void JoinMatchQueue(const FDriftJoinedMatchQueueDelegate& delegate) override;
+    virtual void LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate) override;
+    virtual void PollMatchQueue(const FDriftPolledMatchQueueDelegate& delegate) override;
+    virtual void ResetMatchQueue() override;
+    virtual EMatchQueueState GetMatchQueueState() const override;
+    virtual void InvitePlayerToMatch(int32 playerID, const FDriftJoinedMatchQueueDelegate& delegate) override;
+    virtual void JoinMatch(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
+    virtual void AcceptMatchInvite(const FMatchInvite& invite, const FDriftJoinedMatchQueueDelegate& delegate) override;
 
-    void AddCount(const FString& counterName, float value, bool absolute) override;
-    bool GetCount(const FString& counterName, float& value) override;
+    virtual void AddCount(const FString& counterName, float value, bool absolute) override;
+    virtual bool GetCount(const FString& counterName, float& value) override;
 
-    void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) override;
-    void AddAnalyticsEvent(TUniquePtr<IDriftEvent> event) override;
+    virtual void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) override;
+    virtual void AddAnalyticsEvent(TUniquePtr<IDriftEvent> event) override;
 
-    void LoadStaticData(const FString& name, const FString& ref) override;
+    virtual void LoadStaticData(const FString& name, const FString& ref) override;
 
-    void LoadPlayerStats() override;
+    virtual void LoadPlayerStats() override;
 
-    void LoadPlayerGameState(const FString& name, const FDriftGameStateLoadedDelegate& delegate) override;
-    void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) override;
+    virtual void LoadPlayerGameState(const FString& name, const FDriftGameStateLoadedDelegate& delegate) override;
+    virtual void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) override;
 
-    void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
-    void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
+    virtual void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
+    virtual void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
 
-    void LoadFriendsList(const FDriftFriendsListLoadedDelegate& delegate) override;
-    void UpdateFriendsList() override;
-    bool GetFriendsList(TArray<FDriftFriend>& friends) override;
-    FString GetFriendName(int32 friendID) override;
-    bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) override;
-    bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
-    bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
-    void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
+    virtual void LoadFriendsList(const FDriftFriendsListLoadedDelegate& delegate) override;
+    virtual void UpdateFriendsList() override;
+    virtual bool GetFriendsList(TArray<FDriftFriend>& friends) override;
+    virtual FString GetFriendName(int32 friendID) override;
+    virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) override;
+    virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
+    virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
+    virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
-    bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
+    virtual bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
 
-    void FlushCounters() override;
-    void FlushEvents() override;
+    virtual void FlushCounters() override;
+    virtual void FlushEvents() override;
 
-    void Shutdown() override;
+    virtual void Shutdown() override;
 
-    const TMap<FString, FDateTime>& GetDeprecations() override;
+    virtual const TMap<FString, FDateTime>& GetDeprecations() override;
 
-    FString GetJWT() const override;
-    FString GetJTI() const override;
-    FString GetRootURL() const override;
-    FString GetEnvironment() const override;
-    FString GetGameVersion() const override;
-    FString GetGameBuild() const override;
-    FString GetVersionedAPIKey() const override;
+    virtual FString GetJWT() const override;
+    virtual FString GetJTI() const override;
+    virtual FString GetRootURL() const override;
+    virtual FString GetEnvironment() const override;
+    virtual FString GetGameVersion() const override;
+    virtual FString GetGameBuild() const override;
+    virtual FString GetVersionedAPIKey() const override;
 
-    FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
-    FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
-    FDriftFriendPresenceChangedDelegate& OnFriendPresenceChanged() override { return onFriendPresenceChanged; }
-    FDriftRecievedMatchInviteDelegate& OnReceivedMatchInvite() override { return onReceivedMatchInvite; }
-    FDriftStaticDataLoadedDelegate& OnStaticDataLoaded() override { return onStaticDataLoaded; }
-    FDriftStaticDataProgressDelegate& OnStaticDataProgress() override { return onStaticDataProgress; }
-    FDriftPlayerStatsLoadedDelegate& OnPlayerStatsLoaded() override { return onPlayerStatsLoaded; }
-    FDriftPlayerGameStateLoadedDelegate& OnPlayerGameStateLoaded() { return onPlayerGameStateLoaded; }
-    FDriftPlayerGameStateSavedDelegate& OnPlayerGameStateSaved() { return onPlayerGameStateSaved; }
-    FDriftGotActiveMatchesDelegate& OnGotActiveMatches() override { return onGotActiveMatches; }
-    FDriftPlayerNameSetDelegate& OnPlayerNameSet() override { return onPlayerNameSet; }
+    virtual FDriftPlayerAuthenticatedDelegate& OnPlayerAuthenticated() override { return onPlayerAuthenticated; }
+    virtual FDriftConnectionStateChangedDelegate& OnConnectionStateChanged() override { return onConnectionStateChanged; }
+    virtual FDriftFriendPresenceChangedDelegate& OnFriendPresenceChanged() override { return onFriendPresenceChanged; }
+    virtual FDriftRecievedMatchInviteDelegate& OnReceivedMatchInvite() override { return onReceivedMatchInvite; }
+    virtual FDriftStaticDataLoadedDelegate& OnStaticDataLoaded() override { return onStaticDataLoaded; }
+    virtual FDriftStaticDataProgressDelegate& OnStaticDataProgress() override { return onStaticDataProgress; }
+    virtual FDriftPlayerStatsLoadedDelegate& OnPlayerStatsLoaded() override { return onPlayerStatsLoaded; }
+    virtual FDriftPlayerGameStateLoadedDelegate& OnPlayerGameStateLoaded() override { return onPlayerGameStateLoaded; }
+    virtual FDriftPlayerGameStateSavedDelegate& OnPlayerGameStateSaved() override { return onPlayerGameStateSaved; }
+    virtual FDriftGotActiveMatchesDelegate& OnGotActiveMatches() override { return onGotActiveMatches; }
+    virtual FDriftPlayerNameSetDelegate& OnPlayerNameSet() override { return onPlayerNameSet; }
 
-    FDriftFriendAddedDelegate& OnFriendAdded() override { return onFriendAdded;  }
-    FDriftFriendRemovedDelegate& OnFriendRemoved() override { return onFriendRemoved; }
+    virtual FDriftFriendAddedDelegate& OnFriendAdded() override { return onFriendAdded;  }
+    virtual FDriftFriendRemovedDelegate& OnFriendRemoved() override { return onFriendRemoved; }
 
-    FDriftFriendRequestReceivedDelegate& OnFriendRequestReceived() override { return onFriendRequestReceived; };
+    virtual FDriftFriendRequestReceivedDelegate& OnFriendRequestReceived() override { return onFriendRequestReceived; };
 
-    FDriftStaticRoutesInitializedDelegate& OnStaticRoutesInitialized() override { return onStaticRoutesInitialized; }
-    FDriftPlayerDisconnectedDelegate& OnPlayerDisconnected() override { return onPlayerDisconnected; }
-    FDriftGameVersionMismatchDelegate& OnGameVersionMismatch() override { return onGameVersionMismatch; }
-    FDriftUserErrorDelegate& OnUserError() override { return onUserError; }
-    FDriftServerErrorDelegate& OnServerError() override { return onServerError; }
-    FDriftNewDeprecationDelegate OnDeprecation() override { return onDeprecation; }
+    virtual FDriftStaticRoutesInitializedDelegate& OnStaticRoutesInitialized() override { return onStaticRoutesInitialized; }
+    virtual FDriftPlayerDisconnectedDelegate& OnPlayerDisconnected() override { return onPlayerDisconnected; }
+    virtual FDriftGameVersionMismatchDelegate& OnGameVersionMismatch() override { return onGameVersionMismatch; }
+    virtual FDriftUserErrorDelegate& OnUserError() override { return onUserError; }
+    virtual FDriftServerErrorDelegate& OnServerError() override { return onServerError; }
+    virtual FDriftNewDeprecationDelegate OnDeprecation() override { return onDeprecation; }
 
     // Server API
-    bool RegisterServer() override;
+    virtual bool RegisterServer() override;
 
-    void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
-    void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
-    void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
-    void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) override;
-	void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) override;
-    int32 GetMatchID() const override;
-    void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
-    void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
-    void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
-    bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
+    virtual void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
+    virtual void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
+    virtual void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    virtual void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    virtual void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    virtual int32 GetMatchID() const override;
+    virtual void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
+    virtual void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
+    virtual void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
+    virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
 
-    FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
-    FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
-    FDriftPlayerRemovedFromMatchDelegate& OnPlayerRemovedFromMatch() override { return onPlayerRemovedFromMatch; }
-    FDriftMatchAddedDelegate& OnMatchAdded() override { return onMatchAdded; }
-    FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
+    virtual FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
+    virtual FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
+    virtual FDriftPlayerRemovedFromMatchDelegate& OnPlayerRemovedFromMatch() override { return onPlayerRemovedFromMatch; }
+    virtual FDriftMatchAddedDelegate& OnMatchAdded() override { return onMatchAdded; }
+    virtual FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
 
-	FDriftReceivedMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
-	FDriftReceivedMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
+    virtual FDriftReceivedMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
+    virtual FDriftReceivedMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
 
-	bool SendFriendMessage(int32 FriendId, const FString& Message) override;
-	bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
+    virtual bool SendFriendMessage(int32 FriendId, const FString& Message) override;
+    virtual bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
-    int32 GetInstanceIndex() const override { return instanceIndex_; }
+    virtual int32 GetInstanceIndex() const override { return instanceIndex_; }
 
-    void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
+    virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
 
 private:
     void ConfigureSettingsSection(const FString& config);
