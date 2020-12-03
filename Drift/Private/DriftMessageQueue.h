@@ -6,6 +6,7 @@
 #include "JsonRequestManager.h"
 #include "DriftAPI.h"
 #include "DriftEvent.h"
+#include "IDriftMessageQueue.h"
 
 #include "Tickable.h"
 
@@ -13,13 +14,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogDriftMessages, Log, All);
 
 
-struct FMessageQueueEntry;
-
-
-DECLARE_MULTICAST_DELEGATE_OneParam(FDriftMessageQueueDelegate, const FMessageQueueEntry&);
-
-
-class FDriftMessageQueue : public FTickableGameObject
+class FDriftMessageQueue : public FTickableGameObject, public IDriftMessageQueue
 {
 public:
     FDriftMessageQueue();
@@ -39,10 +34,10 @@ public:
     void SetRequestManager(TSharedPtr<JsonRequestManager> newRequestManager);
     void SetMessageQueueUrl(const FString& newMessageQueueUrl);
 
-    void SendMessage(const FString& urlTemplate, const FString& queue, JsonValue&& message);
-    void SendMessage(const FString& urlTemplate, const FString& queue, JsonValue&& message, int timeoutSeconds);
+    void SendMessage(const FString& urlTemplate, const FString& queue, JsonValue&& message) override;
+    void SendMessage(const FString& urlTemplate, const FString& queue, JsonValue&& message, int timeoutSeconds) override;
 
-    FDriftMessageQueueDelegate& OnMessageQueueMessage(const FString& queue);
+    virtual FDriftMessageQueueDelegate& OnMessageQueueMessage(const FString& queue) override;
 
 private:
     void GetMessages();
@@ -55,9 +50,9 @@ private:
     TMap<FString, FDriftMessageQueueDelegate> messageHandlers;
 
     TWeakPtr<HttpRequest> currentPoll;
-    
+
     int32 lastMessageNumber = 0;
-    
+
     float fetchDelay = 0.0f;
 };
 
@@ -69,24 +64,24 @@ struct FMessageQueueEntry
     int32 sender_id;
     // Always incrementing message ID
     int32 message_number;
-    
+
     FString message_id;
     FString exchange;
     // The queue name
     FString queue;
-    
+
     // Time when message was sent
     FDateTime timestamp;
     // Time when message expires
     FDateTime expires;
-    
+
     // The actual message content
     JsonValue payload{ rapidjson::kObjectType };
-    
+
     FMessageQueueEntry()
     {
     }
-    
+
     FMessageQueueEntry(const FMessageQueueEntry& other)
     : exchange_id(other.exchange_id)
     , sender_id(other.sender_id)
@@ -99,7 +94,7 @@ struct FMessageQueueEntry
     {
         payload.CopyFrom(other.payload);
     }
-    
+
     FMessageQueueEntry(FMessageQueueEntry&& other)
     : exchange_id(MoveTemp(other.exchange_id))
     , sender_id(MoveTemp(other.sender_id))
@@ -112,6 +107,6 @@ struct FMessageQueueEntry
     {
         payload = MoveTemp(other.payload);
     }
-    
+
     bool Serialize(SerializationContext& context);
 };

@@ -34,6 +34,8 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, users)
         && SERIALIZE_PROPERTY(context, friend_invites)
         && SERIALIZE_PROPERTY(context, friend_requests)
+        && SERIALIZE_PROPERTY(context, party_invites)
+		&& SERIALIZE_PROPERTY(context, parties)
 
         // Optional
         && SERIALIZE_PROPERTY(context, my_friends)
@@ -455,21 +457,3 @@ bool FDriftFriendResponse::Serialize(SerializationContext& context)
         && SERIALIZE_PROPERTY(context, player_url)
         && SERIALIZE_PROPERTY(context, friendship_url);
 }
-
-
-bool FDriftFriendRequestsResponse::Serialize(SerializationContext& context)
-{
-    return SERIALIZE_PROPERTY(context, accept_url)
-        && SERIALIZE_PROPERTY(context, create_date)
-        && SERIALIZE_PROPERTY(context, expiry_date)
-        && SERIALIZE_PROPERTY(context, id)
-        && SERIALIZE_PROPERTY(context, issued_by_player_name)
-        && SERIALIZE_PROPERTY(context, issued_by_player_id)
-        && SERIALIZE_PROPERTY(context, issued_by_player_url)
-        && SERIALIZE_PROPERTY(context, issued_to_player_id)
-        && SERIALIZE_PROPERTY(context, issued_to_player_name)
-        && SERIALIZE_PROPERTY(context, issued_to_player_url)
-        && SERIALIZE_PROPERTY(context, modify_date)
-        && SERIALIZE_PROPERTY(context, token);
-}
-

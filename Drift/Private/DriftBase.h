@@ -19,6 +19,7 @@
 #include "DriftCounterManager.h"
 #include "DriftEventManager.h"
 #include "DriftMessageQueue.h"
+#include "DriftPartyManager.h"
 #include "LogForwarder.h"
 
 #include "Tickable.h"
@@ -301,6 +302,7 @@ private:
     void CreateEventManager();
     void CreateLogForwarder();
     void CreateMessageQueue();
+	void CreatePartyManager();
 
     void CachePlayerInfo(int32 playerID);
 
@@ -389,9 +391,11 @@ private:
 
     TUniquePtr<FDriftEventManager> eventManager;
 
-    TUniquePtr<FDriftMessageQueue> messageQueue;
+    TSharedPtr<FDriftMessageQueue> messageQueue;
 
     TUniquePtr<FLogForwarder> logForwarder;
+
+	TSharedPtr<FDriftPartyManager> partyManager;
 
     bool countersLoaded = false;
     TArray<FDriftCounterInfo> counterInfos;

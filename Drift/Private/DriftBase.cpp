@@ -19,6 +19,7 @@
 #include "JTIRequestManager.h"
 #include "ErrorResponse.h"
 #include "DriftCredentialsFactory.h"
+#include "DriftPartyManager.h"
 #include "Details/PlatformName.h"
 #include "Details/UrlHelper.h"
 #include "IDriftAuthProviderFactory.h"
@@ -137,6 +138,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     CreateEventManager();
     CreateLogForwarder();
     CreateMessageQueue();
+	CreatePartyManager();
 
     DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) created"), *instanceName_.ToString(), instanceIndex_);
 }
@@ -166,11 +168,17 @@ void FDriftBase::CreateLogForwarder()
 
 void FDriftBase::CreateMessageQueue()
 {
-    messageQueue = MakeUnique<FDriftMessageQueue>();
+    messageQueue = MakeShared<FDriftMessageQueue>();
 
     messageQueue->OnMessageQueueMessage(MatchQueue).AddRaw(this, &FDriftBase::HandleMatchQueueMessage);
     messageQueue->OnMessageQueueMessage(FriendEvent).AddRaw(this, &FDriftBase::HandleFriendEventMessage);
 	messageQueue->OnMessageQueueMessage(FriendMessage).AddRaw(this, &FDriftBase::HandleFriendMessage);
+}
+
+
+void FDriftBase::CreatePartyManager()
+{
+	partyManager = MakeShared<FDriftPartyManager>(messageQueue);
 }
 
 
@@ -537,6 +545,7 @@ void FDriftBase::Reset()
     CreateEventManager();
     CreateLogForwarder();
     CreateMessageQueue();
+	CreatePartyManager();
 
     hearbeatUrl.Empty();
 
@@ -2404,6 +2413,8 @@ void FDriftBase::RegisterClient()
         eventManager->SetRequestManager(manager);
         logForwarder->SetRequestManager(manager);
         messageQueue->SetRequestManager(manager);
+    	partyManager->SetRequestManager(manager);
+    	partyManager->ConfigureSession(driftClient.player_id, driftEndpoints.party_invites, driftEndpoints.parties);
         GetPlayerEndpoints();
     });
     request->OnError.BindLambda([this](ResponseContext& context)

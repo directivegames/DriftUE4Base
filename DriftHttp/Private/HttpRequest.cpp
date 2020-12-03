@@ -178,7 +178,10 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
                  * The server returned a non-success response code. Pass it through the error handling chain.
                  */
                 BroadcastError(context);
-                LogError(context);
+            	if (!context.errorHandled)
+            	{
+            		LogError(context);
+            	}
             }
         }
     }
@@ -188,7 +191,10 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
          * The request failed to send, or return. Pass it through the error handling chain.
          */
         BroadcastError(context);
-        LogError(context);
+       	if (!context.errorHandled)
+	    {
+		    LogError(context);
+	    }
     }
 
     OnCompleted.ExecuteIfBound(SharedThis(this));

@@ -15,6 +15,7 @@
 
 #include "HttpRequest.h"
 #include "HttpCache.h"
+#include "HttpModule.h"
 #include "JsonArchive.h"
 
 
