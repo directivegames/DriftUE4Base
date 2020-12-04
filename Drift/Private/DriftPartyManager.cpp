@@ -137,6 +137,7 @@ struct FDriftSendPartyInviteResponse : FJsonSerializable
 	FString InviteUrl;
 };
 
+
 struct FDriftAcceptPartyInviteResponse : FJsonSerializable
 {
 	BEGIN_JSON_SERIALIZER;
@@ -172,11 +173,15 @@ struct FDriftGetPartyResponse : FJsonSerializable
 	BEGIN_JSON_SERIALIZER;
 		JSON_SERIALIZE("id", Id);
 		JSON_SERIALIZE("url", Url);
+		JSON_SERIALIZE("invites_url", InvitesUrl);
+		JSON_SERIALIZE("members_url", MembersUrl);
 		JSON_SERIALIZE_ARRAY_SERIALIZABLE("members", Members, FDriftPartyMember);
 		END_JSON_SERIALIZER;
 
 	int32 Id;
 	FString Url;
+	FString InvitesUrl;
+	FString MembersUrl;
 	TArray<FDriftPartyMember> Members;
 };
 
@@ -695,7 +700,7 @@ void FDriftPartyManager::TryGetCurrentParty()
 				CurrentMembershipUrl_ = *Membership->Url;
 				CurrentPartyId_ = PartyResponse.Id;
 				CurrentPartyUrl_ = PartyResponse.Url;
-				CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, TArray<TSharedPtr<IDriftPartyPlayer>>{});
+				CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, TArray<TSharedPtr<IDriftPartyMember>>{});
 				UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
 			}
 			else

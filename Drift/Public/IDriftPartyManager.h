@@ -3,13 +3,13 @@
 #pragma once
 
 
-class IDriftPartyPlayer
+class IDriftPartyMember
 {
 public:
 	virtual FString GetPlayerName() const = 0;
 	virtual int GetPlayerID() const = 0;
 
-	virtual ~IDriftPartyPlayer() = default;
+	virtual ~IDriftPartyMember() = default;
 };
 
 
@@ -27,7 +27,7 @@ class IDriftParty
 {
 public:
 	virtual int GetPartyId() const = 0;
-	virtual TArray<TSharedPtr<IDriftPartyPlayer>> GetPlayers() const = 0;
+	virtual TArray<TSharedPtr<IDriftPartyMember>> GetMembers() const = 0;
 
 	virtual ~IDriftParty() = default;
 };

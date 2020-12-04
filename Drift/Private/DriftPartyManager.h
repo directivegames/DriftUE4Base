@@ -39,9 +39,9 @@ struct FDriftPartyInvite : IDriftPartyInvite
 
 struct FDriftParty : IDriftParty
 {
-	FDriftParty(int32 PartyId, TArray<TSharedPtr<IDriftPartyPlayer>> Players)
+	FDriftParty(int32 PartyId, TArray<TSharedPtr<IDriftPartyMember>> Members)
 		: PartyId{ PartyId }
-		, Players{ Players }
+		, Members{ Members }
 	{}
 
 	int GetPartyId() const override
@@ -49,13 +49,13 @@ struct FDriftParty : IDriftParty
 		return PartyId;
 	}
 
-	TArray<TSharedPtr<IDriftPartyPlayer>> GetPlayers() const override
+	TArray<TSharedPtr<IDriftPartyMember>> GetMembers() const override
 	{
-		return Players;
+		return Members;
 	}
 
 	int32 PartyId;
-	TArray<TSharedPtr<IDriftPartyPlayer>> Players;
+	TArray<TSharedPtr<IDriftPartyMember>> Members;
 };
 
 
