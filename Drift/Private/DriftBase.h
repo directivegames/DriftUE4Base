@@ -113,6 +113,7 @@ public:
     virtual FString GetFriendName(int32 friendID) override;
     virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) override;
     virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
+    virtual bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) override;
     virtual bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 

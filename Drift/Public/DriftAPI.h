@@ -435,6 +435,24 @@ struct FDriftMessage
     FString messageBody;
 };
 
+struct FDriftFriendRequest
+{
+    int32 id;
+    FDateTime create_date;
+    FDateTime expiry_date;
+
+    int32 issued_by_player_id; 
+    FString issued_by_player_url;
+    FString issued_by_player_name;
+
+    int32 issued_to_player_id; 
+    FString issued_to_player_url;
+    FString issued_to_player_name;
+
+    FString accept_url;
+    FString token;
+};
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAuthenticatedDelegate, bool, const FPlayerAuthenticatedInfo&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftConnectionStateChangedDelegate, EDriftConnectionState);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftStaticDataLoadedDelegate, bool, const FString&);
@@ -450,6 +468,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
 DECLARE_DELEGATE_TwoParams(FDriftIssueFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<FDriftFriendRequest>&);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
 
@@ -700,6 +719,11 @@ public:
      * Accept a friend request via an external token
      */
     virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+
+    /**
+     * Get Friend Requests directed at the current player
+     */
+    virtual bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
 
     /**
     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
@@ -977,3 +1001,4 @@ struct FGetMatchesResponse
 
     bool Serialize(class SerializationContext& context);
 };
+
