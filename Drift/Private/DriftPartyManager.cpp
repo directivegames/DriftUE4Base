@@ -578,7 +578,7 @@ void FDriftPartyManager::HandlePartyNotification(const FMessageQueueEntry& Messa
 
 	const auto EventName = EventField.GetString();
 
-	UE_LOG(LogDriftParties, Verbose, TEXT("Received party notification: %d "), *Message.message_id, *EventName);
+	UE_LOG(LogDriftParties, Verbose, TEXT("Received party notification (%d): %s"), *Message.message_id, *EventName);
 
 	if (EventName == TEXT("invite"))
 	{
@@ -748,7 +748,7 @@ void FDriftPartyManager::TryGetCurrentParty()
 bool FDriftPartyManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	if (FParse::Command(&Cmd, TEXT("Party")))
+	if (FParse::Command(&Cmd, TEXT("Drift.Party")))
 	{
 		ELogVerbosity::Type level = ELogVerbosity::Log;
 
@@ -769,17 +769,13 @@ bool FDriftPartyManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 		{
 			DeclinePartyInvite(GetInt32(Cmd), {});
 		}
+		else if (FParse::Command(&Cmd, TEXT("CancelInvite")))
+		{
+			CancelPartyInvite(GetInt32(Cmd), {});
+		}
 		else if (FParse::Command(&Cmd, TEXT("Leave")))
 		{
-			const auto PartyId = GetInt32(Cmd);
-			if (PartyId != 0)
-			{
-				LeaveParty(PartyId, {});
-			}
-			else
-			{
-				LeaveParty(CurrentPartyId_, {});
-			}
+			LeaveParty(CurrentPartyId_, {});
 		}
 
 		return true;
