@@ -67,7 +67,8 @@ public:
 
 	// IDriftPartyManager implementation
 
-	TSharedPtr<IDriftParty> GetParty() const override;
+	TSharedPtr<IDriftParty> GetCachedParty() const override;
+	bool QueryParty(FQueryPartyCompletedDelegate Callback) override;
 
 	bool LeaveParty(int PartyId, FLeavePartyCompletedDelegate Callback) override;
 
@@ -86,6 +87,7 @@ public:
 	FPartyMemberJoinedDelegate& OnPartyMemberJoined() override;
 	FPartyMemberLeftDelegate& OnPartyMemberLeft() override;
 	FPartyDisbandedDelegate& OnPartyDisbanded() override;
+	FPartyUpdatedDelegate& OnPartyUpdated() override;
 
 	// FSelfRegisteringExec overrides
 
@@ -104,6 +106,7 @@ protected:
 	void RaisePartyMemberJoined(int32 PartyId, int32 PlayerId);
 	void RaisePartyMemberLeft(int32 PartyId, int32 PlayerId);
 	void RaisePartyDisbanded(int32 PartyId);
+	void RaisePartyUpdated(int32 PartyId);
 
 private:
 	bool HasSession() const;
@@ -141,4 +144,5 @@ private:
 	FPartyMemberJoinedDelegate OnPartyMemberJoinedDelegate_;
 	FPartyMemberLeftDelegate OnPartyMemberLeftDelegate_;
 	FPartyDisbandedDelegate OnPartyDisbandedDelegate_;
+	FPartyUpdatedDelegate OnPartyUpdatedDelegate_;
 };

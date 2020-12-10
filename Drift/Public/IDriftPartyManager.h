@@ -33,6 +33,7 @@ public:
 };
 
 
+DECLARE_DELEGATE_TwoParams(FQueryPartyCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FInvitePlayerToPartyCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FAcceptPartyInviteCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FCancelPartyIniviteCompletedDelegate, bool, int32);
@@ -47,13 +48,17 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FPartyInviteCanceledDelegate, int32 /* Decli
 DECLARE_MULTICAST_DELEGATE_TwoParams(FPartyMemberJoinedDelegate, int32 /* PartyId */, int32 /* JoiningPlayerId */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FPartyMemberLeftDelegate, int32 /* PartyId */, int32 /* LeavingPlayerId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FPartyDisbandedDelegate, int32 /* PartyId */);
+DECLARE_MULTICAST_DELEGATE_OneParam(FPartyUpdatedDelegate, int32 /* PartyId */);
 
 
 class IDriftPartyManager
 {
 public:
-	/* Get information about the current party */
-	virtual TSharedPtr<IDriftParty> GetParty() const = 0;
+	/* Get cached information about the current party, if any */
+	virtual TSharedPtr<IDriftParty> GetCachedParty() const = 0;
+
+	/* Get information about the current party from the server */
+	virtual bool QueryParty(FQueryPartyCompletedDelegate Callback) = 0;
 
 	/* Leave the current party */
 	virtual bool LeaveParty(int PartyID, FLeavePartyCompletedDelegate callback = {}) = 0;
@@ -96,6 +101,9 @@ public:
 
 	/* Raised when the party you're in has been disbanded */
 	virtual FPartyDisbandedDelegate& OnPartyDisbanded() = 0;
+
+	/* Raised when the party you're in has changed */
+	virtual FPartyUpdatedDelegate& OnPartyUpdated() = 0;
 
 	virtual ~IDriftPartyManager() = default;
 };

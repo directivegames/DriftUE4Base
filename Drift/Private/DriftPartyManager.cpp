@@ -200,7 +200,7 @@ FDriftPartyManager::~FDriftPartyManager()
 }
 
 
-TSharedPtr<IDriftParty> FDriftPartyManager::GetParty() const
+TSharedPtr<IDriftParty> FDriftPartyManager::GetCachedParty() const
 {
 	if (!HasSession())
 	{
@@ -209,6 +209,57 @@ TSharedPtr<IDriftParty> FDriftPartyManager::GetParty() const
 		return {};
 	}
 	return CurrentParty_;
+}
+
+
+bool FDriftPartyManager::QueryParty(FQueryPartyCompletedDelegate Callback)
+{
+	if (!HasSession())
+	{
+		UE_LOG(LogDriftParties, Error, TEXT("Trying to access player parties without a session"));
+
+		return false;
+	}
+
+	FString Url = PartiesUrl_;
+	internal::UrlHelper::AddUrlOption(Url, TEXT("player_id"), FString::Printf(TEXT("%d"), PlayerId_));
+	auto Request = RequestManager_->Get(Url);
+	Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
+    {
+        FDriftGetPartyResponse PartyResponse{};
+        if (!PartyResponse.FromJson(Doc.GetInternalValue()->AsObject()))
+        {
+            UE_LOG(LogDriftParties, Error, TEXT("Failed to serialize aceept party invite response"));
+
+            return;
+        }
+
+        const auto Membership = PartyResponse.Members.FindByPredicate(
+            [PlayerId = PlayerId_](const FDriftPartyMember& Member)
+            {
+                return PlayerId == Member.Id;
+            });
+        if (Membership)
+        {
+            CurrentMembershipUrl_ = *Membership->Url;
+            CurrentPartyId_ = PartyResponse.Id;
+            CurrentPartyUrl_ = PartyResponse.Url;
+            CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, TArray<TSharedPtr<IDriftPartyMember>>{});
+            UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
+
+        	RaisePartyUpdated(CurrentPartyId_);
+        }
+        else
+        {
+            UE_LOG(LogDriftParties, Error, TEXT("Found existing party but player is not a member"));
+        }
+    });
+	Request->OnError.BindLambda([](ResponseContext& Context)
+    {
+        Context.errorHandled = true;
+    });
+	Request->Dispatch();
+	return true;
 }
 
 
@@ -422,6 +473,12 @@ FPartyDisbandedDelegate& FDriftPartyManager::OnPartyDisbanded()
 }
 
 
+FPartyUpdatedDelegate& FDriftPartyManager::OnPartyUpdated()
+{
+	return OnPartyUpdatedDelegate_;
+}
+
+
 void FDriftPartyManager::SetRequestManager(TSharedPtr<JsonRequestManager> RequestManager)
 {
 	RequestManager_ = RequestManager;
@@ -476,6 +533,12 @@ void FDriftPartyManager::RaisePartyMemberLeft(int32 PartyId, int32 PlayerId)
 void FDriftPartyManager::RaisePartyDisbanded(int32 PartyId)
 {
 	OnPartyDisbandedDelegate_.Broadcast(PartyId);
+}
+
+
+void FDriftPartyManager::RaisePartyUpdated(int32 PartyId)
+{
+	OnPartyUpdatedDelegate_.Broadcast(PartyId);
 }
 
 
@@ -677,42 +740,7 @@ void FDriftPartyManager::TryGetCurrentParty()
 {
 	if (HasSession())
 	{
-		FString Url = PartiesUrl_;
-		internal::UrlHelper::AddUrlOption(Url, TEXT("player_id"), FString::Printf(TEXT("%d"), PlayerId_));
-		auto Request = RequestManager_->Get(Url);
-		Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
-		{
-			FDriftGetPartyResponse PartyResponse{};
-			if (!PartyResponse.FromJson(Doc.GetInternalValue()->AsObject()))
-			{
-				UE_LOG(LogDriftParties, Error, TEXT("Failed to serialize aceept party invite response"));
-
-				return;
-			}
-
-			const auto Membership = PartyResponse.Members.FindByPredicate(
-				[PlayerId = PlayerId_](const FDriftPartyMember& Member)
-				{
-					return PlayerId == Member.Id;
-				});
-			if (Membership)
-			{
-				CurrentMembershipUrl_ = *Membership->Url;
-				CurrentPartyId_ = PartyResponse.Id;
-				CurrentPartyUrl_ = PartyResponse.Url;
-				CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, TArray<TSharedPtr<IDriftPartyMember>>{});
-				UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
-			}
-			else
-			{
-				UE_LOG(LogDriftParties, Error, TEXT("Found existing party but player is not a member"));
-			}
-		});
-		Request->OnError.BindLambda([](ResponseContext& Context)
-		{
-			Context.errorHandled = true;
-		});
-		Request->Dispatch();
+		QueryParty({});
 	}
 }
 
