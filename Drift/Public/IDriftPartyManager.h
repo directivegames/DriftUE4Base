@@ -61,10 +61,10 @@ public:
 	virtual bool QueryParty(FQueryPartyCompletedDelegate Callback) = 0;
 
 	/* Leave the current party */
-	virtual bool LeaveParty(int PartyID, FLeavePartyCompletedDelegate callback = {}) = 0;
+	virtual bool LeaveParty(int PartyID, FLeavePartyCompletedDelegate Callback) = 0;
 
 	/* Send an invite to form or join a party to another player */
-	virtual bool InvitePlayerToParty(int PlayerID, FInvitePlayerToPartyCompletedDelegate callback = {}) = 0;
+	virtual bool InvitePlayerToParty(int PlayerID, FInvitePlayerToPartyCompletedDelegate Callback) = 0;
 
 	/* Get a list of sent party invites */
 	virtual TArray<TSharedPtr<IDriftPartyInvite>> GetOutgoingPartyInvites() const = 0;
@@ -73,13 +73,13 @@ public:
 	virtual TArray<TSharedPtr<IDriftPartyInvite>> GetIncomingPartyInvites() const = 0;
 
 	/* Accept an invite to a party from another player */
-	virtual bool AcceptPartyInvite(int PartyInviteID, FAcceptPartyInviteCompletedDelegate callback = {}) = 0;
+	virtual bool AcceptPartyInvite(int PartyInviteID, FAcceptPartyInviteCompletedDelegate Callback) = 0;
 
 	/* Cancel a party invite you have sent to another player */
-	virtual bool CancelPartyInvite(int PartyInviteID, FCancelPartyIniviteCompletedDelegate callback = {}) = 0;
+	virtual bool CancelPartyInvite(int PartyInviteID, FCancelPartyIniviteCompletedDelegate Callback) = 0;
 
 	/* Decline a party invite from another player */
-	virtual bool DeclinePartyInvite(int PartyInviteID, FDeclinePartyIniviteCompletedDelegate callback = {}) = 0;
+	virtual bool DeclinePartyInvite(int PartyInviteID, FDeclinePartyIniviteCompletedDelegate Callback) = 0;
 
 	/* Raised when you have received a new party invite from another player */
 	virtual FPartyInviteReceivedDelegate& OnPartyInviteReceived() = 0;
