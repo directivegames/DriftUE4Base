@@ -154,17 +154,19 @@ struct FDriftAcceptPartyInviteResponse : FJsonSerializable
 };
 
 
-struct FDriftPartyMember : FJsonSerializable
+struct FDriftPartyResponseMember : FJsonSerializable
 {
 	BEGIN_JSON_SERIALIZER;
 		JSON_SERIALIZE("id", Id);
 		JSON_SERIALIZE("url", Url);
 		JSON_SERIALIZE("player_url", PlayerUrl);
+		JSON_SERIALIZE("player_name", PlayerName);
 		END_JSON_SERIALIZER;
 
 	int32 Id;
 	FString Url;
 	FString PlayerUrl;
+	FString PlayerName;
 };
 
 
@@ -175,14 +177,14 @@ struct FDriftGetPartyResponse : FJsonSerializable
 		JSON_SERIALIZE("url", Url);
 		JSON_SERIALIZE("invites_url", InvitesUrl);
 		JSON_SERIALIZE("members_url", MembersUrl);
-		JSON_SERIALIZE_ARRAY_SERIALIZABLE("members", Members, FDriftPartyMember);
+		JSON_SERIALIZE_ARRAY_SERIALIZABLE("members", Members, FDriftPartyResponseMember);
 		END_JSON_SERIALIZER;
 
 	int32 Id;
 	FString Url;
 	FString InvitesUrl;
 	FString MembersUrl;
-	TArray<FDriftPartyMember> Members;
+	TArray<FDriftPartyResponseMember> Members;
 };
 
 
@@ -235,7 +237,7 @@ bool FDriftPartyManager::QueryParty(FQueryPartyCompletedDelegate Callback)
         }
 
         const auto Membership = PartyResponse.Members.FindByPredicate(
-            [PlayerId = PlayerId_](const FDriftPartyMember& Member)
+            [PlayerId = PlayerId_](const FDriftPartyResponseMember& Member)
             {
                 return PlayerId == Member.Id;
             });
@@ -244,8 +246,14 @@ bool FDriftPartyManager::QueryParty(FQueryPartyCompletedDelegate Callback)
             CurrentMembershipUrl_ = *Membership->Url;
             CurrentPartyId_ = PartyResponse.Id;
             CurrentPartyUrl_ = PartyResponse.Url;
-            CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, TArray<TSharedPtr<IDriftPartyMember>>{});
-            UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
+        	TArray<TSharedPtr<IDriftPartyMember>> Members;
+        	for (const auto& Member : PartyResponse.Members)
+        	{
+        		Members.Add(MakeShared<FDriftPartyMember>(Member.PlayerName, Member.Id));
+        	}
+        	CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, MoveTemp(Members));
+
+        	UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
 
         	RaisePartyUpdated(CurrentPartyId_);
         }
@@ -378,6 +386,10 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 		return false;
 	}
 
+	IncomingInvites_.Remove(*Invite);
+
+	// TODO: Preserve invite on non-fatal failures?
+	
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("inviter_id"), (*Invite)->InvitingPlayerId);
 	auto Request = RequestManager_->Patch((*Invite)->InviteUrl, Payload, HttpStatusCodes::Ok);
@@ -397,8 +409,10 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 		UE_LOG(LogDriftParties, Verbose, TEXT("Joined party %s"), *Payload.PartyUrl);
 
 		(void)Callback.ExecuteIfBound(true, PartyInviteId);
+
+		QueryParty({});
 	});
-	Request->OnError.BindLambda([Callback, PartyInviteId](ResponseContext& Context)
+	Request->OnError.BindLambda([this, Callback, PartyInviteId](ResponseContext& Context)
 	{
 		(void)Callback.ExecuteIfBound(false, PartyInviteId);
 	});

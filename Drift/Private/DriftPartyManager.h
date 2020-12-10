@@ -37,11 +37,33 @@ struct FDriftPartyInvite : IDriftPartyInvite
 };
 
 
+struct FDriftPartyMember : IDriftPartyMember
+{
+	FDriftPartyMember(FString PlayerName, int PlayerId)
+		: PlayerName{ PlayerName }
+		, PlayerId{ PlayerId }
+	{}
+	
+	FString GetPlayerName() const override
+	{
+		return PlayerName;
+	}
+
+	int GetPlayerID() const override
+	{
+		return PlayerId;
+	}
+
+	FString PlayerName;
+	int PlayerId;
+};
+
+
 struct FDriftParty : IDriftParty
 {
 	FDriftParty(int32 PartyId, TArray<TSharedPtr<IDriftPartyMember>> Members)
 		: PartyId{ PartyId }
-		, Members{ Members }
+		, Members{ MoveTemp(Members) }
 	{}
 
 	int GetPartyId() const override
