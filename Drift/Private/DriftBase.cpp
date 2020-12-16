@@ -1200,7 +1200,9 @@ void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry& message)
     }
     else
     {
+        #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
         UE_LOG(LogDriftMessages, Warning, TEXT("Unknown event '%s' not handled"), *event.ToString());
+        #endif
     }
 }
 
@@ -1886,7 +1888,9 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDe
 
     auto url = driftEndpoints.friend_invites;
     if (PlayerID > 0)
+    {
         internal::UrlHelper::AddUrlOption(url, TEXT("player_id"), PlayerID);
+    }
 
     DRIFT_LOG(Base, Verbose, TEXT("Issuing a friend request token to %s"), PlayerID > 0 ? *FString::Printf(TEXT("player with ID %d"), PlayerID) : TEXT("any player"));
 
@@ -1984,10 +1988,9 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
 
 bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate)
 {
-    DRIFT_LOG(Base, Verbose, TEXT("Getting friend requests...."));
     if (state_ != DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch tokens without being connected"));
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch friend requests without being connected"));
         return false;
     }
     if (driftEndpoints.friend_requests.IsEmpty())
@@ -1995,6 +1998,7 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
         DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch friend requests without a player session"));
         return false;
     }
+    DRIFT_LOG(Base, Verbose, TEXT("Getting friend requests...."));
     auto request = GetGameRequestManager()->Get(driftEndpoints.friend_requests);
     request->OnResponse.BindLambda([this, Delegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -2008,7 +2012,7 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
         }
 
         TArray<FDriftFriendRequest> friend_requests;
-        for (auto It: response)
+        for (const auto& It: response)
         {
             friend_requests.Add({
                 It.id,
@@ -2105,7 +2109,7 @@ bool FDriftBase::FindPlayersByName(const FString& SearchString, const FDriftFind
             return;
         }
         TArray<FDriftFriend> results;
-        for (auto& It: response)
+        for (const auto& It: response)
         {
             results.Add({It.player_id, It.player_name, EDriftPresence::Unknown, EDriftFriendType::NotFriend});
         }

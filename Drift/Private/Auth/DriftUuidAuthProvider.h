@@ -12,13 +12,13 @@ class FDriftUuidAuthProvider : public IDriftAuthProvider
 public:
     FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage);
 
-    virtual FString GetProviderName() const override { return TEXT("uuid"); }
-    virtual void InitCredentials(InitCredentialsCallback callback) override;
-    virtual void GetFriends(GetFriendsCallback callback) override;
-    virtual void GetAvatarUrl(GetAvatarUrlCallback callback) override;
-    virtual void FillProviderDetails(DetailsAppender appender) const override;
+    FString GetProviderName() const override { return TEXT("uuid"); }
+    void InitCredentials(InitCredentialsCallback callback) override;
+    void GetFriends(GetFriendsCallback callback) override;
+    void GetAvatarUrl(GetAvatarUrlCallback callback) override;
+    void FillProviderDetails(DetailsAppender appender) const override;
 
-    virtual FString ToString() const override;
+    FString ToString() const override;
 
 private:
     void GetDeviceIDCredentials();
