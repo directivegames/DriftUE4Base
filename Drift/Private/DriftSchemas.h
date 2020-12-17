@@ -42,6 +42,7 @@ struct FDriftEndpointsResponse
     FString user_identities;
     FString users;
     FString friend_invites;
+    FString friend_requests;
 
     // Added after authentication
     FString my_friends;
@@ -579,5 +580,23 @@ struct FDriftFriendResponse
     FString player_url;
     FString friendship_url;
 
+    bool Serialize(class SerializationContext& context);
+};
+
+struct FDriftFriendRequestsResponse
+{
+    FString accept_url;
+    FDateTime create_date;
+    FDateTime expiry_date;
+    int32 id;
+    FString issued_by_player_name;
+    int32 issued_by_player_id;
+    FString issued_by_player_url;
+    int32 issued_to_player_id;
+    FString issued_to_player_name;
+    FString issued_to_player_url;
+    FDateTime modify_date;
+    FString token;
+    
     bool Serialize(class SerializationContext& context);
 };

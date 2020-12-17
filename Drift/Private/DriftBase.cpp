@@ -1188,6 +1188,22 @@ void FDriftBase::HandleFriendEventMessage(const FMessageQueueEntry& message)
 
         onFriendRemoved.Broadcast(message.sender_id);
     }
+    else if (eventName == TEXT("friend_request"))
+    {
+        UE_LOG(LogDriftMessages, Verbose, TEXT("Player %d wants to be friends with us. Awwww..."), message.sender_id);
+        auto token = message.payload.FindField(TEXT("token"));
+        if (!token.IsString())
+        {
+            UE_LOG(LogDriftMessages, Error, TEXT("Missing or invalid friend invite token"));
+        }
+        onFriendRequestReceived.Broadcast(message.sender_id, token.ToString());
+    }
+    else
+    {
+        #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+        UE_LOG(LogDriftMessages, Warning, TEXT("Unknown event '%s' not handled"), *event.ToString());
+        #endif
+    }
 }
 
 
@@ -1854,7 +1870,7 @@ FString FDriftBase::GetFriendName(int32 friendID)
 }
 
 
-bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate)
+bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
@@ -1870,9 +1886,15 @@ bool FDriftBase::RequestFriendToken(const FDriftRequestFriendTokenDelegate& dele
         return false;
     }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Fetching a friend request token"));
+    auto url = driftEndpoints.friend_invites;
+    if (PlayerID > 0)
+    {
+        internal::UrlHelper::AddUrlOption(url, TEXT("player_id"), PlayerID);
+    }
 
-    auto request = GetGameRequestManager()->Post(driftEndpoints.friend_invites, FString{});
+    DRIFT_LOG(Base, Verbose, TEXT("Issuing a friend request token to %s"), PlayerID > 0 ? *FString::Printf(TEXT("player with ID %d"), PlayerID) : TEXT("any player"));
+
+    auto request = GetGameRequestManager()->Post(url, FString{});
     request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
     {
         FString token;
@@ -1964,19 +1986,71 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
 }
 
 
+bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch friend requests without being connected"));
+        return false;
+    }
+    if (driftEndpoints.friend_requests.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch friend requests without a player session"));
+        return false;
+    }
+    DRIFT_LOG(Base, Verbose, TEXT("Getting friend requests...."));
+    auto request = GetGameRequestManager()->Get(driftEndpoints.friend_requests);
+    request->OnResponse.BindLambda([this, Delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        DRIFT_LOG(Base, Verbose, TEXT("Loaded friend requests: %s"), *doc.ToString());
+        
+        TArray<FDriftFriendRequestsResponse> response;
+        if (!JsonArchive::LoadObject(doc, response))
+        {
+            context.error = TEXT("Failed to parse invites response");
+            return;
+        }
+
+        TArray<FDriftFriendRequest> friend_requests;
+        for (const auto& It: response)
+        {
+            friend_requests.Add({
+                It.id,
+                It.create_date,
+                It.expiry_date,
+                It.issued_by_player_id,
+                It.issued_by_player_url,
+                It.issued_by_player_name,
+                It.issued_to_player_id,
+                It.issued_to_player_url,
+                It.issued_to_player_name,
+                It.accept_url,
+                It.token
+            });
+        }
+        
+        Delegate.ExecuteIfBound(true, friend_requests);
+    });
+    request->OnError.BindLambda([this, Delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        Delegate.ExecuteIfBound(false, {});
+    });
+
+    return request->Dispatch();
+}
+
 bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend without being connected"));
-
         return false;
     }
 
     if (driftEndpoints.my_friends.IsEmpty())
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend before the player session has been initialized"));
-
         return false;
     }
 
@@ -1984,7 +2058,6 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
     if (friendInfo == nullptr)
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to remove a friend which is not (yet) known to the system"));
-
         return false;
     }
 
@@ -2028,11 +2101,17 @@ bool FDriftBase::FindPlayersByName(const FString& SearchString, const FDriftFind
     request->OnResponse.BindLambda([this, SearchString, delegate](ResponseContext& context, JsonDocument& doc)
     {
         DRIFT_LOG(Base, Verbose, TEXT("Search for %s yielded %s"), *SearchString, *doc.ToString());
-        TArray<FDriftPlayerResponse> results;
-        if (!JsonArchive::LoadObject(doc, results))
+        TArray<FDriftPlayerResponse> response;
+        if (!JsonArchive::LoadObject(doc, response))
         {
             context.error = TEXT("Failed to parse search response");
+            delegate.ExecuteIfBound(false, {});
             return;
+        }
+        TArray<FDriftFriend> results;
+        for (const auto& It: response)
+        {
+            results.Add({It.player_id, It.player_name, EDriftPresence::Unknown, EDriftFriendType::NotFriend});
         }
         delegate.ExecuteIfBound(true, results);
     });
@@ -3248,7 +3327,6 @@ int32 FDriftBase::GetMatchID() const
 {
     return match_info.url.IsEmpty() ? 0 : match_info.match_id;
 }
-
 
 void FDriftBase::CachePlayerInfo(int32 playerID)
 {

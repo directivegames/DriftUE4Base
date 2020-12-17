@@ -298,6 +298,7 @@ enum class EDriftPresence : uint8
 UENUM(BlueprintType)
 enum class EDriftFriendType : uint8
 {
+    NotFriend,
     Drift,
     External
 };
@@ -434,6 +435,24 @@ struct FDriftMessage
     FString messageBody;
 };
 
+struct FDriftFriendRequest
+{
+    int32 id;
+    FDateTime create_date;
+    FDateTime expiry_date;
+
+    int32 issued_by_player_id; 
+    FString issued_by_player_url;
+    FString issued_by_player_name;
+
+    int32 issued_to_player_id; 
+    FString issued_to_player_url;
+    FString issued_to_player_name;
+
+    FString accept_url;
+    FString token;
+};
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAuthenticatedDelegate, bool, const FPlayerAuthenticatedInfo&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftConnectionStateChangedDelegate, EDriftConnectionState);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftStaticDataLoadedDelegate, bool, const FString&);
@@ -447,10 +466,11 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, c
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
-DECLARE_DELEGATE_TwoParams(FDriftRequestFriendTokenDelegate, bool, const FString&);
+DECLARE_DELEGATE_TwoParams(FDriftIssueFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<FDriftFriendRequest>&);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
-DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftPlayerResponse>&);
+DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -473,6 +493,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftRecievedMatchInviteDelegate, const FMa
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendAddedDelegate, int32);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendRequestReceivedDelegate, int32, const FString&);
 
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
 
@@ -688,14 +709,21 @@ public:
     virtual FString GetFriendName(int32 friendID) = 0;
 
     /**
-     * Request a friend request token to be sent to a friend via external means
+     * Issue a friend invite token to 'PlayerID'
+     * If 'playerID' is > 0, a message will be sent to that player with the token, otherwise no message is sent and
+     * the token will be valid for any player who accepts it. In that case, the token must be sent to a friend via external means
      */
-    virtual bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) = 0;
+    virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) = 0;
  
     /**
      * Accept a friend request via an external token
      */
     virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+
+    /**
+     * Get Friend Requests directed at the current player
+     */
+    virtual bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
 
     /**
     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
@@ -782,10 +810,16 @@ public:
      * Fired when another player has accepted a friend request.
      */
     virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
+ 
     /**
      * Fired when a friend has terminated the friendship.
      */
     virtual FDriftFriendRemovedDelegate& OnFriendRemoved() = 0;
+
+    /**
+     * Fired when another player sends a friend request our way
+    */
+    virtual FDriftFriendRequestReceivedDelegate& OnFriendRequestReceived() = 0;
 
     /**
      * Fired when the root endpoints have been aquired. The user is not yet
@@ -967,3 +1001,4 @@ struct FGetMatchesResponse
 
     bool Serialize(class SerializationContext& context);
 };
+

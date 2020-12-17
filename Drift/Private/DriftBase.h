@@ -67,13 +67,13 @@ public:
 
     // FTickableGameObject API
     void Tick(float DeltaTime) override;
-    virtual bool IsTickable() const override { return true; }
+    bool IsTickable() const override { return true; }
 
-    TStatId GetStatId() const;
+    TStatId GetStatId() const override;
 
     // Generic API
-	void AuthenticatePlayer() override;
-	void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) override;
+    void AuthenticatePlayer() override;
+    void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) override;
     EDriftConnectionState GetConnectionState() const override;
     FString GetPlayerName() override;
     int32 GetPlayerID() override;
@@ -111,8 +111,9 @@ public:
     void UpdateFriendsList() override;
     bool GetFriendsList(TArray<FDriftFriend>& friends) override;
     FString GetFriendName(int32 friendID) override;
-    bool RequestFriendToken(const FDriftRequestFriendTokenDelegate& delegate) override;
+    bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) override;
     bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
+    bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) override;
     bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
@@ -140,13 +141,15 @@ public:
     FDriftStaticDataLoadedDelegate& OnStaticDataLoaded() override { return onStaticDataLoaded; }
     FDriftStaticDataProgressDelegate& OnStaticDataProgress() override { return onStaticDataProgress; }
     FDriftPlayerStatsLoadedDelegate& OnPlayerStatsLoaded() override { return onPlayerStatsLoaded; }
-    FDriftPlayerGameStateLoadedDelegate& OnPlayerGameStateLoaded() { return onPlayerGameStateLoaded; }
-    FDriftPlayerGameStateSavedDelegate& OnPlayerGameStateSaved() { return onPlayerGameStateSaved; }
+    FDriftPlayerGameStateLoadedDelegate& OnPlayerGameStateLoaded() override { return onPlayerGameStateLoaded; }
+    FDriftPlayerGameStateSavedDelegate& OnPlayerGameStateSaved() override { return onPlayerGameStateSaved; }
     FDriftGotActiveMatchesDelegate& OnGotActiveMatches() override { return onGotActiveMatches; }
     FDriftPlayerNameSetDelegate& OnPlayerNameSet() override { return onPlayerNameSet; }
 
     FDriftFriendAddedDelegate& OnFriendAdded() override { return onFriendAdded;  }
     FDriftFriendRemovedDelegate& OnFriendRemoved() override { return onFriendRemoved; }
+
+    FDriftFriendRequestReceivedDelegate& OnFriendRequestReceived() override { return onFriendRequestReceived; };
 
     FDriftStaticRoutesInitializedDelegate& OnStaticRoutesInitialized() override { return onStaticRoutesInitialized; }
     FDriftPlayerDisconnectedDelegate& OnPlayerDisconnected() override { return onPlayerDisconnected; }
@@ -162,7 +165,7 @@ public:
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) override;
-	void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) override;
+    void UpdateMatch(const FDriftUpdateMatchProperties& properties, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     int32 GetMatchID() const override;
     void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
     void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
@@ -175,11 +178,11 @@ public:
     FDriftMatchAddedDelegate& OnMatchAdded() override { return onMatchAdded; }
     FDriftMatchUpdatedDelegate& OnMatchUpdated() override { return onMatchUpdated; }
 
-	FDriftReceivedMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
-	FDriftReceivedMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
+    FDriftReceivedMessageDelegate& OnReceivedTextMessage() override { return onReceivedTextMessage; }
+    FDriftReceivedMessageDelegate& OnReceivedJsonMessage() override { return onReceivedJsonMessage; }
 
-	bool SendFriendMessage(int32 FriendId, const FString& Message) override;
-	bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
+    bool SendFriendMessage(int32 FriendId, const FString& Message) override;
+    bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
@@ -248,6 +251,7 @@ private:
     FDriftPlayerNameSetDelegate onPlayerNameSet;
     FDriftFriendAddedDelegate onFriendAdded;
     FDriftFriendRemovedDelegate onFriendRemoved;
+    FDriftFriendRequestReceivedDelegate onFriendRequestReceived;
     FDriftStaticRoutesInitializedDelegate onStaticRoutesInitialized;
     FDriftPlayerDisconnectedDelegate onPlayerDisconnected;
     FDriftGameVersionMismatchDelegate onGameVersionMismatch;
