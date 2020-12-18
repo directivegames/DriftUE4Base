@@ -47,7 +47,7 @@ public:
     FString name;
     
 private:
-	void OnCompleted(bool success);
+	void OnCompleted(bool success, const FString& PlayerName);
 
     UObject* worldContextObject;
     TWeakObjectPtr<APlayerController> playerController;

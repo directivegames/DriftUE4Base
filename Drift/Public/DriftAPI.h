@@ -458,7 +458,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftConnectionStateChangedDelegate, EDrift
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftStaticDataLoadedDelegate, bool, const FString&);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftStaticDataProgressDelegate, const FString&, int32);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftGotActiveMatchesDelegate, bool);
-DECLARE_MULTICAST_DELEGATE_OneParam(FDriftPlayerNameSetDelegate, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerNameSetDelegate, bool, const FString&);
 DECLARE_MULTICAST_DELEGATE(FDriftStaticRoutesInitializedDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftPlayerStatsLoadedDelegate, bool);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FDriftPlayerGameStateLoadedDelegate, ELoadPlayerGameStateResult, const FString&, const FString&);

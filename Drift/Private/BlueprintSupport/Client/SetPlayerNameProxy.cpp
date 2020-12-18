@@ -42,7 +42,7 @@ void USetPlayerNameProxy::Activate()
 }
 
 
-void USetPlayerNameProxy::OnCompleted(bool success)
+void USetPlayerNameProxy::OnCompleted(bool success, const FString& PlayerName)
 {
     FDriftWorldHelper helper{ worldContextObject };
     auto kc = helper.GetInstance();

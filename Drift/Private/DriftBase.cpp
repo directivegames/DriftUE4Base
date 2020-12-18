@@ -2506,19 +2506,21 @@ void FDriftBase::SetPlayerName(const FString& name)
     }
 
     DRIFT_LOG(Base, Log, TEXT("Setting player name: %s"), *name);
-
+    auto OldName = myPlayer.player_name;
     myPlayer.player_name = name;
 
     const FChangePlayerNamePayload payload{ name };
     auto request = GetGameRequestManager()->Put(driftEndpoints.my_player, payload);
-    request->OnResponse.BindLambda([this, name](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        onPlayerNameSet.Broadcast(true);
+        onPlayerNameSet.Broadcast(true, myPlayer.player_name);
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    request->OnError.BindLambda([this, OldName](ResponseContext& context)
     {
         context.errorHandled = true;
-        onPlayerNameSet.Broadcast(false);
+        auto FailedName = myPlayer.player_name;
+        myPlayer.player_name = OldName;
+        onPlayerNameSet.Broadcast(false, FailedName);
     });
     request->Dispatch();
 }
