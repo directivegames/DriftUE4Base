@@ -185,9 +185,11 @@ public:
     bool SendFriendMessage(int32 FriendId, const FString& Message) override;
     bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
+    TSharedPtr<IDriftPartyManager> GetPartyManager() override;
+
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
-    void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
+	void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
 
 private:
     void ConfigureSettingsSection(const FString& config);
@@ -350,8 +352,6 @@ private:
 	IDriftAuthProviderFactory* GetUserPassAuthProviderFactory(const FString& Username, const FString& Password, bool bAllowAutomaticAccountCreation);
 
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
-
-    virtual TSharedPtr<IDriftPartyManager> GetPartyManager() override;
 
 private:
     FString settingsSection_;

@@ -3853,12 +3853,6 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 }
 
 
-TSharedPtr<IDriftPartyManager> FDriftBase::GetPartyManager()
-{
-	return {};
-}
-
-
 bool FDriftBase::SendFriendMessage(int32 FriendId, const FString& Message)
 {
 	JsonValue message { rapidjson::kObjectType };
@@ -3895,6 +3889,13 @@ void FDriftBase::HandleFriendMessage(const FMessageQueueEntry& message)
 		UE_LOG(LogDriftMessages, Error, TEXT("HandleFriendMessage: friend message contains no message field"));
 	}
 }
+
+
+TSharedPtr<IDriftPartyManager> FDriftBase::GetPartyManager()
+{
+	return partyManager;
+}
+
 
 void FDriftBase::SetForwardedLogLevel(ELogVerbosity::Type Level)
 {
