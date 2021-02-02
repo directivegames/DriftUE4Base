@@ -17,6 +17,9 @@
 #include "DriftProvider.h"
 
 
+struct FAutoCompleteCommand;
+
+
 class FDriftModule : public IModuleInterface
 {
 public:
@@ -31,5 +34,10 @@ public:
     void ShutdownModule() override;
 
 private:
-    FDriftProvider provider;
+#if ALLOW_CONSOLE
+	// Callback function registered with Console to inject show debug auto complete command
+	static void PopulateAutoCompleteEntries(TArray<FAutoCompleteCommand>& AutoCompleteList);
+#endif // ALLOW_CONSOLE
+
+	FDriftProvider provider;
 };

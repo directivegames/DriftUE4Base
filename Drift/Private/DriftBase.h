@@ -19,6 +19,7 @@
 #include "DriftCounterManager.h"
 #include "DriftEventManager.h"
 #include "DriftMessageQueue.h"
+#include "DriftPartyManager.h"
 #include "LogForwarder.h"
 
 #include "Tickable.h"
@@ -184,9 +185,11 @@ public:
     bool SendFriendMessage(int32 FriendId, const FString& Message) override;
     bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
+    TSharedPtr<IDriftPartyManager> GetPartyManager() override;
+
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
-    void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
+	void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
 
 private:
     void ConfigureSettingsSection(const FString& config);
@@ -301,6 +304,7 @@ private:
     void CreateEventManager();
     void CreateLogForwarder();
     void CreateMessageQueue();
+	void CreatePartyManager();
 
     void CachePlayerInfo(int32 playerID);
 
@@ -387,9 +391,11 @@ private:
 
     TUniquePtr<FDriftEventManager> eventManager;
 
-    TUniquePtr<FDriftMessageQueue> messageQueue;
+    TSharedPtr<FDriftMessageQueue> messageQueue;
 
     TUniquePtr<FLogForwarder> logForwarder;
+
+	TSharedPtr<FDriftPartyManager> partyManager;
 
     bool countersLoaded = false;
     TArray<FDriftCounterInfo> counterInfos;
