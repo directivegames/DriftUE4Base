@@ -3407,7 +3407,7 @@ void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegat
     driftFriends.Reset();
 
     auto request = GetGameRequestManager()->Get(driftEndpoints.my_friends);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, delegate = delegate](ResponseContext& context, JsonDocument& doc)
     {
         TArray<FDriftFriendResponse> friends;
         if (!JsonArchive::LoadObject(doc, friends))
@@ -3437,7 +3437,7 @@ void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegat
         AddAnalyticsEvent(MoveTemp(event));
         MakeFriendsGroup(delegate);
     });
-    request->OnError.BindLambda([delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate = delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -3519,7 +3519,7 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
 
     const auto url = driftEndpoints.my_player_groups.Replace(TEXT("{group_name}"), TEXT("friends"));
     auto request = GetGameRequestManager()->Put(url, payload);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, delegate = delegate](ResponseContext& context, JsonDocument& doc)
     {
         if (!JsonArchive::LoadObject(doc, userIdentities))
         {
@@ -3545,13 +3545,13 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
         event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
         AddAnalyticsEvent(MoveTemp(event));
 
-        CacheFriendInfos([this, delegate](bool success)
+        CacheFriendInfos([this, delegate = delegate](bool success)
         {
             userIdentitiesLoaded = success;
             delegate.ExecuteIfBound(success);
         });
     });
-    request->OnError.BindLambda([delegate](ResponseContext& context)
+    request->OnError.BindLambda([delegate = delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false);
@@ -3565,7 +3565,7 @@ void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
     auto url = driftEndpoints.players;
     internal::UrlHelper::AddUrlOption(url, TEXT("player_group"), TEXT("friends"));
     auto request = GetGameRequestManager()->Get(url);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, delegate = delegate](ResponseContext& context, JsonDocument& doc)
     {
         TArray<FDriftPlayerResponse> infos;
         if (!JsonArchive::LoadObject(doc, infos))
@@ -3580,7 +3580,7 @@ void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
         }
         delegate(true);
     });
-    request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, delegate = delegate](ResponseContext& context)
     {
         DRIFT_LOG(Base, Warning, TEXT("Failed to cache friend infos"));
 
