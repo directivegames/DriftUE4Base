@@ -374,11 +374,11 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 		return false;
 	}
 
-	const auto Invite = IncomingInvites_.FindByPredicate([PartyInviteId](const TSharedPtr<FDriftPartyInvite>& Invite)
+	const auto Element = IncomingInvites_.FindByPredicate([PartyInviteId](const TSharedPtr<FDriftPartyInvite>& Invite)
 	{
 		return Invite->InviteId == PartyInviteId;
 	});
-	if (!Invite)
+	if (!Element)
 	{
 		UE_LOG(LogDriftParties, Error, TEXT("Trying to accept non-existing invite %d"), PartyInviteId);
 
@@ -386,13 +386,14 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 		return false;
 	}
 
-	IncomingInvites_.Remove(*Invite);
+	const auto Invite{ *Element };
+	IncomingInvites_.Remove(Invite);
 
 	// TODO: Preserve invite on non-fatal failures?
-	
+
 	JsonValue Payload{rapidjson::kObjectType};
-	JsonArchive::AddMember(Payload, TEXT("inviter_id"), (*Invite)->InvitingPlayerId);
-	auto Request = RequestManager_->Patch((*Invite)->InviteUrl, Payload, HttpStatusCodes::Ok);
+	JsonArchive::AddMember(Payload, TEXT("inviter_id"), (Invite)->InvitingPlayerId);
+	auto Request = RequestManager_->Patch((Invite)->InviteUrl, Payload, HttpStatusCodes::Ok);
 	Request->OnResponse.BindLambda([this, Callback, PartyInviteId](ResponseContext& Context, JsonDocument& Doc)
 	{
 		FDriftAcceptPartyInviteResponse Payload{};
