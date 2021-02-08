@@ -16,6 +16,7 @@ public:
 class IDriftPartyInvite
 {
 public:
+	virtual int GetInviteID() const = 0;
 	virtual int GetInvitingPlayerID() const = 0;
 	virtual int GetInvitedPlayerID() const = 0;
 
