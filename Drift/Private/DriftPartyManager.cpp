@@ -295,6 +295,8 @@ bool FDriftPartyManager::LeaveParty(int PartyId, FLeavePartyCompletedDelegate Ca
 
 		UE_LOG(LogDriftParties, Verbose, TEXT("Player left party"));
 
+		RaisePartyUpdated(PartyId);
+
 		(void)Callback.ExecuteIfBound(true, PartyId);
 	});
 	Request->OnError.BindLambda([this, Callback, PartyId](ResponseContext& Context)
@@ -713,6 +715,9 @@ void FDriftPartyManager::HandlePartyPlayerJoinedNotification(const FMessageQueue
 	UE_LOG(LogDriftParties, Log, TEXT("Player %d joined party %s"), Payload.PlayerId, *Payload.PartyUrl);
 
 	RaisePartyMemberJoined(Payload.PartyId, Payload.PlayerId);
+
+	// Query party again to update party members array. Maybe add the player name to the notification?
+	QueryParty({});
 }
 
 
@@ -726,6 +731,15 @@ void FDriftPartyManager::HandlePartyPlayerLeftNotification(const FMessageQueueEn
 	}
 
 	PartyPlayers_.Remove(Payload.PlayerId);
+
+	// Remove from cached party (Can also be done via QueryParty, unsure which is more desirable)
+	if (CurrentParty_.IsValid())
+	{
+		CurrentParty_->Members.RemoveAll([Payload](const TSharedPtr<IDriftPartyMember>& Member)
+		{
+			return Member->GetPlayerID() == Payload.PlayerId;
+		});
+	}
 
 	UE_LOG(LogDriftParties, Log, TEXT("Player %d left party %s"), Payload.PlayerId, *Payload.PartyUrl);
 
@@ -744,6 +758,7 @@ void FDriftPartyManager::HandlePartyDisbandedNotification(const FMessageQueueEnt
 
 	CurrentPartyUrl_.Empty();
 	PartyPlayers_.Empty();
+	CurrentParty_.Reset();
 
 	UE_LOG(LogDriftParties, Log, TEXT("Party %s was disbanded"), *Payload.PartyUrl);
 

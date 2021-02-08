@@ -20,6 +20,11 @@ struct FDriftPartyInvite : IDriftPartyInvite
 		, InvitedPlayerId{ InvitedPlayerId }
 	{}
 
+	int GetInviteID() const override
+	{
+		return InviteId;
+	};
+
 	int GetInvitingPlayerID() const override
 	{
 		return InvitingPlayerId;
@@ -29,7 +34,7 @@ struct FDriftPartyInvite : IDriftPartyInvite
 	{
 		return InvitedPlayerId;
 	}
-	
+
 	FString InviteUrl;
 	int32 InviteId;
 	int32 InvitingPlayerId;
@@ -43,7 +48,7 @@ struct FDriftPartyMember : IDriftPartyMember
 		: PlayerName{ PlayerName }
 		, PlayerId{ PlayerId }
 	{}
-	
+
 	FString GetPlayerName() const override
 	{
 		return PlayerName;
@@ -158,7 +163,7 @@ private:
 	FString CurrentPartyUrl_;
 	FString CurrentMembershipUrl_;
 	TArray<int32> PartyPlayers_;
-	
+
 	FPartyInviteReceivedDelegate OnPartyInviteReceivedDelegate_;
 	FPartyInviteAcceptedDelegate OnPartyInviteAcceptedDelegate_;
 	FPartyInviteDeclinedDelegate OnPartyInviteDeclinedDelegate_;
