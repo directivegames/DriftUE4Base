@@ -47,7 +47,6 @@ void FDriftModule::ShutdownModule()
 
 
 #if ALLOW_CONSOLE
-#endif // ALLOW_CONSOLE
 void FDriftModule::PopulateAutoCompleteEntries(TArray<FAutoCompleteCommand>& AutoCompleteList)
 {
 	const UConsoleSettings* ConsoleSettings = GetDefault<UConsoleSettings>();
@@ -77,5 +76,6 @@ void FDriftModule::PopulateAutoCompleteEntries(TArray<FAutoCompleteCommand>& Aut
 	AutoCompleteList[Index].Desc = TEXT("Leave the current party");
 	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
 }
+#endif // ALLOW_CONSOLE
 
 #undef LOCTEXT_NAMESPACE
