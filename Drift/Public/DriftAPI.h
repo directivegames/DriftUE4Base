@@ -469,6 +469,7 @@ DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
 DECLARE_DELEGATE_TwoParams(FDriftIssueFriendTokenDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftAcceptFriendRequestDelegate, bool, int32);
+DECLARE_DELEGATE_OneParam(FDriftDeclineFriendRequestDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<FDriftFriendRequest>&);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
@@ -721,6 +722,11 @@ public:
      * Accept a friend request via an external token
      */
     virtual bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) = 0;
+
+    /**
+     * Reject a previously received friend request.
+     */
+    virtual bool DeclineFriendRequest(int32 RequestId, FDriftDeclineFriendRequestDelegate& delegate) = 0;
 
     /**
      * Get Friend Requests directed at the current player
