@@ -1994,6 +1994,37 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     return true;
 }
 
+bool FDriftBase::DeclineFriendRequest(int32 RequestId, FDriftDeclineFriendRequestDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to decline a friend request without being connected"));
+        return false;
+    }
+
+    if (driftEndpoints.my_friends.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to decline a friends request before the player session has been initialized"));
+        return false;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Declining friend request %d"), RequestId);
+    const FString url = FString::Printf(TEXT("%s/%i"), *driftEndpoints.friend_invites, RequestId);
+    auto request = GetGameRequestManager()->Delete(url);
+
+    request->OnResponse.BindLambda([delegate](ResponseContext& context, JsonDocument& doc)
+    {
+        delegate.ExecuteIfBound(true);
+    });
+    request->OnError.BindLambda([delegate](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        delegate.ExecuteIfBound(false);
+    });
+    request->Dispatch();
+    return true;
+}
+
 
 bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate)
 {
