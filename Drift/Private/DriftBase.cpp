@@ -2010,7 +2010,7 @@ bool FDriftBase::DeclineFriendRequest(int32 RequestId, FDriftDeclineFriendReques
 
     DRIFT_LOG(Base, Verbose, TEXT("Declining friend request %d"), RequestId);
     const FString url = FString::Printf(TEXT("%s/%i"), *driftEndpoints.friend_invites, RequestId);
-    auto request = GetGameRequestManager()->Delete(url);
+    auto request = GetGameRequestManager()->Delete(url, HttpStatusCodes::NoContent);
 
     request->OnResponse.BindLambda([delegate](ResponseContext& context, JsonDocument& doc)
     {
@@ -2043,7 +2043,7 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
     request->OnResponse.BindLambda([this, Delegate](ResponseContext& context, JsonDocument& doc)
     {
         DRIFT_LOG(Base, Verbose, TEXT("Loaded friend requests: %s"), *doc.ToString());
-        
+
         TArray<FDriftFriendRequestsResponse> response;
         if (!JsonArchive::LoadObject(doc, response))
         {
@@ -2068,7 +2068,7 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
                 It.token
             });
         }
-        
+
         Delegate.ExecuteIfBound(true, friend_requests);
     });
     request->OnError.BindLambda([this, Delegate](ResponseContext& context)
