@@ -2952,7 +2952,7 @@ void FDriftBase::InitServerAuthentication()
 
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
 
-    DRIFT_LOG(Base, Log, TEXT("Authenticating server: %s"), *request->GetAsDebugString(true));
+    DRIFT_LOG(Base, Verbose, TEXT("Authenticating server: %s"), *request->GetAsDebugString(true));
 
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
