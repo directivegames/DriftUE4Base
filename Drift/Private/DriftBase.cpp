@@ -290,7 +290,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         FDriftHeartBeatResponse response;
-        if (JsonUtils::ParseResponse(context.response, response))
+        if (JsonUtils::ParseResponseNoLog(context.response, response))
         {
             const auto heartbeatRoundTrip = FTimespan::FromSeconds(context.request.Get()->GetElapsedTime());
             heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
