@@ -373,6 +373,9 @@ private:
     const int32 instanceIndex_;
 
     float heartbeatDueInSeconds_{ FLT_MAX };
+	float heartbeatRetryDelay_{ 1.0f };
+	int32 heartbeatRetryAttempt_{ 0 };
+	float heartbeatRetryDelayCap_{ 10.0f };
     FDateTime heartbeatTimeout_{ FDateTime::MinValue() };
 
     DriftSessionState state_;
@@ -386,7 +389,7 @@ private:
     FClientRegistrationResponse driftClient;
     FDriftPlayerResponse myPlayer;
 
-    FString hearbeatUrl;
+    FString heartbeatUrl;
 
     TUniquePtr<FDriftCounterManager> playerCounterManager;
     TMap<int32, TUniquePtr<FDriftCounterManager>> serverCounterManagers;

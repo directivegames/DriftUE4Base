@@ -70,21 +70,24 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
     }
 #endif
 
-    ResponseContext context(request, response, sent_, false);
+	ResponseContext context(request, response, sent_, false);
 
-    if (response.IsValid())
+    const auto bWasConnectionError = request->GetStatus() == EHttpRequestStatus::Failed_ConnectionError;
+    if (!bWasConnectionError && response.IsValid())
     {
         /**
          * We got a response from the server, let's check if it's good or bad
          */
-        if (context.responseCode >= static_cast<int32>(HttpStatusCodes::Ok) && context.responseCode < static_cast<int32>(HttpStatusCodes::FirstClientError))
+    	const auto bStatusCodeIsSuccess = context.responseCode >= static_cast<int32>(HttpStatusCodes::Ok)
+    		&& context.responseCode < static_cast<int32>(HttpStatusCodes::FirstClientError);
+        if (bStatusCodeIsSuccess)
         {
             /**
              * We got a non-error response code
              */
 			if (expectJsonResponse_)
 			{
-				auto contentType = context.response->GetHeader(TEXT("Content-Type"));
+				const auto contentType = context.response->GetHeader(TEXT("Content-Type"));
 				if (!contentType.StartsWith(TEXT("application/json"))) // to handle cases like `application/json; charset=UTF-8`
 				{
 					context.error = FString::Printf(TEXT("Expected Content-Type 'application/json', but got '%s'"), *contentType);
@@ -149,8 +152,7 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
 				}
 			}
             /**
-             * If the error is set, but also handled, that means the caller
-             * found some problem and dealt with it itself.
+             * If the error is set, but also handled, that means the caller dealt with it.
              */
             if (!context.error.IsEmpty() && !context.errorHandled)
             {
@@ -380,10 +382,10 @@ bool HttpRequest::Dispatch(bool forceQueued)
 
     if (cache_.IsValid() && wrappedRequest_->GetVerb() == TEXT("GET"))
     {
-        auto header = wrappedRequest_->GetHeader(TEXT("Cache-Control"));
+	    const auto header = wrappedRequest_->GetHeader(TEXT("Cache-Control"));
         if (!(header.Contains(TEXT("no-cache")) || header.Contains(TEXT("max-age=0"))))
         {
-            auto cachedResponse = cache_->GetCachedResponse(wrappedRequest_->GetURL());
+	        const auto cachedResponse = cache_->GetCachedResponse(wrappedRequest_->GetURL());
             if (cachedResponse.IsValid())
             {
                 ResponseContext context{ wrappedRequest_, cachedResponse, sent_, true };

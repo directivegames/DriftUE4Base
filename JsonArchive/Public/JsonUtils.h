@@ -28,7 +28,7 @@ public:
 	template<class T>
 	static bool ParseResponse(FHttpResponsePtr response, T& parsed)
 	{
-		bool success = ParseResponseNoLog(response, parsed);
+		const bool success = ParseResponseNoLog(response, parsed);
 		
 		if (!success)
 		{
