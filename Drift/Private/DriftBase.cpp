@@ -247,7 +247,9 @@ void FDriftBase::TickHeartbeat(float deltaTime)
         return;
     }
 
-    if (heartbeatTimeout_ != FDateTime::MinValue() && FDateTime::UtcNow() >= (heartbeatTimeout_ - FTimespan::FromSeconds(5.0)))
+	const auto bHeartbeatInitialized = heartbeatTimeout_ != FDateTime::MinValue();
+	const auto bHeartbeatTimedOut = FDateTime::UtcNow() >= heartbeatTimeout_ - FTimespan::FromSeconds(5.0);
+    if (bHeartbeatInitialized && bHeartbeatTimedOut)
     {
         state_ = DriftSessionState::Timedout;
         BroadcastConnectionStateChange(state_);
@@ -260,13 +262,12 @@ void FDriftBase::TickHeartbeat(float deltaTime)
     {
         return;
     }
-    heartbeatDueInSeconds_ = FLT_MAX; // Prevent re-entrancy
+    heartbeatDueInSeconds_ = FLT_MAX; // Prevent re-entrance
 
-    DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat..."), *FDateTime::UtcNow().ToString());
+    DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat..."), *FDateTime::UtcNow().ToIso8601());
 
     struct FDriftHeartBeatResponse
     {
-        int32 num_heartbeats;
         FDateTime last_heartbeat;
         FDateTime this_heartbeat;
         FDateTime next_heartbeat;
@@ -276,8 +277,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
 
         bool Serialize(SerializationContext& context)
         {
-            return SERIALIZE_PROPERTY(context, num_heartbeats)
-                && SERIALIZE_PROPERTY(context, last_heartbeat)
+            return SERIALIZE_PROPERTY(context, last_heartbeat)
                 && SERIALIZE_PROPERTY(context, this_heartbeat)
                 && SERIALIZE_PROPERTY(context, next_heartbeat)
                 && SERIALIZE_PROPERTY(context, next_heartbeat_seconds)
@@ -286,43 +286,42 @@ void FDriftBase::TickHeartbeat(float deltaTime)
         }
     };
 
-    auto request = GetGameRequestManager()->Put(hearbeatUrl, FString());
+    auto request = GetGameRequestManager()->Put(heartbeatUrl, FString());
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        // Server and client responds differently to heartbeats
-        if (drift_server.heartbeat_url.IsEmpty())
+        FDriftHeartBeatResponse response;
+        if (JsonUtils::ParseResponse(context.response, response))
         {
-            FDriftHeartBeatResponse response;
-            if (JsonUtils::ParseResponse(context.response, response))
-            {
-                const auto heartbeatRoundTrip = FTimespan::FromSeconds(context.request.Get()->GetElapsedTime());
-                heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
-                /**
-                 * We don't know if making the call, or returning it, takes a long time,
-                 * and the client clock might be off compared with the server's, so we
-                 * can't use the actual timeout time returned. Local time minus roundtrip
-                 * plus timeout, should be on the safe side.
-                 */
-                heartbeatTimeout_ = FDateTime::UtcNow() + FTimespan::FromSeconds(response.heartbeat_timeout_seconds) - heartbeatRoundTrip;
-            }
+            const auto heartbeatRoundTrip = FTimespan::FromSeconds(context.request.Get()->GetElapsedTime());
+            heartbeatDueInSeconds_ = response.next_heartbeat_seconds;
+            /**
+             * We don't know if making the call, or returning it, takes a long time,
+             * and the client clock might be off compared with the server's, so we
+             * can't use the actual timeout time returned. Local time minus roundtrip
+             * plus timeout, should be on the safe side.
+             */
+            heartbeatTimeout_ = FDateTime::UtcNow() + FTimespan::FromSeconds(response.heartbeat_timeout_seconds) - heartbeatRoundTrip;
         }
-        else
-        {
+    	else
+    	{
+    		// Older versions of the server heartbeat endpoint don't return all the details
             heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt32();
         }
+    	heartbeatRetryAttempt_ = 0;
 
-        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs. Timeout at: %s"), *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
+        DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs. Timeout at: %s")
+                  , *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        if (context.response.IsValid())
+        if (context.successful && context.response.IsValid())
         {
             GenericRequestErrorResponse response;
             if (JsonUtils::ParseResponse(context.response, response))
             {
                 if (context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) && response.GetErrorCode() == TEXT("user_error"))
                 {
-                    // Hearbeat timed out
+                    // Heartbeat timed out
                     DRIFT_LOG(Base, Warning, TEXT("Failed to heartbeat\n%s"), *GetDebugText(context.response));
 
                     state_ = DriftSessionState::Timedout;
@@ -338,9 +337,31 @@ void FDriftBase::TickHeartbeat(float deltaTime)
         }
         else
         {
-            // No response, unknown error
             context.errorHandled = true;
-            Disconnect();
+        	const auto now = FDateTime::UtcNow();
+
+        	// It'd be pointless to retry outside of the timout
+        	if (now > heartbeatTimeout_)
+        	{
+        		DRIFT_LOG(Base, Warning, TEXT("Failed to heartbeat\n%s"), *GetDebugText(context.response));
+
+                state_ = DriftSessionState::Timedout;
+                BroadcastConnectionStateChange(state_);
+	            Disconnect();
+        		return;
+        	}
+        	
+        	heartbeatRetryAttempt_ += 1;
+        	// Delay the retry for an exponentially expanding random amount of time, up to the cap, and within the timeout
+        	const auto retryDelayCap = FMath::Min(heartbeatRetryDelayCap_, static_cast<float>((heartbeatTimeout_ - now).GetTotalSeconds()));
+        	const auto maxRetryDelay = FMath::Min(retryDelayCap, FMath::Pow(heartbeatRetryDelay_ * 2, heartbeatRetryAttempt_));
+        	heartbeatDueInSeconds_ = FMath::RandRange(
+        		heartbeatRetryDelay_ / 2.0f,
+        		maxRetryDelay
+        		);
+
+            DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat failed. Retrying in %.1f secs. Timeout at: %s")
+                      , *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
         }
     });
     request->Dispatch();
@@ -547,12 +568,13 @@ void FDriftBase::Reset()
     CreateMessageQueue();
 	CreatePartyManager();
 
-    hearbeatUrl.Empty();
+    heartbeatUrl.Empty();
 
     userIdentities = FDriftCreatePlayerGroupResponse{};
 
     heartbeatDueInSeconds_ = FLT_MAX;
     heartbeatTimeout_ = FDateTime::MinValue();
+	heartbeatRetryAttempt_ = 0;
 
     countersLoaded = false;
     playerGameStateInfosLoaded = false;
@@ -2432,7 +2454,7 @@ void FDriftBase::RegisterClient()
             context.error = TEXT("Failed to parse client registration response");
             return;
         }
-        hearbeatUrl = driftClient.url;
+        heartbeatUrl = driftClient.url;
         heartbeatDueInSeconds_ = driftClient.next_heartbeat_seconds;
         TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(driftClient.jti));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
@@ -3074,7 +3096,7 @@ void FDriftBase::InitServerInfo(const FString& serverUrl)
                 serverContext.error = TEXT("Failed to parse drift server endpoint response.");
                 return;
             }
-            hearbeatUrl = drift_server.heartbeat_url;
+            heartbeatUrl = drift_server.heartbeat_url;
             heartbeatDueInSeconds_ = -1.0;
             state_ = DriftSessionState::Connected;
             onServerRegistered.Broadcast(true);
