@@ -176,7 +176,7 @@ void FDriftMessageQueue::GetMessages()
                 fetchDelay = DEFAULT_FETCH_THROTTLE_DELAY_SECONDS;
                 return;
             }
-            auto oldLastMessage = lastMessageNumber;
+            const auto oldLastMessage = lastMessageNumber;
             for (const auto& queue : messages.queues)
             {
                 for (const auto& message : queue.Value)
@@ -187,7 +187,7 @@ void FDriftMessageQueue::GetMessages()
                 }
             }
 
-            if (oldLastMessage == lastMessageNumber && (FDateTime::UtcNow() - context.sent).GetTotalSeconds() < DEFAULT_FETCH_THROTTLE_DELAY_SECONDS)
+            if (oldLastMessage == lastMessageNumber && (FDateTime::UtcNow() - context.sent).GetTotalSeconds() < MESSAGE_FETCH_TIMEOUT_SECONDS)
             {
                 /**
                  * Got an empty reply which was not a timeout; something might be off
@@ -219,7 +219,7 @@ void FDriftMessageQueue::ProcessMessage(const FString& queue, const FMessageQueu
 {
     UE_LOG(LogDriftMessages, Log, TEXT("Got message: %s\n%s"), *message.message_id, *JsonArchive::ToString(message.payload));
 
-    auto delegate = messageHandlers.Find(queue);
+    const auto delegate = messageHandlers.Find(queue);
     if (delegate)
     {
         delegate->Broadcast(message);
