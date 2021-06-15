@@ -32,6 +32,7 @@ struct FDriftEndpointsResponse
 	FString clients;
 	FString counters;
 	FString eventlogs;
+	FString flexmatch;
 	FString machines;
 	FString matches;
 	FString matchqueue;
