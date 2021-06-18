@@ -20,13 +20,19 @@ typedef TMap<FString, TArray<int32>> FPlayersByTeam;
 typedef TArray<int32> FPlayersAccepted;
 typedef TMap<FString, int32> FLatencyMap;
 
+struct DRIFT_API FConnectionInfo
+{
+	FString ConnectionString;
+	FString ConnectionOptions;
+};
+
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStartedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStoppedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingCancelledDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingFailedDelegate, FString /* reason */);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FPotentialMatchCreatedDelegate, FPlayersByTeam /* PlayersByTeam */, FString /* MatchId */, bool /* acceptance_required */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FAcceptMatchDelegate, FPlayersAccepted /* accepted_players */);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMatchmakingSuccessDelegate, FString /* connection_string */, FString /* options */);
+DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingSuccessDelegate, const FConnectionInfo& /* connection_string and options */);
 
 class IDriftMatchmaker
 {
@@ -51,6 +57,9 @@ public:
 
 	/* Update acceptance for player */
 	virtual void SetAcceptance(const FString& MatchId, bool Accepted) = 0;
+
+	/* Get cached connection info */
+	virtual FConnectionInfo ConnectionInfo() const = 0;
 
 	/* Issued when a ticket including player is queued */
 	virtual FMatchmakingStartedDelegate& OnMatchmakingStarted() = 0;

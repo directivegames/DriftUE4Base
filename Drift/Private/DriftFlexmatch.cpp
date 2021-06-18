@@ -91,6 +91,11 @@ void FDriftFlexmatch::ReportLatencies()
 void FDriftFlexmatch::StartLatencyReporting()
 {
 	DoPings = true;
+	if (! IsInitialized )
+	{
+		UpdateLocalState();
+		IsInitialized = true;
+	}
 }
 
 void FDriftFlexmatch::StopLatencyReporting()
@@ -172,6 +177,11 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	Request->Dispatch();
 }
 
+FConnectionInfo FDriftFlexmatch::ConnectionInfo() const
+{
+	return {ConnectionString, ConnectionOptions};
+}
+
 void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 {
 	if (Message.sender_id != -1) // FIXME:  define -1 as drift sender 'system'
@@ -211,9 +221,9 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 		}
 		case EMatchmakingEvent::MatchmakingSuccess:
 		{
-			const auto ConnectionString = EventData.FindField("connection_string").GetString();
-			const auto ConnectionOptions = EventData.FindField("options").GetString();
-			OnMatchmakingSuccess().Broadcast(ConnectionString, ConnectionOptions);
+			const auto ConnString = EventData.FindField("connection_string").GetString();
+			const auto ConnOptions = EventData.FindField("options").GetString();
+			OnMatchmakingSuccess().Broadcast({ConnString, ConnOptions});
 			break;
 		}
 		case EMatchmakingEvent::MatchmakingCancelled:
@@ -288,6 +298,17 @@ void FDriftFlexmatch::UpdateLocalState()
 		}
 		TicketId = Response["TicketId"].GetString();
 		SetStatusFromString(Response["Status"].GetString());
+		if ( Response.Contains("GameSessionConnectionInfo") )
+		{
+			auto SessionInfo = Response["GameSessionConnectionInfo"];
+			ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
+			ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
+		}
+		else
+		{
+			ConnectionString.Empty();
+			ConnectionOptions.Empty();
+		}
 	});
 	Request->Dispatch();
 }

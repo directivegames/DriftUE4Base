@@ -44,6 +44,8 @@ public:
 
 	void SetAcceptance(const FString& MatchId, bool Accepted) override;
 
+	FConnectionInfo ConnectionInfo() const override;
+
 	FMatchmakingStartedDelegate& OnMatchmakingStarted() override;
 	FMatchmakingStoppedDelegate& OnMatchmakingStopped() override;
 	FMatchmakingCancelledDelegate& OnMatchmakingCancelled() override;
@@ -80,6 +82,9 @@ private:
 	const TArray<FString> PingRegions{"eu-west-1"};
 
 	// Current state
+	bool IsInitialized = false;
 	EMatchmakingState Status = EMatchmakingState::None;
 	FString TicketId;
+	FString ConnectionString;
+	FString ConnectionOptions;
 };
