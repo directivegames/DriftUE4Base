@@ -18,6 +18,7 @@ enum class EMatchmakingState : uint8
 
 typedef TMap<FString, TArray<int32>> FPlayersByTeam;
 typedef TArray<int32> FPlayersAccepted;
+typedef TMap<FString, int32> FLatencyMap;
 
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStartedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStoppedDelegate);
@@ -37,7 +38,7 @@ public:
 	virtual void StopLatencyReporting() = 0;
 
 	/* Get reported averages from the backend  */
-	virtual TMap<FString, int16> GetLatencyAverages() = 0;
+	virtual FLatencyMap GetLatencyAverages() = 0;
 
 	/* Start matchmaking for player/players party */
 	virtual void StartMatchmaking() = 0;

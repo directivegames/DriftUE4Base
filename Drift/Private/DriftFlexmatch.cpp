@@ -5,8 +5,8 @@
 
 DEFINE_LOG_CATEGORY(LogDriftMatchmaking);
 
-FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> MessageQueue_)
-	: MessageQueue{MoveTemp(MessageQueue_)}
+FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue)
+	: MessageQueue{MoveTemp(InMessageQueue)}
 {
 	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).AddRaw(
 		this, &FDriftFlexmatch::HandleMatchmakingEvent);
@@ -32,11 +32,16 @@ void FDriftFlexmatch::Tick( float DeltaTime )
 	if ( DoPings )
 	{
 		TimeToPing -= DeltaTime;
-
 		if (TimeToPing < 0)
 		{
 			ReportLatencies();
 			TimeToPing = PingInterval;
+		}
+		TimeToFetch -= DeltaTime;
+		if (TimeToFetch < 0)
+		{
+			FetchAverages();
+			TimeToFetch = FetchInterval;
 		}
 	}
 }
@@ -91,10 +96,21 @@ void FDriftFlexmatch::StopLatencyReporting()
 	DoPings = false;
 }
 
-TMap<FString, int16> FDriftFlexmatch::GetLatencyAverages()
+FLatencyMap FDriftFlexmatch::GetLatencyAverages()
 {
-	// Implement
-	return {};
+	return AverageLatencyMap;
+}
+
+void FDriftFlexmatch::FetchAverages()
+{
+	auto Request = RequestManager->Get(FlexmatchURL);
+	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	{
+		for( auto Entry: doc.GetObject() )
+		{
+			AverageLatencyMap[Entry.Key] = Entry.Value.GetInt32();
+		}
+	});
 }
 
 void FDriftFlexmatch::StartMatchmaking()

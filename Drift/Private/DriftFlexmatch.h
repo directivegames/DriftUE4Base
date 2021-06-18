@@ -11,7 +11,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogDriftMatchmaking, Log, All);
 class FDriftFlexmatch : public IDriftMatchmaker, FTickableGameObject
 {
 public:
-	FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> MessageQueue_);
+	FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue);
 	~FDriftFlexmatch() override;
 
 	void SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager);
@@ -25,7 +25,7 @@ public:
 	// IDriftMatchmaker overrides
 	void StartLatencyReporting() override;
 	void StopLatencyReporting() override;
-	TMap<FString, int16> GetLatencyAverages() override;
+	FLatencyMap GetLatencyAverages() override;
 
 	void StartMatchmaking() override;
 	void StopMatchmaking() override;
@@ -44,6 +44,7 @@ public:
 private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
 	void ReportLatencies();
+	void FetchAverages();
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
@@ -59,9 +60,10 @@ private:
 
 	// Latency measuring/reporting
 	bool DoPings = false;
-	const float PingInterval = 7.0;
-	float TimeToPing = 0;
+	const float PingInterval = 3.0;
+	const float FetchInterval = PingInterval * 3.5;
+	float TimeToPing = 0, TimeToFetch = 0;
+	FLatencyMap AverageLatencyMap;
 	const FString PingUrlTemplate = TEXT("https://gamelift.{0}.amazonaws.com");
 	const TArray<FString> PingRegions{"eu-west-1"};
-
 };
