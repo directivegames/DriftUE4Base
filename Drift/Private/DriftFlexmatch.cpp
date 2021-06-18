@@ -185,15 +185,17 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 
 	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Incoming event %s"), *Event);
 	UpdateLocalState();
-	switch (Event)
+
+	switch (ParseEvent(Event))
 	{
-		case "MatchmakingStarted":
+		case EMatchmakingEvent::MatchmakingStarted:
 			OnMatchmakingStarted().Broadcast();
 			break;
-		case "MatchmakingStopped":
+		case EMatchmakingEvent::MatchmakingStopped:
 			OnMatchmakingStopped().Broadcast();
 			break;
-		case "PotentialMatchCreated":
+		case EMatchmakingEvent::PotentialMatchCreated:
+		{
 			FPlayersByTeam PlayersByTeam;
 			for (auto Team: EventData.GetObject())
 			{
@@ -206,15 +208,19 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			const FString MatchId = EventData.FindField("match_id").GetString();
 			OnPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance);
 			break;
-		case "MatchmakingSuccess":
+		}
+		case EMatchmakingEvent::MatchmakingSuccess:
+		{
 			const auto ConnectionString = EventData.FindField("connection_string").GetString();
 			const auto ConnectionOptions = EventData.FindField("options").GetString();
 			OnMatchmakingSuccess().Broadcast(ConnectionString, ConnectionOptions);
 			break;
-		case "MatchmakingCancelled":
+		}
+		case EMatchmakingEvent::MatchmakingCancelled:
 			OnMatchmakingCancelled().Broadcast();
 			break;
-		case "AcceptMatch":
+		case EMatchmakingEvent::AcceptMatch:
+		{
 			FPlayersAccepted PlayersAccepted;
 			for (auto PlayerResponse: EventData.GetObject())
 			{
@@ -226,15 +232,85 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			}
 			OnAcceptMatch().Broadcast(PlayersAccepted);
 			break;
-		case "MatchmakingFailed":
+		}
+		case EMatchmakingEvent::MatchmakingFailed:
+		{
 			const auto Reason = EventData.FindField("reason").GetString();
 			OnMatchmakingFailed().Broadcast(Reason);
 			break;
+		}
+		case EMatchmakingEvent::Unknown:
 		default:
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Unknown event %s"), *Event);
 	}
 }
 
+void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
+{
+	if (StatusString == TEXT("QUEUED"))
+		Status = EMatchmakingState::Queued;
+	else if (StatusString == TEXT("SEARCHING"))
+		Status = EMatchmakingState::Searching;
+	else if (StatusString == TEXT("REQUIRES_ACCEPTANCE"))
+		Status = EMatchmakingState::RequiresAcceptance;
+	else if (StatusString == TEXT("PLACING"))
+		Status = EMatchmakingState::Placing;
+	else if (StatusString == TEXT("COMPLETED"))
+		Status = EMatchmakingState::Completed;
+	else if (StatusString == TEXT("MATCH_COMPLETE"))
+		Status = EMatchmakingState::MatchCompleted;
+	else if (StatusString == TEXT("CANCELLED"))
+		Status = EMatchmakingState::Cancelled;
+	else if (StatusString == TEXT("FAILED"))
+		Status = EMatchmakingState::Failed;
+	else if (StatusString == TEXT("TIMED_OUT"))
+		Status = EMatchmakingState::TimedOut;
+	else
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetStatusFromString - Unknown status %s - Status not updated"), *StatusString);
+}
+
+void FDriftFlexmatch::UpdateLocalState()
+{
+	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
+	Request->OnError.BindLambda([this](ResponseContext& context)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetCurrentState - Error fetching matchmaking state from server"
+					", Response code %d, error: '%s'"), context.responseCode, *context.error);
+	});
+	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	{
+		auto Response = doc.GetObject();
+		if ( Response.Num() == 0)
+		{
+			TicketId.Empty();
+			Status = EMatchmakingState::None;
+			return;
+		}
+		TicketId = Response["TicketId"].GetString();
+		SetStatusFromString(Response["Status"].GetString());
+	});
+	Request->Dispatch();
+}
+
+EMatchmakingEvent FDriftFlexmatch::ParseEvent(const FString& EventName)
+{
+	if (EventName == TEXT("MatchmakingStarted"))
+		return EMatchmakingEvent::MatchmakingStarted;
+	if (EventName == TEXT("MatchmakingStopped"))
+		return EMatchmakingEvent::MatchmakingStopped;
+	if (EventName == TEXT("PotentialMatchCreated"))
+		return EMatchmakingEvent::PotentialMatchCreated;
+	if (EventName == TEXT("MatchmakingSuccess"))
+		return EMatchmakingEvent::MatchmakingSuccess;
+	if (EventName == TEXT("MatchmakingCancelled"))
+		return EMatchmakingEvent::MatchmakingCancelled;
+	if (EventName == TEXT("AcceptMatch"))
+		return EMatchmakingEvent::AcceptMatch;
+	if (EventName == TEXT("MatchmakingFailed"))
+		return EMatchmakingEvent::MatchmakingFailed;
+	return EMatchmakingEvent::Unknown;
+
+}
 
 FMatchmakingStartedDelegate& FDriftFlexmatch::OnMatchmakingStarted()
 {
@@ -269,63 +345,4 @@ FAcceptMatchDelegate& FDriftFlexmatch::OnAcceptMatch()
 FMatchmakingSuccessDelegate& FDriftFlexmatch::OnMatchmakingSuccess()
 {
 	return OnMatchmakingSuccessDelegate;
-}
-
-void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
-{
-	switch (StatusString)
-	{
-		case "QUEUED":
-			Status = EMatchmakingState::Queued;
-			break;;
-		case "SEARCHING":
-			Status = EMatchmakingState::Searching;
-			break;
-		case "REQUIRES_ACCEPTANCE":
-			Status = EMatchmakingState::RequiresAcceptance;
-			break;
-		case "PLACING":
-			Status = EMatchmakingState::Placing;
-			break;
-		case "COMPLETED":
-			Status = EMatchmakingState::Completed;
-			break;
-		case "MATCH_COMPLETE":
-			Status = EMatchmakingState::MatchCompleted;
-			break;
-		case "CANCELLED":
-			Status = EMatchmakingState::Cancelled;
-			break;
-		case "FAILED":
-			Status = EMatchmakingState::Failed;
-			break;
-		case "TIMED_OUT":
-			Status = EMatchmakingState::TimedOut;
-			break;
-		default:
-			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetStatusFromString - Unknown status %s - Status not updated"), *StatusString);
-	}
-}
-
-void FDriftFlexmatch::UpdateLocalState()
-{
-	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
-	Request->OnError.BindLambda([this](ResponseContext& context)
-	{
-		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetCurrentState - Error fetching matchmaking state from server"
-					", Response code %d, error: '%s'"), context.responseCode, *context.error);
-	});
-	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
-	{
-		auto Response = doc.GetObject();
-		if ( Response.Num() == 0)
-		{
-			TicketId.Empty();
-			Status = EMatchmakingState::None;
-			return;
-		}
-		TicketId = Response["TicketId"].GetString();
-		SetStatusFromString(Response["Status"].GetString());
-	});
-	Request->Dispatch();
 }

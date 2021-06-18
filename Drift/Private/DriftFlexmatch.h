@@ -7,6 +7,17 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDriftMatchmaking, Log, All);
 
+enum class EMatchmakingEvent : uint8
+{
+	Unknown,
+	MatchmakingStarted,
+	MatchmakingStopped,
+	PotentialMatchCreated,
+	MatchmakingSuccess,
+	MatchmakingCancelled,
+	AcceptMatch,
+	MatchmakingFailed
+};
 
 class FDriftFlexmatch : public IDriftMatchmaker, FTickableGameObject
 {
@@ -46,6 +57,7 @@ private:
 	void ReportLatencies();
 	void SetStatusFromString(const FString& StatusString);
 	void UpdateLocalState();
+	static EMatchmakingEvent ParseEvent(const FString& EventName);
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
