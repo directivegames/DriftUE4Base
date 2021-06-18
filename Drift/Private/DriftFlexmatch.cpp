@@ -115,10 +115,11 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
 	{
-		auto TicketId = doc.FindField(TEXT("TicketId")).GetString();
-		auto StatusString = doc.FindField(TEXT("Status")).GetString();
+		const auto TicketId = doc.FindField(TEXT("TicketId")).GetString();
+		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
 					", TicketId %s, status %s"), *MatchmakingConfiguration, *TicketId, *StatusString);
+		SetStatusFromString(StatusString);
 	});
 	Request->Dispatch();
 }
@@ -131,6 +132,8 @@ void FDriftFlexmatch::StopMatchmaking()
 		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
 		{
 			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Server had no active ticket to delete"));
+			Status = EMatchmakingState::None;
+			TicketId.Empty();
 		}
 		else
 		{
@@ -141,6 +144,7 @@ void FDriftFlexmatch::StopMatchmaking()
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
+		Status = EMatchmakingState::None;
 	});
 	Request->Dispatch();
 }
@@ -150,14 +154,85 @@ EMatchmakingState FDriftFlexmatch::MatchmakingStatus()
 	return Status;
 }
 
-void FDriftFlexmatch::SetAcceptance(bool accepted)
+void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 {
-	// Implement
+	JsonValue Payload{rapidjson::kObjectType};
+	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
+	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
+	auto Request = RequestManager->Put(FlexmatchURL, Payload, HttpStatusCodes::Ok);
+	Request->OnError.BindLambda([this, MatchId](ResponseContext& context)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - Failed to update acceptance for match %s"
+					", Response code %d, error: '%s'"), *MatchId, context.responseCode, *context.error);
+	});
+	Request->OnResponse.BindLambda([this, MatchId, Accepted](ResponseContext& context, JsonDocument& doc)
+	{
+		UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::SetAcceptance - Updated acceptance for match %s to %b"), *MatchId, Accepted);
+	});
+	Request->Dispatch();
 }
 
 void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 {
-	// Implement
+	if (Message.sender_id != -1) // FIXME:  define -1 as drift sender 'system'
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Ignoring message from sender %d"), Message.sender_id);
+		return;
+	}
+
+	const auto Event = Message.payload.FindField("event").GetString();
+	const auto EventData = Message.payload.FindField("event_data");
+
+	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Incoming event %s"), *Event);
+	UpdateLocalState();
+	switch (Event)
+	{
+		case "MatchmakingStarted":
+			OnMatchmakingStarted().Broadcast();
+			break;
+		case "MatchmakingStopped":
+			OnMatchmakingStopped().Broadcast();
+			break;
+		case "PotentialMatchCreated":
+			FPlayersByTeam PlayersByTeam;
+			for (auto Team: EventData.GetObject())
+			{
+				for (auto Player: Team.Value.GetArray())
+				{
+					PlayersByTeam[Team.Key].Add(Player.GetInt32());
+				}
+			}
+			const bool Requires_Acceptance = EventData.FindField("acceptance_required").GetBool();
+			const FString MatchId = EventData.FindField("match_id").GetString();
+			OnPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance);
+			break;
+		case "MatchmakingSuccess":
+			const auto ConnectionString = EventData.FindField("connection_string").GetString();
+			const auto ConnectionOptions = EventData.FindField("options").GetString();
+			OnMatchmakingSuccess().Broadcast(ConnectionString, ConnectionOptions);
+			break;
+		case "MatchmakingCancelled":
+			OnMatchmakingCancelled().Broadcast();
+			break;
+		case "AcceptMatch":
+			FPlayersAccepted PlayersAccepted;
+			for (auto PlayerResponse: EventData.GetObject())
+			{
+				if (PlayerResponse.Value.GetBool())
+				{
+					auto PlayerId = FCString::Atoi(*PlayerResponse.Key);
+					PlayersAccepted.Add(PlayerId);
+				}
+			}
+			OnAcceptMatch().Broadcast(PlayersAccepted);
+			break;
+		case "MatchmakingFailed":
+			const auto Reason = EventData.FindField("reason").GetString();
+			OnMatchmakingFailed().Broadcast(Reason);
+			break;
+		default:
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Unknown event %s"), *Event);
+	}
 }
 
 
@@ -230,4 +305,27 @@ void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
 		default:
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetStatusFromString - Unknown status %s - Status not updated"), *StatusString);
 	}
+}
+
+void FDriftFlexmatch::UpdateLocalState()
+{
+	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
+	Request->OnError.BindLambda([this](ResponseContext& context)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetCurrentState - Error fetching matchmaking state from server"
+					", Response code %d, error: '%s'"), context.responseCode, *context.error);
+	});
+	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	{
+		auto Response = doc.GetObject();
+		if ( Response.Num() == 0)
+		{
+			TicketId.Empty();
+			Status = EMatchmakingState::None;
+			return;
+		}
+		TicketId = Response["TicketId"].GetString();
+		SetStatusFromString(Response["Status"].GetString());
+	});
+	Request->Dispatch();
 }

@@ -24,7 +24,7 @@ DECLARE_MULTICAST_DELEGATE(FMatchmakingStartedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStoppedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingCancelledDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingFailedDelegate, FString /* reason */);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FPotentialMatchCreatedDelegate, FPlayersByTeam /* PlayersByTeam */, bool /* acceptance_required */);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FPotentialMatchCreatedDelegate, FPlayersByTeam /* PlayersByTeam */, FString /* MatchId */, bool /* acceptance_required */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FAcceptMatchDelegate, FPlayersAccepted /* accepted_players */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FMatchmakingSuccessDelegate, FString /* connection_string */, FString /* options */);
 
@@ -50,7 +50,7 @@ public:
 	virtual EMatchmakingState MatchmakingStatus() = 0;
 
 	/* Update acceptance for player */
-	virtual void SetAcceptance(bool accepted) = 0;
+	virtual void SetAcceptance(const FString& MatchId, bool Accepted) = 0;
 
 	/* Issued when a ticket including player is queued */
 	virtual FMatchmakingStartedDelegate& OnMatchmakingStarted() = 0;

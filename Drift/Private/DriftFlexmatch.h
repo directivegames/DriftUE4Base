@@ -31,7 +31,7 @@ public:
 	void StopMatchmaking() override;
 	EMatchmakingState MatchmakingStatus() override;
 
-	void SetAcceptance(bool accepted) override;
+	void SetAcceptance(const FString& MatchId, bool Accepted) override;
 
 	FMatchmakingStartedDelegate& OnMatchmakingStarted() override;
 	FMatchmakingStoppedDelegate& OnMatchmakingStopped() override;
@@ -45,6 +45,7 @@ private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
 	void ReportLatencies();
 	void SetStatusFromString(const FString& StatusString);
+	void UpdateLocalState();
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
@@ -68,4 +69,5 @@ private:
 
 	// Current state
 	EMatchmakingState Status = EMatchmakingState::None;
+	FString TicketId;
 };
