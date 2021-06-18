@@ -27,7 +27,7 @@ public:
 	void StopLatencyReporting() override;
 	FLatencyMap GetLatencyAverages() override;
 
-	void StartMatchmaking() override;
+	void StartMatchmaking(const FString& MatchmakingConfiguration) override;
 	void StopMatchmaking() override;
 	EMatchmakingState MatchmakingStatus() override;
 
@@ -44,7 +44,7 @@ public:
 private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
 	void ReportLatencies();
-	void FetchAverages();
+	void SetStatusFromString(const FString& StatusString);
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
@@ -61,9 +61,11 @@ private:
 	// Latency measuring/reporting
 	bool DoPings = false;
 	const float PingInterval = 3.0;
-	const float FetchInterval = PingInterval * 3.5;
-	float TimeToPing = 0, TimeToFetch = 0;
+	float TimeToPing = 0;
 	FLatencyMap AverageLatencyMap;
 	const FString PingUrlTemplate = TEXT("https://gamelift.{0}.amazonaws.com");
 	const TArray<FString> PingRegions{"eu-west-1"};
+
+	// Current state
+	EMatchmakingState Status = EMatchmakingState::None;
 };

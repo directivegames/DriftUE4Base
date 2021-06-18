@@ -37,12 +37,6 @@ void FDriftFlexmatch::Tick( float DeltaTime )
 			ReportLatencies();
 			TimeToPing = PingInterval;
 		}
-		TimeToFetch -= DeltaTime;
-		if (TimeToFetch < 0)
-		{
-			FetchAverages();
-			TimeToFetch = FetchInterval;
-		}
 	}
 }
 
@@ -81,8 +75,16 @@ void FDriftFlexmatch::ReportLatencies()
 				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
 					", Response code %d, error: '%s'"), *FlexmatchURL, context.responseCode, *context.error);
 			});
+			PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+			{
+				for( auto Entry: doc.GetObject() )
+				{
+					AverageLatencyMap[Entry.Key] = Entry.Value.GetInt32();
+				}
+			});
 			PatchRequest->Dispatch();
 		});
+		Request->ProcessRequest();
 	}
 }
 
@@ -101,32 +103,51 @@ FLatencyMap FDriftFlexmatch::GetLatencyAverages()
 	return AverageLatencyMap;
 }
 
-void FDriftFlexmatch::FetchAverages()
+void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 {
-	auto Request = RequestManager->Get(FlexmatchURL);
-	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	JsonValue Payload{rapidjson::kObjectType};
+	JsonArchive::AddMember(Payload, TEXT("matchmaker"), *MatchmakingConfiguration);
+	auto Request = RequestManager->Post(FlexmatchURL, Payload, HttpStatusCodes::Ok);
+	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
 	{
-		for( auto Entry: doc.GetObject() )
-		{
-			AverageLatencyMap[Entry.Key] = Entry.Value.GetInt32();
-		}
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
+					", Response code %d, error: '%s'"), *MatchmakingConfiguration, context.responseCode, *context.error);
 	});
-}
-
-void FDriftFlexmatch::StartMatchmaking()
-{
-	// Implement
+	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
+	{
+		auto TicketId = doc.FindField(TEXT("TicketId")).GetString();
+		auto StatusString = doc.FindField(TEXT("Status")).GetString();
+		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
+					", TicketId %s, status %s"), *MatchmakingConfiguration, *TicketId, *StatusString);
+	});
+	Request->Dispatch();
 }
 
 void FDriftFlexmatch::StopMatchmaking()
 {
-	// Implement
+	auto Request = RequestManager->Delete(FlexmatchURL, HttpStatusCodes::NoContent);
+	Request->OnError.BindLambda([this](ResponseContext& context)
+	{
+		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
+		{
+			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Server had no active ticket to delete"));
+		}
+		else
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
+					", Response code %d, error: '%s'"), context.responseCode, *context.error);
+		}
+	});
+	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	{
+		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
+	});
+	Request->Dispatch();
 }
 
 EMatchmakingState FDriftFlexmatch::MatchmakingStatus()
 {
-	// Implement
-	return EMatchmakingState::None;
+	return Status;
 }
 
 void FDriftFlexmatch::SetAcceptance(bool accepted)
@@ -173,4 +194,40 @@ FAcceptMatchDelegate& FDriftFlexmatch::OnAcceptMatch()
 FMatchmakingSuccessDelegate& FDriftFlexmatch::OnMatchmakingSuccess()
 {
 	return OnMatchmakingSuccessDelegate;
+}
+
+void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
+{
+	switch (StatusString)
+	{
+		case "QUEUED":
+			Status = EMatchmakingState::Queued;
+			break;;
+		case "SEARCHING":
+			Status = EMatchmakingState::Searching;
+			break;
+		case "REQUIRES_ACCEPTANCE":
+			Status = EMatchmakingState::RequiresAcceptance;
+			break;
+		case "PLACING":
+			Status = EMatchmakingState::Placing;
+			break;
+		case "COMPLETED":
+			Status = EMatchmakingState::Completed;
+			break;
+		case "MATCH_COMPLETE":
+			Status = EMatchmakingState::MatchCompleted;
+			break;
+		case "CANCELLED":
+			Status = EMatchmakingState::Cancelled;
+			break;
+		case "FAILED":
+			Status = EMatchmakingState::Failed;
+			break;
+		case "TIMED_OUT":
+			Status = EMatchmakingState::TimedOut;
+			break;
+		default:
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetStatusFromString - Unknown status %s - Status not updated"), *StatusString);
+	}
 }

@@ -41,7 +41,7 @@ public:
 	virtual FLatencyMap GetLatencyAverages() = 0;
 
 	/* Start matchmaking for player/players party */
-	virtual void StartMatchmaking() = 0;
+	virtual void StartMatchmaking(const FString& MatchmakingConfiguration) = 0;
 
 	/* Stop matchmaking for player/players party */
 	virtual void StopMatchmaking() = 0;
