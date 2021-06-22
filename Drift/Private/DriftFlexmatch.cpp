@@ -137,7 +137,7 @@ void FDriftFlexmatch::StopMatchmaking()
 		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
 		{
 			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Server had no active ticket to delete"));
-			Status = EMatchmakingState::None;
+			Status = EMatchmakingStatus::None;
 			TicketId.Empty();
 		}
 		else
@@ -149,12 +149,12 @@ void FDriftFlexmatch::StopMatchmaking()
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
-		Status = EMatchmakingState::None;
+		Status = EMatchmakingStatus::None;
 	});
 	Request->Dispatch();
 }
 
-EMatchmakingState FDriftFlexmatch::MatchmakingStatus()
+EMatchmakingStatus FDriftFlexmatch::GetMatchmakingStatus()
 {
 	return Status;
 }
@@ -258,23 +258,23 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
 {
 	if (StatusString == TEXT("QUEUED"))
-		Status = EMatchmakingState::Queued;
+		Status = EMatchmakingStatus::Queued;
 	else if (StatusString == TEXT("SEARCHING"))
-		Status = EMatchmakingState::Searching;
+		Status = EMatchmakingStatus::Searching;
 	else if (StatusString == TEXT("REQUIRES_ACCEPTANCE"))
-		Status = EMatchmakingState::RequiresAcceptance;
+		Status = EMatchmakingStatus::RequiresAcceptance;
 	else if (StatusString == TEXT("PLACING"))
-		Status = EMatchmakingState::Placing;
+		Status = EMatchmakingStatus::Placing;
 	else if (StatusString == TEXT("COMPLETED"))
-		Status = EMatchmakingState::Completed;
+		Status = EMatchmakingStatus::Completed;
 	else if (StatusString == TEXT("MATCH_COMPLETE"))
-		Status = EMatchmakingState::MatchCompleted;
+		Status = EMatchmakingStatus::MatchCompleted;
 	else if (StatusString == TEXT("CANCELLED"))
-		Status = EMatchmakingState::Cancelled;
+		Status = EMatchmakingStatus::Cancelled;
 	else if (StatusString == TEXT("FAILED"))
-		Status = EMatchmakingState::Failed;
+		Status = EMatchmakingStatus::Failed;
 	else if (StatusString == TEXT("TIMED_OUT"))
-		Status = EMatchmakingState::TimedOut;
+		Status = EMatchmakingStatus::TimedOut;
 	else
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetStatusFromString - Unknown status %s - Status not updated"), *StatusString);
 }
@@ -293,7 +293,7 @@ void FDriftFlexmatch::UpdateLocalState()
 		if ( Response.Num() == 0)
 		{
 			TicketId.Empty();
-			Status = EMatchmakingState::None;
+			Status = EMatchmakingStatus::None;
 			return;
 		}
 		TicketId = Response["TicketId"].GetString();

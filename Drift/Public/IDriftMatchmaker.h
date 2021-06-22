@@ -2,7 +2,8 @@
 
 #pragma once
 
-enum class EMatchmakingState : uint8
+UENUM(BlueprintType)
+enum class EMatchmakingStatus : uint8
 {
 	None, // No Ticket
 	Queued,
@@ -53,7 +54,7 @@ public:
 	virtual void StopMatchmaking() = 0;
 
 	/* Get the matchmaking status from the backend */
-	virtual EMatchmakingState MatchmakingStatus() = 0;
+	virtual EMatchmakingStatus GetMatchmakingStatus() = 0;
 
 	/* Update acceptance for player */
 	virtual void SetAcceptance(const FString& MatchId, bool Accepted) = 0;

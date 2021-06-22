@@ -40,7 +40,7 @@ public:
 
 	void StartMatchmaking(const FString& MatchmakingConfiguration) override;
 	void StopMatchmaking() override;
-	EMatchmakingState MatchmakingStatus() override;
+	EMatchmakingStatus GetMatchmakingStatus() override;
 
 	void SetAcceptance(const FString& MatchId, bool Accepted) override;
 
@@ -83,7 +83,7 @@ private:
 
 	// Current state
 	bool IsInitialized = false;
-	EMatchmakingState Status = EMatchmakingState::None;
+	EMatchmakingStatus Status = EMatchmakingStatus::None;
 	FString TicketId;
 	FString ConnectionString;
 	FString ConnectionOptions;
