@@ -2475,8 +2475,7 @@ void FDriftBase::RegisterClient()
         messageQueue->SetRequestManager(manager);
         partyManager->SetRequestManager(manager);
         partyManager->ConfigureSession(driftClient.player_id, driftEndpoints.party_invites, driftEndpoints.parties);
-        matchmaker->SetRequestManager(manager);
-        matchmaker->SetEndpoint(driftEndpoints.flexmatch);
+        matchmaker->ConfigureSession(manager, driftEndpoints.flexmatch, driftClient.player_id);
         GetPlayerEndpoints();
     });
     request->OnError.BindLambda([this](ResponseContext& context)

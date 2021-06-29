@@ -17,14 +17,11 @@ FDriftFlexmatch::~FDriftFlexmatch()
 	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).RemoveAll(this);
 }
 
-void FDriftFlexmatch::SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager)
+void FDriftFlexmatch::ConfigureSession(TSharedPtr<JsonRequestManager> RootRequestManager, const FString& MatchmakingUrl, int32 InPlayerId)
 {
 	RequestManager = RootRequestManager;
-}
-
-void FDriftFlexmatch::SetEndpoint(const FString& MatchmakingUrl)
-{
 	FlexmatchURL = MatchmakingUrl;
+	PlayerId = InPlayerId;
 }
 
 void FDriftFlexmatch::Tick( float DeltaTime )
@@ -79,7 +76,7 @@ void FDriftFlexmatch::ReportLatencies()
 			{
 				for( auto Entry: doc.GetObject() )
 				{
-					AverageLatencyMap[Entry.Key] = Entry.Value.GetInt32();
+					AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
 				}
 			});
 			PatchRequest->Dispatch();
@@ -93,7 +90,7 @@ void FDriftFlexmatch::StartLatencyReporting()
 	DoPings = true;
 	if (! IsInitialized )
 	{
-		UpdateLocalState();
+		InitializeLocalState();
 		IsInitialized = true;
 	}
 }
@@ -101,6 +98,7 @@ void FDriftFlexmatch::StartLatencyReporting()
 void FDriftFlexmatch::StopLatencyReporting()
 {
 	DoPings = false;
+	TimeToPing = 0.0;
 }
 
 FLatencyMap FDriftFlexmatch::GetLatencyAverages()
@@ -184,18 +182,16 @@ FConnectionInfo FDriftFlexmatch::ConnectionInfo() const
 
 void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 {
-	if (Message.sender_id != -1) // FIXME:  define -1 as drift sender 'system'
+	if (Message.sender_id != 0 && Message.sender_id != PlayerId) // FIXME:  define 0 as drift sender 'system'
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Ignoring message from sender %d"), Message.sender_id);
 		return;
 	}
 
 	const auto Event = Message.payload.FindField("event").GetString();
-	const auto EventData = Message.payload.FindField("event_data");
+	const auto EventData = Message.payload.FindField("data");
 
 	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Incoming event %s, local state %s"), *Event, *GetStatusString());
-	UpdateLocalState();
-	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - local state set to %s"), *GetStatusString());
 
 	switch (ParseEvent(Event))
 	{
@@ -204,6 +200,7 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			break;
 		case EMatchmakingEvent::MatchmakingSearching:
 			OnMatchmakingSearching().Broadcast();
+			break;
 		case EMatchmakingEvent::MatchmakingStopped:
 			OnMatchmakingStopped().Broadcast();
 			break;
@@ -239,8 +236,8 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			{
 				if (PlayerResponse.Value.GetBool())
 				{
-					auto PlayerId = FCString::Atoi(*PlayerResponse.Key);
-					PlayersAccepted.Add(PlayerId);
+					auto AcceptedPlayerId = FCString::Atoi(*PlayerResponse.Key);
+					PlayersAccepted.Add(AcceptedPlayerId);
 				}
 			}
 			OnAcceptMatch().Broadcast(PlayersAccepted);
@@ -305,7 +302,7 @@ FString FDriftFlexmatch::GetStatusString() const
 	return TEXT("");
 }
 
-void FDriftFlexmatch::UpdateLocalState()
+void FDriftFlexmatch::InitializeLocalState()
 {
 	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this](ResponseContext& context)
@@ -334,6 +331,26 @@ void FDriftFlexmatch::UpdateLocalState()
 		{
 			ConnectionString.Empty();
 			ConnectionOptions.Empty();
+		}
+		switch(Status)
+		{
+			case EMatchmakingTicketStatus::Queued:
+				OnMatchmakingStarted().Broadcast();
+				break;
+			case EMatchmakingTicketStatus::Searching:
+				OnMatchmakingSearching().Broadcast();
+				break;
+			case EMatchmakingTicketStatus::RequiresAcceptance:
+			case EMatchmakingTicketStatus::Placing:
+				// FIXME: Dig up players, teams and their acceptance status from the ticket and do the broadcast to allow
+				// recovery from disconnects while searching.
+				//OnPotentialMatchCreated().Broadcast();
+				break;
+			case EMatchmakingTicketStatus::Completed:
+				OnMatchmakingSuccess().Broadcast({ConnectionString, ConnectionOptions});
+				break;
+			default:
+				break;
 		}
 	});
 	Request->Dispatch();

@@ -26,8 +26,7 @@ public:
 	FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue);
 	~FDriftFlexmatch() override;
 
-	void SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager);
-	void SetEndpoint(const FString& MatchmakingUrl);
+	void ConfigureSession(TSharedPtr<JsonRequestManager> RootRequestManager, const FString& MatchmakingUrl, int32 InPlayerId);
 
 	// FTickableGameObject overrides
 	void Tick(float DeltaTime) override;
@@ -61,12 +60,13 @@ private:
 	void ReportLatencies();
 	void SetStatusFromString(const FString& StatusString);
 	FString GetStatusString() const;
-	void UpdateLocalState();
+	void InitializeLocalState();
 	static EMatchmakingEvent ParseEvent(const FString& EventName);
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 	FString FlexmatchURL;
+	int32 PlayerId;
 
 	FMatchmakingStartedDelegate OnMatchmakingStartedDelegate;
 	FMatchmakingSearchingDelegate OnMatchmakingSearchingDelegate;
@@ -80,7 +80,7 @@ private:
 	// Latency measuring/reporting
 	bool DoPings = false;
 	const float PingInterval = 3.0;
-	float TimeToPing = 0;
+	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
 	const FString PingUrlTemplate = TEXT("https://gamelift.{0}.amazonaws.com");
 	const TArray<FString> PingRegions{"eu-west-1"};
