@@ -11,6 +11,7 @@ enum class EMatchmakingEvent : uint8
 {
 	Unknown,
 	MatchmakingStarted,
+	MatchmakingSearching,
 	MatchmakingStopped,
 	PotentialMatchCreated,
 	MatchmakingSuccess,
@@ -40,13 +41,14 @@ public:
 
 	void StartMatchmaking(const FString& MatchmakingConfiguration) override;
 	void StopMatchmaking() override;
-	EMatchmakingStatus GetMatchmakingStatus() override;
+	EMatchmakingTicketStatus GetMatchmakingStatus() override;
 
 	void SetAcceptance(const FString& MatchId, bool Accepted) override;
 
 	FConnectionInfo ConnectionInfo() const override;
 
 	FMatchmakingStartedDelegate& OnMatchmakingStarted() override;
+	FMatchmakingSearchingDelegate& OnMatchmakingSearching() override;
 	FMatchmakingStoppedDelegate& OnMatchmakingStopped() override;
 	FMatchmakingCancelledDelegate& OnMatchmakingCancelled() override;
 	FMatchmakingFailedDelegate& OnMatchmakingFailed() override;
@@ -58,6 +60,7 @@ private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
 	void ReportLatencies();
 	void SetStatusFromString(const FString& StatusString);
+	FString GetStatusString() const;
 	void UpdateLocalState();
 	static EMatchmakingEvent ParseEvent(const FString& EventName);
 
@@ -66,6 +69,7 @@ private:
 	FString FlexmatchURL;
 
 	FMatchmakingStartedDelegate OnMatchmakingStartedDelegate;
+	FMatchmakingSearchingDelegate OnMatchmakingSearchingDelegate;
 	FMatchmakingStoppedDelegate OnMatchmakingStoppedDelegate;
 	FMatchmakingCancelledDelegate OnMatchmakingCancelledDelegate;
 	FMatchmakingFailedDelegate OnMatchmakingFailedDelegate;
@@ -83,7 +87,7 @@ private:
 
 	// Current state
 	bool IsInitialized = false;
-	EMatchmakingStatus Status = EMatchmakingStatus::None;
+	EMatchmakingTicketStatus Status = EMatchmakingTicketStatus::None;
 	FString TicketId;
 	FString ConnectionString;
 	FString ConnectionOptions;

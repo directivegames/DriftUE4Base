@@ -2,19 +2,18 @@
 
 #pragma once
 
-UENUM(BlueprintType)
-enum class EMatchmakingStatus : uint8
+enum class EMatchmakingTicketStatus : uint8
 {
 	None, // No Ticket
-	Queued,
-	Searching,
-	RequiresAcceptance,
-	Placing,
-	Completed,
-	MatchCompleted,
-	Cancelled,
-	TimedOut,
-	Failed
+	Queued,  // Ticket issued, waiting on response
+	Searching, // Ticket accepted, searching for match
+	RequiresAcceptance, // Match found; waiting for players to accept
+	Placing,  // Match found, players all accepted or acceptance wasn't required; waiting on servers to report ready
+	Completed, // Matchmaking success; servers are ready and connection info available
+	MatchCompleted, // Ticket refers to a completed match, i.e. the ticket is 'used'
+	Cancelled, // Ticket was cancelled by player request
+	TimedOut, // No match found in acceptable time
+	Failed // Error in processing or potential match was rejected.
 };
 
 typedef TMap<FString, TArray<int32>> FPlayersByTeam;
@@ -28,6 +27,7 @@ struct DRIFT_API FConnectionInfo
 };
 
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStartedDelegate);
+DECLARE_MULTICAST_DELEGATE(FMatchmakingSearchingDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStoppedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingCancelledDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingFailedDelegate, FString /* reason */);
@@ -54,7 +54,7 @@ public:
 	virtual void StopMatchmaking() = 0;
 
 	/* Get the matchmaking status from the backend */
-	virtual EMatchmakingStatus GetMatchmakingStatus() = 0;
+	virtual EMatchmakingTicketStatus GetMatchmakingStatus() = 0;
 
 	/* Update acceptance for player */
 	virtual void SetAcceptance(const FString& MatchId, bool Accepted) = 0;
@@ -64,6 +64,9 @@ public:
 
 	/* Issued when a ticket including player is queued */
 	virtual FMatchmakingStartedDelegate& OnMatchmakingStarted() = 0;
+
+	/* Issued when a  player ticket gets into searching state */
+	virtual FMatchmakingSearchingDelegate& OnMatchmakingSearching() = 0;
 
 	/* Issued when a ticket including player is cancelled via a player request */
 	virtual FMatchmakingStoppedDelegate& OnMatchmakingStopped() = 0;

@@ -137,7 +137,7 @@ void FDriftFlexmatch::StopMatchmaking()
 		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
 		{
 			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Server had no active ticket to delete"));
-			Status = EMatchmakingStatus::None;
+			Status = EMatchmakingTicketStatus::None;
 			TicketId.Empty();
 		}
 		else
@@ -149,12 +149,12 @@ void FDriftFlexmatch::StopMatchmaking()
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
-		Status = EMatchmakingStatus::None;
+		Status = EMatchmakingTicketStatus::None;
 	});
 	Request->Dispatch();
 }
 
-EMatchmakingStatus FDriftFlexmatch::GetMatchmakingStatus()
+EMatchmakingTicketStatus FDriftFlexmatch::GetMatchmakingStatus()
 {
 	return Status;
 }
@@ -193,14 +193,17 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 	const auto Event = Message.payload.FindField("event").GetString();
 	const auto EventData = Message.payload.FindField("event_data");
 
-	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Incoming event %s"), *Event);
+	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Incoming event %s, local state %s"), *Event, *GetStatusString());
 	UpdateLocalState();
+	UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - local state set to %s"), *GetStatusString());
 
 	switch (ParseEvent(Event))
 	{
 		case EMatchmakingEvent::MatchmakingStarted:
 			OnMatchmakingStarted().Broadcast();
 			break;
+		case EMatchmakingEvent::MatchmakingSearching:
+			OnMatchmakingSearching().Broadcast();
 		case EMatchmakingEvent::MatchmakingStopped:
 			OnMatchmakingStopped().Broadcast();
 			break;
@@ -258,25 +261,48 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
 {
 	if (StatusString == TEXT("QUEUED"))
-		Status = EMatchmakingStatus::Queued;
+		Status = EMatchmakingTicketStatus::Queued;
 	else if (StatusString == TEXT("SEARCHING"))
-		Status = EMatchmakingStatus::Searching;
+		Status = EMatchmakingTicketStatus::Searching;
 	else if (StatusString == TEXT("REQUIRES_ACCEPTANCE"))
-		Status = EMatchmakingStatus::RequiresAcceptance;
+		Status = EMatchmakingTicketStatus::RequiresAcceptance;
 	else if (StatusString == TEXT("PLACING"))
-		Status = EMatchmakingStatus::Placing;
+		Status = EMatchmakingTicketStatus::Placing;
 	else if (StatusString == TEXT("COMPLETED"))
-		Status = EMatchmakingStatus::Completed;
+		Status = EMatchmakingTicketStatus::Completed;
 	else if (StatusString == TEXT("MATCH_COMPLETE"))
-		Status = EMatchmakingStatus::MatchCompleted;
+		Status = EMatchmakingTicketStatus::MatchCompleted;
 	else if (StatusString == TEXT("CANCELLED"))
-		Status = EMatchmakingStatus::Cancelled;
+		Status = EMatchmakingTicketStatus::Cancelled;
 	else if (StatusString == TEXT("FAILED"))
-		Status = EMatchmakingStatus::Failed;
+		Status = EMatchmakingTicketStatus::Failed;
 	else if (StatusString == TEXT("TIMED_OUT"))
-		Status = EMatchmakingStatus::TimedOut;
+		Status = EMatchmakingTicketStatus::TimedOut;
 	else
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetStatusFromString - Unknown status %s - Status not updated"), *StatusString);
+}
+
+FString FDriftFlexmatch::GetStatusString() const
+{
+	if (Status == EMatchmakingTicketStatus::Queued)
+		return TEXT("QUEUED");
+	if (Status == EMatchmakingTicketStatus::Searching)
+		return TEXT("SEARCHING");
+	if (Status == EMatchmakingTicketStatus::RequiresAcceptance)
+		return TEXT("REQUIRES_ACCEPTANCE");
+	if (Status == EMatchmakingTicketStatus::Placing)
+		return TEXT("PLACING");
+	if (Status == EMatchmakingTicketStatus::Completed)
+		return TEXT("COMPLETED");
+	if (Status == EMatchmakingTicketStatus::MatchCompleted)
+		return TEXT("MATCH_COMPLETE");
+	if (Status == EMatchmakingTicketStatus::Cancelled)
+		return TEXT("CANCELLED");
+	if (Status == EMatchmakingTicketStatus::Failed)
+		return TEXT("FAILED");
+	if (Status == EMatchmakingTicketStatus::TimedOut)
+		return TEXT("TIMED_OUT");
+	return TEXT("");
 }
 
 void FDriftFlexmatch::UpdateLocalState()
@@ -293,7 +319,7 @@ void FDriftFlexmatch::UpdateLocalState()
 		if ( Response.Num() == 0)
 		{
 			TicketId.Empty();
-			Status = EMatchmakingStatus::None;
+			Status = EMatchmakingTicketStatus::None;
 			return;
 		}
 		TicketId = Response["TicketId"].GetString();
@@ -317,6 +343,8 @@ EMatchmakingEvent FDriftFlexmatch::ParseEvent(const FString& EventName)
 {
 	if (EventName == TEXT("MatchmakingStarted"))
 		return EMatchmakingEvent::MatchmakingStarted;
+	if (EventName == TEXT("MatchmakingSearching"))
+		return EMatchmakingEvent::MatchmakingSearching;
 	if (EventName == TEXT("MatchmakingStopped"))
 		return EMatchmakingEvent::MatchmakingStopped;
 	if (EventName == TEXT("PotentialMatchCreated"))
@@ -336,6 +364,11 @@ EMatchmakingEvent FDriftFlexmatch::ParseEvent(const FString& EventName)
 FMatchmakingStartedDelegate& FDriftFlexmatch::OnMatchmakingStarted()
 {
 	return OnMatchmakingStartedDelegate;
+}
+
+FMatchmakingStoppedDelegate& FDriftFlexmatch::OnMatchmakingSearching()
+{
+	return OnMatchmakingSearchingDelegate;
 }
 
 FMatchmakingStoppedDelegate& FDriftFlexmatch::OnMatchmakingStopped()
