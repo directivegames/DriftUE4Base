@@ -196,12 +196,15 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 	switch (ParseEvent(Event))
 	{
 		case EMatchmakingEvent::MatchmakingStarted:
+			Status = EMatchmakingTicketStatus::Queued;
 			OnMatchmakingStarted().Broadcast();
 			break;
 		case EMatchmakingEvent::MatchmakingSearching:
+			Status = EMatchmakingTicketStatus::Searching;
 			OnMatchmakingSearching().Broadcast();
 			break;
 		case EMatchmakingEvent::MatchmakingStopped:
+			Status = EMatchmakingTicketStatus::None;
 			OnMatchmakingStopped().Broadcast();
 			break;
 		case EMatchmakingEvent::PotentialMatchCreated:
@@ -215,6 +218,7 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 				}
 			}
 			const bool Requires_Acceptance = EventData.FindField("acceptance_required").GetBool();
+			Status = Requires_Acceptance ? EMatchmakingTicketStatus::RequiresAcceptance : EMatchmakingTicketStatus::Placing;
 			const FString MatchId = EventData.FindField("match_id").GetString();
 			OnPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance);
 			break;
@@ -223,10 +227,12 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 		{
 			const auto ConnString = EventData.FindField("connection_string").GetString();
 			const auto ConnOptions = EventData.FindField("options").GetString();
+			Status = EMatchmakingTicketStatus::Completed;
 			OnMatchmakingSuccess().Broadcast({ConnString, ConnOptions});
 			break;
 		}
 		case EMatchmakingEvent::MatchmakingCancelled:
+			Status = EMatchmakingTicketStatus::Cancelled;
 			OnMatchmakingCancelled().Broadcast();
 			break;
 		case EMatchmakingEvent::AcceptMatch:
@@ -246,6 +252,7 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 		case EMatchmakingEvent::MatchmakingFailed:
 		{
 			const auto Reason = EventData.FindField("reason").GetString();
+			Status = EMatchmakingTicketStatus::Failed;
 			OnMatchmakingFailed().Broadcast(Reason);
 			break;
 		}
