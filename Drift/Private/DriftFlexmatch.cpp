@@ -349,10 +349,25 @@ void FDriftFlexmatch::InitializeLocalState()
 				break;
 			case EMatchmakingTicketStatus::RequiresAcceptance:
 			case EMatchmakingTicketStatus::Placing:
-				// FIXME: Dig up players, teams and their acceptance status from the ticket and do the broadcast to allow
+			{
+				// Dig up players, teams and their acceptance status from the ticket and do the broadcast to allow
 				// recovery from disconnects while searching.
-				//OnPotentialMatchCreated().Broadcast();
+				// FIXME: The below is probably buggy as hell, and we're missing the acceptance status per player as
+				// that isn't currently stored in the ticket we just fetched.
+				FString PotentialMatchId = Response["MatchId"].GetString();
+				TArray<FString> FakeTeams = {TEXT("Team 1"), TEXT("Team 2")};
+				FPlayersByTeam FakeTeamAllocation;
+				FakeTeamAllocation.Add(FakeTeams[0], TArray<int32>());
+				FakeTeamAllocation.Add(FakeTeams[1], TArray<int32>());
+				int TeamIndex = 0;
+				for (auto PlayerEntry: Response["Players"].GetArray())
+				{
+					int32 PlayerId = FCString::Atoi(*PlayerEntry.GetObject()["PlayerId"].GetString());
+					FakeTeamAllocation[FakeTeams[TeamIndex++]].Add(PlayerId);
+				}
+				OnDriftPotentialMatchCreated().Broadcast(FakeTeamAllocation, PotentialMatchId, Status == EMatchmakingTicketStatus::RequiresAcceptance);
 				break;
+			}
 			case EMatchmakingTicketStatus::Completed:
 				OnDriftMatchmakingSuccess().Broadcast({ConnectionString, ConnectionOptions});
 				break;
