@@ -7,7 +7,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDriftMatchmaking, Log, All);
 
-enum class EMatchmakingEvent : uint8
+enum class EDriftMatchmakingEvent : uint8
 {
 	Unknown,
 	MatchmakingStarted,
@@ -46,14 +46,14 @@ public:
 
 	FConnectionInfo ConnectionInfo() const override;
 
-	FMatchmakingStartedDelegate& OnMatchmakingStarted() override;
-	FMatchmakingSearchingDelegate& OnMatchmakingSearching() override;
-	FMatchmakingStoppedDelegate& OnMatchmakingStopped() override;
-	FMatchmakingCancelledDelegate& OnMatchmakingCancelled() override;
-	FMatchmakingFailedDelegate& OnMatchmakingFailed() override;
-	FPotentialMatchCreatedDelegate& OnPotentialMatchCreated() override;
-	FAcceptMatchDelegate& OnAcceptMatch() override;
-	FMatchmakingSuccessDelegate& OnMatchmakingSuccess() override;
+	FMatchmakingStartedDelegate& OnDriftMatchmakingStarted() override;
+	FMatchmakingSearchingDelegate& OnDriftMatchmakingSearching() override;
+	FMatchmakingStoppedDelegate& OnDriftMatchmakingStopped() override;
+	FMatchmakingCancelledDelegate& OnDriftMatchmakingCancelled() override;
+	FMatchmakingFailedDelegate& OnDriftMatchmakingFailed() override;
+	FPotentialMatchCreatedDelegate& OnDriftPotentialMatchCreated() override;
+	FAcceptMatchDelegate& OnDriftAcceptMatch() override;
+	FMatchmakingSuccessDelegate& OnDriftMatchmakingSuccess() override;
 
 private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
@@ -61,7 +61,7 @@ private:
 	void SetStatusFromString(const FString& StatusString);
 	FString GetStatusString() const;
 	void InitializeLocalState();
-	static EMatchmakingEvent ParseEvent(const FString& EventName);
+	static EDriftMatchmakingEvent ParseEvent(const FString& EventName);
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;

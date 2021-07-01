@@ -63,28 +63,28 @@ public:
 	virtual FConnectionInfo ConnectionInfo() const = 0;
 
 	/* Issued when a ticket including player is queued */
-	virtual FMatchmakingStartedDelegate& OnMatchmakingStarted() = 0;
+	virtual FMatchmakingStartedDelegate& OnDriftMatchmakingStarted() = 0;
 
 	/* Issued when a  player ticket gets into searching state */
-	virtual FMatchmakingSearchingDelegate& OnMatchmakingSearching() = 0;
+	virtual FMatchmakingSearchingDelegate& OnDriftMatchmakingSearching() = 0;
 
 	/* Issued when a ticket including player is cancelled via a player request */
-	virtual FMatchmakingStoppedDelegate& OnMatchmakingStopped() = 0;
+	virtual FMatchmakingStoppedDelegate& OnDriftMatchmakingStopped() = 0;
 
 	/* Issued when a ticket including player is cancelled via any means, including a player request */
-	virtual FMatchmakingCancelledDelegate& OnMatchmakingCancelled() = 0;
+	virtual FMatchmakingCancelledDelegate& OnDriftMatchmakingCancelled() = 0;
 
 	/* Issued when a ticket including player has failed for any reason, e.g. timeout, rejected matches etc */
-	virtual FMatchmakingFailedDelegate& OnMatchmakingFailed() = 0;
+	virtual FMatchmakingFailedDelegate& OnDriftMatchmakingFailed() = 0;
 
 	/* Issued when a ticket including player is included in a potential match */
-	virtual FPotentialMatchCreatedDelegate& OnPotentialMatchCreated() = 0;
+	virtual FPotentialMatchCreatedDelegate& OnDriftPotentialMatchCreated() = 0;
 
 	/* Issued when a player in a potential match requiring acceptance accepts the match */
-	virtual FAcceptMatchDelegate& OnAcceptMatch() = 0;
+	virtual FAcceptMatchDelegate& OnDriftAcceptMatch() = 0;
 
 	/* Issued when a match has been made which includes this player */
-	virtual FMatchmakingSuccessDelegate& OnMatchmakingSuccess() = 0;
+	virtual FMatchmakingSuccessDelegate& OnDriftMatchmakingSuccess() = 0;
 
 	virtual ~IDriftMatchmaker() = default;
 };

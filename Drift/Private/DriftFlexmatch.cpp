@@ -195,19 +195,19 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 
 	switch (ParseEvent(Event))
 	{
-		case EMatchmakingEvent::MatchmakingStarted:
+		case EDriftMatchmakingEvent::MatchmakingStarted:
 			Status = EMatchmakingTicketStatus::Queued;
-			OnMatchmakingStarted().Broadcast();
+			OnDriftMatchmakingStarted().Broadcast();
 			break;
-		case EMatchmakingEvent::MatchmakingSearching:
+		case EDriftMatchmakingEvent::MatchmakingSearching:
 			Status = EMatchmakingTicketStatus::Searching;
-			OnMatchmakingSearching().Broadcast();
+			OnDriftMatchmakingSearching().Broadcast();
 			break;
-		case EMatchmakingEvent::MatchmakingStopped:
+		case EDriftMatchmakingEvent::MatchmakingStopped:
 			Status = EMatchmakingTicketStatus::None;
-			OnMatchmakingStopped().Broadcast();
+			OnDriftMatchmakingStopped().Broadcast();
 			break;
-		case EMatchmakingEvent::PotentialMatchCreated:
+		case EDriftMatchmakingEvent::PotentialMatchCreated:
 		{
 			FPlayersByTeam PlayersByTeam;
 			for (auto Team: EventData.GetObject())
@@ -220,22 +220,22 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			const bool Requires_Acceptance = EventData.FindField("acceptance_required").GetBool();
 			Status = Requires_Acceptance ? EMatchmakingTicketStatus::RequiresAcceptance : EMatchmakingTicketStatus::Placing;
 			const FString MatchId = EventData.FindField("match_id").GetString();
-			OnPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance);
+			OnDriftPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance);
 			break;
 		}
-		case EMatchmakingEvent::MatchmakingSuccess:
+		case EDriftMatchmakingEvent::MatchmakingSuccess:
 		{
 			const auto ConnString = EventData.FindField("connection_string").GetString();
 			const auto ConnOptions = EventData.FindField("options").GetString();
 			Status = EMatchmakingTicketStatus::Completed;
-			OnMatchmakingSuccess().Broadcast({ConnString, ConnOptions});
+			OnDriftMatchmakingSuccess().Broadcast({ConnString, ConnOptions});
 			break;
 		}
-		case EMatchmakingEvent::MatchmakingCancelled:
+		case EDriftMatchmakingEvent::MatchmakingCancelled:
 			Status = EMatchmakingTicketStatus::Cancelled;
-			OnMatchmakingCancelled().Broadcast();
+			OnDriftMatchmakingCancelled().Broadcast();
 			break;
-		case EMatchmakingEvent::AcceptMatch:
+		case EDriftMatchmakingEvent::AcceptMatch:
 		{
 			FPlayersAccepted PlayersAccepted;
 			for (auto PlayerResponse: EventData.GetObject())
@@ -246,17 +246,17 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 					PlayersAccepted.Add(AcceptedPlayerId);
 				}
 			}
-			OnAcceptMatch().Broadcast(PlayersAccepted);
+			OnDriftAcceptMatch().Broadcast(PlayersAccepted);
 			break;
 		}
-		case EMatchmakingEvent::MatchmakingFailed:
+		case EDriftMatchmakingEvent::MatchmakingFailed:
 		{
 			const auto Reason = EventData.FindField("reason").GetString();
 			Status = EMatchmakingTicketStatus::Failed;
-			OnMatchmakingFailed().Broadcast(Reason);
+			OnDriftMatchmakingFailed().Broadcast(Reason);
 			break;
 		}
-		case EMatchmakingEvent::Unknown:
+		case EDriftMatchmakingEvent::Unknown:
 		default:
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Unknown event %s"), *Event);
 	}
@@ -342,10 +342,10 @@ void FDriftFlexmatch::InitializeLocalState()
 		switch(Status)
 		{
 			case EMatchmakingTicketStatus::Queued:
-				OnMatchmakingStarted().Broadcast();
+				OnDriftMatchmakingStarted().Broadcast();
 				break;
 			case EMatchmakingTicketStatus::Searching:
-				OnMatchmakingSearching().Broadcast();
+				OnDriftMatchmakingSearching().Broadcast();
 				break;
 			case EMatchmakingTicketStatus::RequiresAcceptance:
 			case EMatchmakingTicketStatus::Placing:
@@ -354,7 +354,7 @@ void FDriftFlexmatch::InitializeLocalState()
 				//OnPotentialMatchCreated().Broadcast();
 				break;
 			case EMatchmakingTicketStatus::Completed:
-				OnMatchmakingSuccess().Broadcast({ConnectionString, ConnectionOptions});
+				OnDriftMatchmakingSuccess().Broadcast({ConnectionString, ConnectionOptions});
 				break;
 			default:
 				break;
@@ -363,64 +363,64 @@ void FDriftFlexmatch::InitializeLocalState()
 	Request->Dispatch();
 }
 
-EMatchmakingEvent FDriftFlexmatch::ParseEvent(const FString& EventName)
+EDriftMatchmakingEvent FDriftFlexmatch::ParseEvent(const FString& EventName)
 {
 	if (EventName == TEXT("MatchmakingStarted"))
-		return EMatchmakingEvent::MatchmakingStarted;
+		return EDriftMatchmakingEvent::MatchmakingStarted;
 	if (EventName == TEXT("MatchmakingSearching"))
-		return EMatchmakingEvent::MatchmakingSearching;
+		return EDriftMatchmakingEvent::MatchmakingSearching;
 	if (EventName == TEXT("MatchmakingStopped"))
-		return EMatchmakingEvent::MatchmakingStopped;
+		return EDriftMatchmakingEvent::MatchmakingStopped;
 	if (EventName == TEXT("PotentialMatchCreated"))
-		return EMatchmakingEvent::PotentialMatchCreated;
+		return EDriftMatchmakingEvent::PotentialMatchCreated;
 	if (EventName == TEXT("MatchmakingSuccess"))
-		return EMatchmakingEvent::MatchmakingSuccess;
+		return EDriftMatchmakingEvent::MatchmakingSuccess;
 	if (EventName == TEXT("MatchmakingCancelled"))
-		return EMatchmakingEvent::MatchmakingCancelled;
+		return EDriftMatchmakingEvent::MatchmakingCancelled;
 	if (EventName == TEXT("AcceptMatch"))
-		return EMatchmakingEvent::AcceptMatch;
+		return EDriftMatchmakingEvent::AcceptMatch;
 	if (EventName == TEXT("MatchmakingFailed"))
-		return EMatchmakingEvent::MatchmakingFailed;
-	return EMatchmakingEvent::Unknown;
+		return EDriftMatchmakingEvent::MatchmakingFailed;
+	return EDriftMatchmakingEvent::Unknown;
 
 }
 
-FMatchmakingStartedDelegate& FDriftFlexmatch::OnMatchmakingStarted()
+FMatchmakingStartedDelegate& FDriftFlexmatch::OnDriftMatchmakingStarted()
 {
 	return OnMatchmakingStartedDelegate;
 }
 
-FMatchmakingSearchingDelegate& FDriftFlexmatch::OnMatchmakingSearching()
+FMatchmakingSearchingDelegate& FDriftFlexmatch::OnDriftMatchmakingSearching()
 {
 	return OnMatchmakingSearchingDelegate;
 }
 
-FMatchmakingStoppedDelegate& FDriftFlexmatch::OnMatchmakingStopped()
+FMatchmakingStoppedDelegate& FDriftFlexmatch::OnDriftMatchmakingStopped()
 {
 	return OnMatchmakingStoppedDelegate;
 }
 
-FMatchmakingCancelledDelegate& FDriftFlexmatch::OnMatchmakingCancelled()
+FMatchmakingCancelledDelegate& FDriftFlexmatch::OnDriftMatchmakingCancelled()
 {
 	return OnMatchmakingCancelledDelegate;
 }
 
-FMatchmakingFailedDelegate& FDriftFlexmatch::OnMatchmakingFailed()
+FMatchmakingFailedDelegate& FDriftFlexmatch::OnDriftMatchmakingFailed()
 {
 	return OnMatchmakingFailedDelegate;
 }
 
-FPotentialMatchCreatedDelegate& FDriftFlexmatch::OnPotentialMatchCreated()
+FPotentialMatchCreatedDelegate& FDriftFlexmatch::OnDriftPotentialMatchCreated()
 {
 	return OnPotentialMatchCreatedDelegate;
 }
 
-FAcceptMatchDelegate& FDriftFlexmatch::OnAcceptMatch()
+FAcceptMatchDelegate& FDriftFlexmatch::OnDriftAcceptMatch()
 {
 	return OnAcceptMatchDelegate;
 }
 
-FMatchmakingSuccessDelegate& FDriftFlexmatch::OnMatchmakingSuccess()
+FMatchmakingSuccessDelegate& FDriftFlexmatch::OnDriftMatchmakingSuccess()
 {
 	return OnMatchmakingSuccessDelegate;
 }
