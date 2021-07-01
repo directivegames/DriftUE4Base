@@ -390,7 +390,7 @@ FMatchmakingStartedDelegate& FDriftFlexmatch::OnMatchmakingStarted()
 	return OnMatchmakingStartedDelegate;
 }
 
-FMatchmakingStoppedDelegate& FDriftFlexmatch::OnMatchmakingSearching()
+FMatchmakingSearchingDelegate& FDriftFlexmatch::OnMatchmakingSearching()
 {
 	return OnMatchmakingSearchingDelegate;
 }
