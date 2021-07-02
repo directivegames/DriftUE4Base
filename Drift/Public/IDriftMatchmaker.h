@@ -31,7 +31,7 @@ DECLARE_MULTICAST_DELEGATE(FMatchmakingSearchingDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingStoppedDelegate);
 DECLARE_MULTICAST_DELEGATE(FMatchmakingCancelledDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingFailedDelegate, FString /* reason */);
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FPotentialMatchCreatedDelegate, FPlayersByTeam /* PlayersByTeam */, FString /* MatchId */, bool /* acceptance_required */);
+DECLARE_MULTICAST_DELEGATE_FourParams(FPotentialMatchCreatedDelegate, FPlayersByTeam /* PlayersByTeam */, FString /* MatchId */, bool /* AcceptanceRequired */, int32 /* TimeOut */ );
 DECLARE_MULTICAST_DELEGATE_OneParam(FAcceptMatchDelegate, FPlayersAccepted /* accepted_players */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingSuccessDelegate, const FConnectionInfo& /* connection_string and options */);
 

@@ -3161,7 +3161,6 @@ bool FDriftBase::RegisterServer()
     return true;
 }
 
-
 void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)

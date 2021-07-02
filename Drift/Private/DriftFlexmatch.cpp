@@ -220,7 +220,8 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			const bool Requires_Acceptance = EventData.FindField("acceptance_required").GetBool();
 			Status = Requires_Acceptance ? EMatchmakingTicketStatus::RequiresAcceptance : EMatchmakingTicketStatus::Placing;
 			const FString MatchId = EventData.FindField("match_id").GetString();
-			OnDriftPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance);
+			const int32 TimeOut = EventData.FindField("acceptance_timeout").GetInt32();
+			OnDriftPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance, TimeOut);
 			break;
 		}
 		case EDriftMatchmakingEvent::MatchmakingSuccess:
@@ -350,11 +351,13 @@ void FDriftFlexmatch::InitializeLocalState()
 			case EMatchmakingTicketStatus::RequiresAcceptance:
 			case EMatchmakingTicketStatus::Placing:
 			{
-				// Dig up players, teams and their acceptance status from the ticket and do the broadcast to allow
-				// recovery from disconnects while searching.
-				// FIXME: The below is probably buggy as hell, and we're missing the acceptance status per player as
-				// that isn't currently stored in the ticket we just fetched.
+				// FIXME: The below is probably buggy as hell but is intended to facilitate recovery from disconnects
+				// while searching.
+				// We're missing the acceptance status per player as that isn't currently stored in the ticket we just fetched.
+				// However, chances are the player will receive a proper event just a tad later which should correct
+				// the situation
 				FString PotentialMatchId = Response["MatchId"].GetString();
+				int32 FakeTimeOut = 10;
 				TArray<FString> FakeTeams = {TEXT("Team 1"), TEXT("Team 2")};
 				FPlayersByTeam FakeTeamAllocation;
 				FakeTeamAllocation.Add(FakeTeams[0], TArray<int32>());
@@ -363,9 +366,9 @@ void FDriftFlexmatch::InitializeLocalState()
 				for (auto PlayerEntry: Response["Players"].GetArray())
 				{
 					int32 PlayerId = FCString::Atoi(*PlayerEntry.GetObject()["PlayerId"].GetString());
-					FakeTeamAllocation[FakeTeams[TeamIndex++]].Add(PlayerId);
+					FakeTeamAllocation[FakeTeams[TeamIndex++ % 2]].Add(PlayerId);
 				}
-				OnDriftPotentialMatchCreated().Broadcast(FakeTeamAllocation, PotentialMatchId, Status == EMatchmakingTicketStatus::RequiresAcceptance);
+				OnDriftPotentialMatchCreated().Broadcast(FakeTeamAllocation, PotentialMatchId, Status == EMatchmakingTicketStatus::RequiresAcceptance, FakeTimeOut);
 				break;
 			}
 			case EMatchmakingTicketStatus::Completed:
