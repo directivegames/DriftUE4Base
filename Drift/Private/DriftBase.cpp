@@ -350,7 +350,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
 	            Disconnect();
         		return;
         	}
-        	
+
         	heartbeatRetryAttempt_ += 1;
         	// Delay the retry for an exponentially expanding random amount of time, up to the cap, and within the timeout
         	const auto retryDelayCap = FMath::Min(heartbeatRetryDelayCap_, static_cast<float>((heartbeatTimeout_ - now).GetTotalSeconds()));
@@ -3175,7 +3175,7 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
         payload = FString::Printf(TEXT("{\"player_id\": %i}"), playerID);
     }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Adding player: %i to match %i"), playerID, match_info.match_id);
+    DRIFT_LOG(Base, Log, TEXT("Adding player: %i to match %i"), playerID, match_info.match_id);
 
     auto request = GetGameRequestManager()->Post(match_info.matchplayers_url, payload);
     request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& context, JsonDocument& doc)
