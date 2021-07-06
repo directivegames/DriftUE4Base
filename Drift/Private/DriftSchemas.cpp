@@ -420,11 +420,9 @@ bool FPlayerInfo::Serialize(class SerializationContext& context)
 
 bool FMatchInfo::Serialize(class SerializationContext& context)
 {
-	return SERIALIZE_PROPERTY(context, match_id)
+	const auto Result = SERIALIZE_PROPERTY(context, match_id)
 		&& SERIALIZE_PROPERTY(context, server_id)
 		&& SERIALIZE_PROPERTY(context, create_date)
-		&& SERIALIZE_PROPERTY(context, start_date)
-		&& SERIALIZE_PROPERTY(context, end_date)
 		&& SERIALIZE_PROPERTY(context, status)
 		&& SERIALIZE_PROPERTY(context, num_players)
 		&& SERIALIZE_PROPERTY(context, max_players)
@@ -434,13 +432,19 @@ bool FMatchInfo::Serialize(class SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, details)
 		&& SERIALIZE_PROPERTY(context, server)
 		&& SERIALIZE_PROPERTY(context, server_url)
-		&& SERIALIZE_PROPERTY(context, machine)
 		&& SERIALIZE_PROPERTY(context, machine_url)
 		&& SERIALIZE_PROPERTY(context, teams)
 		&& SERIALIZE_PROPERTY(context, matchplayers_url)
 		&& SERIALIZE_PROPERTY(context, teams_url)
 		&& SERIALIZE_PROPERTY(context, players)
 		&& SERIALIZE_PROPERTY(context, url);
+
+	SERIALIZE_OPTIONAL_PROPERTY(context, unique_key);
+	SERIALIZE_OPTIONAL_PROPERTY(context, start_date);
+	SERIALIZE_OPTIONAL_PROPERTY(context, end_date);
+	SERIALIZE_OPTIONAL_PROPERTY(context, machine);
+
+	return Result;
 }
 
 
