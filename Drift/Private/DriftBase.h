@@ -355,6 +355,7 @@ private:
 
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
 
+	void AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId);
 private:
     FString settingsSection_;
 
@@ -451,6 +452,8 @@ private:
 
 	FString serverJTI_;
 	FString serverJWT_;
+
+	TMap<int32, int32> PlayerIdToTeamId;
 };
 
 

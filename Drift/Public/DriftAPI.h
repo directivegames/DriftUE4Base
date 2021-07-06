@@ -442,11 +442,11 @@ struct FDriftFriendRequest
     FDateTime create_date;
     FDateTime expiry_date;
 
-    int32 issued_by_player_id; 
+    int32 issued_by_player_id;
     FString issued_by_player_url;
     FString issued_by_player_name;
 
-    int32 issued_to_player_id; 
+    int32 issued_to_player_id;
     FString issued_to_player_url;
     FString issued_to_player_name;
 
@@ -717,7 +717,7 @@ public:
      * the token will be valid for any player who accepts it. In that case, the token must be sent to a friend via external means
      */
     virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) = 0;
- 
+
     /**
      * Accept a friend request via an external token
      */
@@ -741,7 +741,7 @@ public:
 
     /**
      * Searches for players by player_name (not username). If searchString contains a '*' for a wildcard search, the
-     * search will be case-insensitive. 
+     * search will be case-insensitive.
      */
     virtual bool FindPlayersByName(const FString& searchString, const FDriftFindPlayerByNameDelegate& delegate) = 0;
 
@@ -818,7 +818,7 @@ public:
      * Fired when another player has accepted a friend request.
      */
     virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
- 
+
     /**
      * Fired when a friend has terminated the friendship.
      */
@@ -905,6 +905,8 @@ public:
 
     /** Set the min level of the forwarded logs */
     virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) = 0;
+
+	virtual void AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId) = 0;
 
     virtual ~IDriftAPI() {}
 };

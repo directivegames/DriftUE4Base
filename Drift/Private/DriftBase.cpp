@@ -3166,6 +3166,12 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
     }
 
     FString payload;
+
+	if (int32* TID = PlayerIdToTeamId.Find(playerID))
+	{
+		teamID = *TID;
+	}
+
     if (teamID != 0)
     {
         payload = FString::Printf(TEXT("{\"player_id\": %i, \"team_id\": %i}"), playerID, teamID);
@@ -3903,6 +3909,11 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 	}
 
 	return false;
+}
+
+void FDriftBase::AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId)
+{
+	PlayerIdToTeamId.Add(PlayerId, TeamId);
 }
 
 
