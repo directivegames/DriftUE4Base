@@ -62,6 +62,9 @@ public:
 	/* Get cached connection info */
 	virtual FConnectionInfo ConnectionInfo() const = 0;
 
+	/* Returns the ID of the local player or 0 if we don't have a login */
+	virtual int32 GetLocalPlayerId() const = 0;
+
 	/* Issued when a ticket including player is queued */
 	virtual FMatchmakingStartedDelegate& OnDriftMatchmakingStarted() = 0;
 

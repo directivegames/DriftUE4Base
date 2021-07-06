@@ -44,6 +44,8 @@ public:
 
 	void SetAcceptance(const FString& MatchId, bool Accepted) override;
 
+	int32 GetLocalPlayerId() const override;
+
 	FConnectionInfo ConnectionInfo() const override;
 
 	FMatchmakingStartedDelegate& OnDriftMatchmakingStarted() override;
@@ -66,7 +68,7 @@ private:
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 	FString FlexmatchURL;
-	int32 PlayerId;
+	int32 PlayerId = 0;
 
 	FMatchmakingStartedDelegate OnMatchmakingStartedDelegate;
 	FMatchmakingSearchingDelegate OnMatchmakingSearchingDelegate;

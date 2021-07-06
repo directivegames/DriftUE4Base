@@ -175,6 +175,11 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	Request->Dispatch();
 }
 
+int32 FDriftFlexmatch::GetLocalPlayerId() const
+{
+	return PlayerId;
+}
+
 FConnectionInfo FDriftFlexmatch::ConnectionInfo() const
 {
 	return {ConnectionString, ConnectionOptions};
