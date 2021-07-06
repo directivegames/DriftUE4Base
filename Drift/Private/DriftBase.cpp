@@ -3281,7 +3281,7 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
         	UE_LOG(LogTemp, Log, TEXT("DEBUG - Successfully loaded match_info"));
         	UE_LOG(LogTemp, Log, TEXT("DEBUG - Number of match teams: '%d'"), match_info.teams.Num());
 
-        	for (const auto Team : match_info.teams)
+        	for (const auto& Team : match_info.teams)
         	{
         		UE_LOG(LogTemp, Log, TEXT("DEBUG - Team info: '%d' - '%s'"), Team.team_id, *Team.name);
         	}
