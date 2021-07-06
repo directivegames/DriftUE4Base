@@ -426,7 +426,7 @@ private:
     EMatchQueueState matchQueueState = EMatchQueueState::Idle;
     TArray<FMatchInvite> matchInvites;
 
-    FGetMatchesResponseItem match_info;
+    FMatchInfo match_info;
 
     FString apiKey;
 	FString versionedApiKey;

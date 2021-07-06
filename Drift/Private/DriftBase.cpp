@@ -3278,6 +3278,14 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
 
             DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(matchDoc));
 
+        	UE_LOG(LogTemp, Log, TEXT("DEBUG - Successfully loaded match_info"));
+        	UE_LOG(LogTemp, Log, TEXT("DEBUG - Number of match teams: '%d'"), match_info.teams.Num());
+
+        	for (const auto Team : match_info.teams)
+        	{
+        		UE_LOG(LogTemp, Log, TEXT("DEBUG - Team info: '%d' - '%s'"), Team.team_id, *Team.name);
+        	}
+
             onMatchAdded.Broadcast(true);
         });
         match_request->Dispatch();
@@ -3358,25 +3366,29 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 	if (properties.status.IsSet())
 	{
 		DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *properties.status.GetValue());
-		match_info.match_status = properties.status.GetValue();
+		match_info.status = properties.status.GetValue();
 	}
-	JsonArchive::AddMember(payload, TEXT("status"), *match_info.match_status);
+	JsonArchive::AddMember(payload, TEXT("status"), *match_info.status);
 
 	if (properties.mapName.IsSet())
 	{
 		JsonArchive::AddMember(payload, TEXT("map_name"), *properties.mapName.GetValue());
+		match_info.map_name = properties.mapName.GetValue();
 	}
 	if (properties.gameMode.IsSet())
 	{
 		JsonArchive::AddMember(payload, TEXT("game_mode"), *properties.gameMode.GetValue());
+		match_info.game_mode = properties.gameMode.GetValue();
 	}
     if (properties.uniqueKey.IsSet())
     {
         JsonArchive::AddMember(payload, TEXT("unique_key"), *properties.uniqueKey.GetValue());
+    	match_info.unique_key = properties.uniqueKey.GetValue();
     }
     if (properties.maxPlayers.IsSet())
 	{
 		JsonArchive::AddMember(payload, TEXT("max_players"), properties.maxPlayers.GetValue());
+    	match_info.max_players = properties.maxPlayers.GetValue();
 	}
 
 	auto request = GetGameRequestManager()->Put(match_info.url, payload);

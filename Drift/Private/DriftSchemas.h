@@ -565,6 +565,7 @@ struct FMatchInfo
 
 	FString game_mode;
 	FString map_name;
+	FString unique_key;
 
 	JsonValue match_statistics{rapidjson::kObjectType};
 	JsonValue details{rapidjson::kObjectType};
