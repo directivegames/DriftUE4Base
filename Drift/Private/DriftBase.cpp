@@ -3746,6 +3746,23 @@ bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, fl
 }
 
 
+TArray<FDriftMatchTeam> FDriftBase::GetMatchTeams() const
+{
+	TArray<FDriftMatchTeam> Teams;
+
+	for (const auto& Team : match_info.teams)
+	{
+		FDriftMatchTeam MatchTeam;
+		MatchTeam.team_id = Team.team_id;
+		MatchTeam.team_name = Team.name;
+
+		Teams.Emplace(MatchTeam);
+	}
+
+	return Teams;
+}
+
+
 FString FDriftBase::GetApiKeyHeader() const
 {
     if (!versionedApiKey.IsEmpty())
@@ -3921,18 +3938,6 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 	}
 
 	return false;
-}
-
-int32 FDriftBase::AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId)
-{
-	if (match_info.teams.IsValidIndex(TeamId))
-	{
-		TeamId = match_info.teams[TeamId].team_id;
-	}
-
-	PlayerIdToTeamId.Add(PlayerId, TeamId);
-
-	return TeamId;
 }
 
 

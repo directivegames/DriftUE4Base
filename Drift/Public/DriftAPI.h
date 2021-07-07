@@ -85,6 +85,12 @@ struct FDriftUpdateMatchProperties
     TOptional<FString> uniqueKey;
 };
 
+struct FDriftMatchTeam
+{
+	FString team_name;
+	int32 team_id;
+};
+
 
 class IDriftServerAPI
 {
@@ -146,6 +152,8 @@ public:
      * as they are added to the match.
      */
     virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) = 0;
+
+	virtual TArray<FDriftMatchTeam> GetMatchTeams() const = 0;
 
     /**
      * Server Specific Notifications
@@ -260,7 +268,6 @@ struct FPlayerAuthenticatedInfo
     {
     }
 };
-
 
 struct FDriftLeaderboardEntry
 {
@@ -905,9 +912,6 @@ public:
 
     /** Set the min level of the forwarded logs */
     virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) = 0;
-
-	/** Return the assigned team ID */
-	virtual int32 AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId) = 0;
 
     virtual ~IDriftAPI() {}
 };
