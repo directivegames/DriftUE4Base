@@ -3923,7 +3923,7 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 	return false;
 }
 
-void FDriftBase::AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId)
+int32 FDriftBase::AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId)
 {
 	if (match_info.teams.IsValidIndex(TeamId))
 	{
@@ -3931,6 +3931,8 @@ void FDriftBase::AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId)
 	}
 
 	PlayerIdToTeamId.Add(PlayerId, TeamId);
+
+	return TeamId;
 }
 
 

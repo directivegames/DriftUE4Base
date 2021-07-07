@@ -355,7 +355,7 @@ private:
 
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
 
-	void AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId);
+	int32 AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId);
 private:
     FString settingsSection_;
 

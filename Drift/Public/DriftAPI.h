@@ -906,7 +906,8 @@ public:
     /** Set the min level of the forwarded logs */
     virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) = 0;
 
-	virtual void AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId) = 0;
+	/** Return the assigned team ID */
+	virtual int32 AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId) = 0;
 
     virtual ~IDriftAPI() {}
 };
