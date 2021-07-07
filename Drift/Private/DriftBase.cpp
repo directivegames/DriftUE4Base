@@ -3181,7 +3181,7 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
         payload = FString::Printf(TEXT("{\"player_id\": %i}"), playerID);
     }
 
-    DRIFT_LOG(Base, Log, TEXT("Adding player: %i to match %i"), playerID, match_info.match_id);
+    DRIFT_LOG(Base, Log, TEXT("Adding player '%i' to match '%i' in team '%i'"), playerID, match_info.match_id, teamID);
 
     auto request = GetGameRequestManager()->Post(match_info.matchplayers_url, payload);
     request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& context, JsonDocument& doc)
@@ -3925,6 +3925,11 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 
 void FDriftBase::AddPlayerIdToTeamId(int32 PlayerId, int32 TeamId)
 {
+	if (match_info.teams.IsValidIndex(TeamId))
+	{
+		TeamId = match_info.teams[TeamId].team_id;
+	}
+
 	PlayerIdToTeamId.Add(PlayerId, TeamId);
 }
 
