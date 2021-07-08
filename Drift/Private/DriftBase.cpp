@@ -3365,30 +3365,42 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 	JsonValue payload{ rapidjson::kObjectType };
 	if (properties.status.IsSet())
 	{
-		DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *properties.status.GetValue());
-		match_info.status = properties.status.GetValue();
-	}
-	JsonArchive::AddMember(payload, TEXT("status"), *match_info.status);
+		const auto Status = properties.status.GetValue();
 
+		DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *Status);
+
+		JsonArchive::AddMember(payload, TEXT("status"), Status);
+		match_info.status = Status;
+	}
 	if (properties.mapName.IsSet())
 	{
-		JsonArchive::AddMember(payload, TEXT("map_name"), *properties.mapName.GetValue());
+		JsonArchive::AddMember(payload, "map_name", properties.mapName.GetValue());
 		match_info.map_name = properties.mapName.GetValue();
 	}
 	if (properties.gameMode.IsSet())
 	{
-		JsonArchive::AddMember(payload, TEXT("game_mode"), *properties.gameMode.GetValue());
+		JsonArchive::AddMember(payload, "game_mode", properties.gameMode.GetValue());
 		match_info.game_mode = properties.gameMode.GetValue();
 	}
     if (properties.uniqueKey.IsSet())
     {
-        JsonArchive::AddMember(payload, TEXT("unique_key"), *properties.uniqueKey.GetValue());
+        JsonArchive::AddMember(payload, "unique_key", properties.uniqueKey.GetValue());
     	match_info.unique_key = properties.uniqueKey.GetValue();
     }
     if (properties.maxPlayers.IsSet())
 	{
-		JsonArchive::AddMember(payload, TEXT("max_players"), properties.maxPlayers.GetValue());
+		JsonArchive::AddMember(payload, "max_players", properties.maxPlayers.GetValue());
     	match_info.max_players = properties.maxPlayers.GetValue();
+	}
+	if (properties.details.IsSet())
+	{
+		JsonArchive::AddMember(payload, "details", properties.details.GetValue());
+		match_info.details = properties.details.GetValue();
+	}
+	if (properties.match_statistics.IsSet())
+	{
+		JsonArchive::AddMember(payload, "match_statistics", properties.match_statistics.GetValue());
+		match_info.match_statistics = properties.match_statistics.GetValue();
 	}
 
 	auto request = GetGameRequestManager()->Put(match_info.url, payload);

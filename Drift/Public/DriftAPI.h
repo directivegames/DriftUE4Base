@@ -14,6 +14,7 @@
 
 #include "IDriftPartyManager.h"
 #include "CoreUObject.h"
+#include "JsonValueWrapper.h"
 
 #include "DriftAPI.generated.h"
 
@@ -77,6 +78,9 @@ struct FDriftUpdateMatchProperties
     TOptional<FString> mapName;
     TOptional<FString> status;
     TOptional<int32> maxPlayers;
+
+	TOptional<JsonValue> details;
+	TOptional<JsonValue> match_statistics;
 
     /**
      * uniqueKey enforces uniqueness of running matches by not allowing Drift to accept two matches with the same
