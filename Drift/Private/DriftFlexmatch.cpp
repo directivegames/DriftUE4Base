@@ -239,10 +239,10 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 		}
 		case EDriftMatchmakingEvent::MatchmakingSuccess:
 		{
-			const auto ConnString = EventData.FindField("connection_string").GetString();
-			const auto ConnOptions = EventData.FindField("options").GetString();
+			ConnectionString = EventData.FindField("connection_string").GetString();
+			ConnectionOptions = EventData.FindField("options").GetString();
 			Status = EMatchmakingTicketStatus::Completed;
-			OnDriftMatchmakingSuccess().Broadcast({ConnString, ConnOptions});
+			OnDriftMatchmakingSuccess().Broadcast(ConnectionInfo());
 			break;
 		}
 		case EDriftMatchmakingEvent::MatchmakingCancelled:
