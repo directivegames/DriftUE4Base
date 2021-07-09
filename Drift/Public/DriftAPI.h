@@ -15,6 +15,7 @@
 #include "IDriftPartyManager.h"
 #include "IDriftMatchmaker.h"
 #include "CoreUObject.h"
+#include "JsonValueWrapper.h"
 
 #include "DriftAPI.generated.h"
 
@@ -79,11 +80,20 @@ struct FDriftUpdateMatchProperties
     TOptional<FString> status;
     TOptional<int32> maxPlayers;
 
+	TOptional<JsonValue> details;
+	TOptional<JsonValue> match_statistics;
+
     /**
      * uniqueKey enforces uniqueness of running matches by not allowing Drift to accept two matches with the same
      * unique key. What the unique key is, and what it means to an individual product is left to the product to define
      */
     TOptional<FString> uniqueKey;
+};
+
+struct FDriftMatchTeam
+{
+	FString team_name;
+	int32 team_id;
 };
 
 
@@ -147,6 +157,8 @@ public:
      * as they are added to the match.
      */
     virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) = 0;
+
+	virtual TArray<FDriftMatchTeam> GetMatchTeams() const = 0;
 
     /**
      * Server Specific Notifications
@@ -261,7 +273,6 @@ struct FPlayerAuthenticatedInfo
     {
     }
 };
-
 
 struct FDriftLeaderboardEntry
 {
@@ -443,11 +454,11 @@ struct FDriftFriendRequest
     FDateTime create_date;
     FDateTime expiry_date;
 
-    int32 issued_by_player_id; 
+    int32 issued_by_player_id;
     FString issued_by_player_url;
     FString issued_by_player_name;
 
-    int32 issued_to_player_id; 
+    int32 issued_to_player_id;
     FString issued_to_player_url;
     FString issued_to_player_name;
 
@@ -718,7 +729,7 @@ public:
      * the token will be valid for any player who accepts it. In that case, the token must be sent to a friend via external means
      */
     virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) = 0;
- 
+
     /**
      * Accept a friend request via an external token
      */
@@ -742,7 +753,7 @@ public:
 
     /**
      * Searches for players by player_name (not username). If searchString contains a '*' for a wildcard search, the
-     * search will be case-insensitive. 
+     * search will be case-insensitive.
      */
     virtual bool FindPlayersByName(const FString& searchString, const FDriftFindPlayerByNameDelegate& delegate) = 0;
 
@@ -819,7 +830,7 @@ public:
      * Fired when another player has accepted a friend request.
      */
     virtual FDriftFriendAddedDelegate& OnFriendAdded() = 0;
- 
+
     /**
      * Fired when a friend has terminated the friendship.
      */

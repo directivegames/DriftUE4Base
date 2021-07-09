@@ -175,6 +175,7 @@ public:
     void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
     void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
     bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
+	TArray<FDriftMatchTeam> GetMatchTeams() const override;
 
     FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
     FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
@@ -357,7 +358,6 @@ private:
 	IDriftAuthProviderFactory* GetUserPassAuthProviderFactory(const FString& Username, const FString& Password, bool bAllowAutomaticAccountCreation);
 
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
-
 private:
     FString settingsSection_;
 
@@ -430,7 +430,7 @@ private:
     EMatchQueueState matchQueueState = EMatchQueueState::Idle;
     TArray<FMatchInvite> matchInvites;
 
-    FGetMatchesResponseItem match_info;
+    FMatchInfo match_info;
 
     FString apiKey;
 	FString versionedApiKey;
@@ -456,6 +456,8 @@ private:
 
 	FString serverJTI_;
 	FString serverJWT_;
+
+	TMap<int32, int32> PlayerIdToTeamId;
 };
 
 

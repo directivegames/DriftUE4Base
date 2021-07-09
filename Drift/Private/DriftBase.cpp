@@ -356,7 +356,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
 	            Disconnect();
         		return;
         	}
-        	
+
         	heartbeatRetryAttempt_ += 1;
         	// Delay the retry for an exponentially expanding random amount of time, up to the cap, and within the timeout
         	const auto retryDelayCap = FMath::Min(heartbeatRetryDelayCap_, static_cast<float>((heartbeatTimeout_ - now).GetTotalSeconds()));
@@ -3173,6 +3173,12 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
     }
 
     FString payload;
+
+	if (int32* TID = PlayerIdToTeamId.Find(playerID))
+	{
+		teamID = *TID;
+	}
+
     if (teamID != 0)
     {
         payload = FString::Printf(TEXT("{\"player_id\": %i, \"team_id\": %i}"), playerID, teamID);
@@ -3182,7 +3188,7 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
         payload = FString::Printf(TEXT("{\"player_id\": %i}"), playerID);
     }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Adding player: %i to match %i"), playerID, match_info.match_id);
+    DRIFT_LOG(Base, Log, TEXT("Adding player '%i' to match '%i' in team '%i'"), playerID, match_info.match_id, teamID);
 
     auto request = GetGameRequestManager()->Post(match_info.matchplayers_url, payload);
     request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& context, JsonDocument& doc)
@@ -3358,26 +3364,42 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 	JsonValue payload{ rapidjson::kObjectType };
 	if (properties.status.IsSet())
 	{
-		DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *properties.status.GetValue());
-		match_info.match_status = properties.status.GetValue();
-	}
-	JsonArchive::AddMember(payload, TEXT("status"), *match_info.match_status);
+		const auto Status = properties.status.GetValue();
 
+		DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *Status);
+
+		JsonArchive::AddMember(payload, TEXT("status"), Status);
+		match_info.status = Status;
+	}
 	if (properties.mapName.IsSet())
 	{
-		JsonArchive::AddMember(payload, TEXT("map_name"), *properties.mapName.GetValue());
+		JsonArchive::AddMember(payload, "map_name", properties.mapName.GetValue());
+		match_info.map_name = properties.mapName.GetValue();
 	}
 	if (properties.gameMode.IsSet())
 	{
-		JsonArchive::AddMember(payload, TEXT("game_mode"), *properties.gameMode.GetValue());
+		JsonArchive::AddMember(payload, "game_mode", properties.gameMode.GetValue());
+		match_info.game_mode = properties.gameMode.GetValue();
 	}
     if (properties.uniqueKey.IsSet())
     {
-        JsonArchive::AddMember(payload, TEXT("unique_key"), *properties.uniqueKey.GetValue());
+        JsonArchive::AddMember(payload, "unique_key", properties.uniqueKey.GetValue());
+    	match_info.unique_key = properties.uniqueKey.GetValue();
     }
     if (properties.maxPlayers.IsSet())
 	{
-		JsonArchive::AddMember(payload, TEXT("max_players"), properties.maxPlayers.GetValue());
+		JsonArchive::AddMember(payload, "max_players", properties.maxPlayers.GetValue());
+    	match_info.max_players = properties.maxPlayers.GetValue();
+	}
+	if (properties.details.IsSet())
+	{
+		JsonArchive::AddMember(payload, "details", properties.details.GetValue());
+		match_info.details = properties.details.GetValue();
+	}
+	if (properties.match_statistics.IsSet())
+	{
+		JsonArchive::AddMember(payload, "match_statistics", properties.match_statistics.GetValue());
+		match_info.match_statistics = properties.match_statistics.GetValue();
 	}
 
 	auto request = GetGameRequestManager()->Put(match_info.url, payload);
@@ -3732,6 +3754,19 @@ bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, fl
     }
 
     return false;
+}
+
+
+TArray<FDriftMatchTeam> FDriftBase::GetMatchTeams() const
+{
+	TArray<FDriftMatchTeam> Teams;
+
+	for (const auto& Team : match_info.teams)
+	{
+		Teams.Emplace(FDriftMatchTeam{ Team.name, Team.team_id });
+	}
+
+	return Teams;
 }
 
 

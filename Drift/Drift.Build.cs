@@ -48,6 +48,8 @@ public class Drift : ModuleRules
             {
                 "Core",
                 "CoreUObject",
+                "Json",
+                "JsonArchive",
                 // ... add other public dependencies that you statically link with here ...
             }
             );
@@ -68,9 +70,7 @@ public class Drift : ModuleRules
                 "OnlineSubsystem",
                 "OnlineSubsystemUtils",
                 "DriftHttp",
-                "JsonArchive",
                 "ErrorReporter",
-                "Json",
             }
             );
         
