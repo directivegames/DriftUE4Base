@@ -19,5 +19,6 @@ public:
 
 	virtual FDriftMessageQueueDelegate& OnMessageQueueMessage(const FString& queue) = 0;
 
+	const static int32 SenderSystemID = 0;
 	virtual ~IDriftMessageQueue() = default;
 };

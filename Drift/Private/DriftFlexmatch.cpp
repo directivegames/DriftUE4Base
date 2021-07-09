@@ -195,7 +195,7 @@ FConnectionInfo FDriftFlexmatch::ConnectionInfo() const
 
 void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 {
-	if (Message.sender_id != 0 && Message.sender_id != PlayerId) // FIXME:  define 0 as drift sender 'system'
+	if (Message.sender_id != FDriftMessageQueue::SenderSystemID && Message.sender_id != PlayerId)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::HandleMatchmakingEvent - Ignoring message from sender %d"), Message.sender_id);
 		return;
