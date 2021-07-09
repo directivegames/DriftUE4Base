@@ -129,7 +129,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 
 void FDriftFlexmatch::StopMatchmaking()
 {
-	auto Request = RequestManager->Delete(FlexmatchURL, HttpStatusCodes::NoContent);
+	auto Request = RequestManager->Delete(FlexmatchURL);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
 		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
@@ -146,8 +146,16 @@ void FDriftFlexmatch::StopMatchmaking()
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
-		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
-		Status = EMatchmakingTicketStatus::None;
+		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::Ok) )
+		{
+			const auto StatusString = doc.FindField(TEXT("Status")).GetString();
+			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
+		}
+		else
+		{
+			UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
+			Status = EMatchmakingTicketStatus::None;
+		}
 	});
 	Request->Dispatch();
 }
