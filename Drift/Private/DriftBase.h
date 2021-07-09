@@ -309,8 +309,8 @@ private:
     void CreateEventManager();
     void CreateLogForwarder();
     void CreateMessageQueue();
-	void CreatePartyManager();
-	void CreateMatchmaker();
+    void CreatePartyManager();
+    void CreateMatchmaker();
 
     void CachePlayerInfo(int32 playerID);
 

@@ -68,7 +68,7 @@ public:
 	/* Issued when a ticket including player is queued */
 	virtual FMatchmakingStartedDelegate& OnDriftMatchmakingStarted() = 0;
 
-	/* Issued when a  player ticket gets into searching state */
+	/* Issued when a player ticket gets into searching state */
 	virtual FMatchmakingSearchingDelegate& OnDriftMatchmakingSearching() = 0;
 
 	/* Issued when a ticket including player is cancelled via a player request */
