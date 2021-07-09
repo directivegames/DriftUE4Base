@@ -125,6 +125,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 		SetStatusFromString(StatusString);
 	});
 	Request->Dispatch();
+	Status = EMatchmakingTicketStatus::None;
 }
 
 void FDriftFlexmatch::StopMatchmaking()

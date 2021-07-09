@@ -84,6 +84,7 @@ private:
 	const float PingInterval = 3.0;
 	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
+	// TODO: Fetch valid region->pingServer mapping from backend.
 	const FString PingUrlTemplate = TEXT("https://gamelift.{0}.amazonaws.com");
 	const TArray<FString> PingRegions{"eu-west-1"};
 
