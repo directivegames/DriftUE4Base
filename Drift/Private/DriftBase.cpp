@@ -3756,11 +3756,7 @@ TArray<FDriftMatchTeam> FDriftBase::GetMatchTeams() const
 
 	for (const auto& Team : match_info.teams)
 	{
-		FDriftMatchTeam MatchTeam;
-		MatchTeam.team_id = Team.team_id;
-		MatchTeam.team_name = Team.name;
-
-		Teams.Emplace(MatchTeam);
+		Teams.Emplace(FDriftMatchTeam{ Team.name, Team.team_id });
 	}
 
 	return Teams;
