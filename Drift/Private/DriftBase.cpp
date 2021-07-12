@@ -30,6 +30,7 @@
 
 #include "SocketSubsystem.h"
 #include "GeneralProjectSettings.h"
+#include "IDriftMatchmaker.h"
 #include "IPAddress.h"
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
@@ -138,7 +139,8 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     CreateEventManager();
     CreateLogForwarder();
     CreateMessageQueue();
-	CreatePartyManager();
+    CreatePartyManager();
+    CreateMatchmaker();
 
     DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) created"), *instanceName_.ToString(), instanceIndex_);
 }
@@ -181,6 +183,10 @@ void FDriftBase::CreatePartyManager()
 	partyManager = MakeShared<FDriftPartyManager>(messageQueue);
 }
 
+void FDriftBase::CreateMatchmaker()
+{
+    matchmaker = MakeShared<FDriftFlexmatch>(messageQueue);
+}
 
 void FDriftBase::ConfigurePlacement()
 {
@@ -566,7 +572,8 @@ void FDriftBase::Reset()
     CreateEventManager();
     CreateLogForwarder();
     CreateMessageQueue();
-	CreatePartyManager();
+    CreatePartyManager();
+    CreateMatchmaker();
 
     heartbeatUrl.Empty();
 
@@ -2466,8 +2473,9 @@ void FDriftBase::RegisterClient()
         eventManager->SetRequestManager(manager);
         logForwarder->SetRequestManager(manager);
         messageQueue->SetRequestManager(manager);
-    	partyManager->SetRequestManager(manager);
-    	partyManager->ConfigureSession(driftClient.player_id, driftEndpoints.party_invites, driftEndpoints.parties);
+        partyManager->SetRequestManager(manager);
+        partyManager->ConfigureSession(driftClient.player_id, driftEndpoints.party_invites, driftEndpoints.parties);
+        matchmaker->ConfigureSession(manager, driftEndpoints.flexmatch, driftClient.player_id);
         GetPlayerEndpoints();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
@@ -3152,7 +3160,6 @@ bool FDriftBase::RegisterServer()
     InitServerRootInfo();
     return true;
 }
-
 
 void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate)
 {
@@ -3976,6 +3983,11 @@ void FDriftBase::HandleFriendMessage(const FMessageQueueEntry& message)
 	{
 		UE_LOG(LogDriftMessages, Error, TEXT("HandleFriendMessage: friend message contains no message field"));
 	}
+}
+
+TSharedPtr<IDriftMatchmaker> FDriftBase::GetMatchmaker()
+{
+    return matchmaker;
 }
 
 
