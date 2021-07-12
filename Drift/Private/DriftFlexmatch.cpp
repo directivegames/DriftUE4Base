@@ -118,7 +118,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
 	{
-		const auto TicketId = doc.FindField(TEXT("TicketId")).GetString();
+		TicketId = doc.FindField(TEXT("TicketId")).GetString();
 		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
 					", TicketId %s, status %s"), *MatchmakingConfiguration, *TicketId, *StatusString);
@@ -379,8 +379,8 @@ void FDriftFlexmatch::InitializeLocalState()
 				int TeamIndex = 0;
 				for (auto PlayerEntry: Response["Players"].GetArray())
 				{
-					int32 PlayerId = FCString::Atoi(*PlayerEntry.GetObject()["PlayerId"].GetString());
-					FakeTeamAllocation[FakeTeams[TeamIndex++ % 2]].Add(PlayerId);
+					int32 EntryPlayerId = FCString::Atoi(*PlayerEntry.GetObject()["PlayerId"].GetString());
+					FakeTeamAllocation[FakeTeams[TeamIndex++ % 2]].Add(EntryPlayerId);
 				}
 				OnDriftPotentialMatchCreated().Broadcast(FakeTeamAllocation, PotentialMatchId, Status == EMatchmakingTicketStatus::RequiresAcceptance, FakeTimeOut);
 				break;
