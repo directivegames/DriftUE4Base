@@ -130,18 +130,14 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 
 void FDriftFlexmatch::StopMatchmaking()
 {
-	Status = EMatchmakingTicketStatus::None;
-	TicketId.Empty();
 	auto Request = RequestManager->Delete(FlexmatchURL);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
 		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
 		{
 			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Server had no active ticket to delete"));
-		}
-		else if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent) )
-		{
-			UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
+			Status = EMatchmakingTicketStatus::None;
+			TicketId.Empty();
 		}
 		else
 		{
