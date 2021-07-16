@@ -223,18 +223,25 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 			break;
 		case EDriftMatchmakingEvent::PotentialMatchCreated:
 		{
-			FPlayersByTeam PlayersByTeam;
-			for (auto Team: EventData.GetObject())
-			{
-				for (auto Player: Team.Value.GetArray())
-				{
-					PlayersByTeam[Team.Key].Add(Player.GetInt32());
-				}
-			}
+			const FString MatchId = EventData.FindField("match_id").GetString();
 			const bool Requires_Acceptance = EventData.FindField("acceptance_required").GetBool();
 			Status = Requires_Acceptance ? EMatchmakingTicketStatus::RequiresAcceptance : EMatchmakingTicketStatus::Placing;
-			const FString MatchId = EventData.FindField("match_id").GetString();
-			const int32 TimeOut = EventData.FindField("acceptance_timeout").GetInt32();
+			int32 TimeOut = -1;
+			if (Requires_Acceptance)
+				TimeOut = EventData.FindField("acceptance_timeout").GetInt32();
+			FPlayersByTeam PlayersByTeam;
+			if (EventData.HasField("teams"))
+			{
+				for (auto Team: EventData.FindField("teams").GetObject())
+				{
+					TArray<int32> TeamPlayers;
+					for (auto Player: Team.Value.GetArray())
+					{
+						TeamPlayers.Add(Player.GetInt32());
+					}
+					PlayersByTeam.Add(Team.Key, TeamPlayers);
+				}
+			}
 			OnDriftPotentialMatchCreated().Broadcast(PlayersByTeam, MatchId, Requires_Acceptance, TimeOut);
 			break;
 		}
