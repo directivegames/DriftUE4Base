@@ -133,28 +133,25 @@ void FDriftFlexmatch::StopMatchmaking()
 	auto Request = RequestManager->Delete(FlexmatchURL);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
-		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) )
-		{
-			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Server had no active ticket to delete"));
-			Status = EMatchmakingTicketStatus::None;
-			TicketId.Empty();
-		}
-		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent) )
-		{
-			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."));
-			Status = EMatchmakingTicketStatus::None;
-			TicketId.Empty();
-		}
-		else
-		{
-			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
 					", Response code %d, error: '%s'"), context.responseCode, *context.error);
-		}
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
 		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
-		UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
+		if (StatusString == TEXT("Deleted") || StatusString == TEXT("NoTicketFound"))
+		{
+			TicketId.Empty();
+			Status = EMatchmakingTicketStatus::None;
+			if (StatusString == TEXT("Deleted"))
+			{
+				UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."), *StatusString);
+			}
+		}
+		else
+		{
+			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
+		}
 	});
 	Request->Dispatch();
 }
