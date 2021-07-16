@@ -139,6 +139,12 @@ void FDriftFlexmatch::StopMatchmaking()
 			Status = EMatchmakingTicketStatus::None;
 			TicketId.Empty();
 		}
+		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::NoContent) )
+		{
+			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."));
+			Status = EMatchmakingTicketStatus::None;
+			TicketId.Empty();
+		}
 		else
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
@@ -147,16 +153,8 @@ void FDriftFlexmatch::StopMatchmaking()
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
-		if ( context.responseCode == static_cast<int32>(HttpStatusCodes::Ok) )
-		{
-			const auto StatusString = doc.FindField(TEXT("Status")).GetString();
-			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
-		}
-		else
-		{
-			UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StopMatchmaking - Matchmaking ticket cancelled"));
-			Status = EMatchmakingTicketStatus::None;
-		}
+		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
+		UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
 	});
 	Request->Dispatch();
 }
