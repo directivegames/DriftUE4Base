@@ -14,6 +14,7 @@ FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue)
 
 FDriftFlexmatch::~FDriftFlexmatch()
 {
+	DoPings = false;
 	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).RemoveAll(this);
 }
 
@@ -61,6 +62,10 @@ void FDriftFlexmatch::ReportLatencies()
 			if (!bConnectedSuccessfully)
 			{
 				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to connect to '%s'"), *Request->GetURL());
+				return;
+			}
+			if ( ! (DoPings && RequestManager) )
+			{
 				return;
 			}
 			JsonValue Payload{rapidjson::kObjectType};
