@@ -16,12 +16,14 @@ struct FDriftPartyInviteMessage : FJsonSerializable
 		JSON_SERIALIZE("invite_id", InviteId);
 		JSON_SERIALIZE("invite_url", InviteUrl);
 		JSON_SERIALIZE("inviting_player_id", InvitingPlayerId);
+		JSON_SERIALIZE("inviting_player_name", InvitingPlayerName);
 		JSON_SERIALIZE("inviting_player_url", InvitingPlayerUrl);
 		END_JSON_SERIALIZER;
 
 	int32 InviteId;
 	FString InviteUrl;
 	int32 InvitingPlayerId;
+	FString InvitingPlayerName;
 	FString InvitingPlayerUrl;
 };
 
@@ -331,7 +333,7 @@ bool FDriftPartyManager::InvitePlayerToParty(int PlayerId, FInvitePlayerToPartyC
             return;
         }
 
-        OutgoingInvites_.Add(MakeShared<FDriftPartyInvite>(Payload.InviteUrl, Payload.InviteId, 0, PlayerId_));
+        OutgoingInvites_.Add(MakeShared<FDriftPartyInvite>(Payload.InviteUrl, Payload.InviteId, 0, "", PlayerId_));
 		(void)Callback.ExecuteIfBound(true, PlayerId);
 	});
 	Request->OnError.BindLambda([this, Callback, PlayerId](ResponseContext& Context)
@@ -511,9 +513,9 @@ void FDriftPartyManager::ConfigureSession(int32 PlayerId, const FString& PartyIn
 }
 
 
-void FDriftPartyManager::RaisePartyInviteReceived(int32 InviteId, int32 FromPlayerId)
+void FDriftPartyManager::RaisePartyInviteReceived(int32 InviteId, int32 FromPlayerId, const FString& FromPlayerName)
 {
-	OnPartyInviteReceivedDelegate_.Broadcast(InviteId, FromPlayerId);
+	OnPartyInviteReceivedDelegate_.Broadcast(InviteId, FromPlayerId, FromPlayerName);
 }
 
 
@@ -640,11 +642,11 @@ void FDriftPartyManager::HandlePartyInviteNotification(const FMessageQueueEntry&
 	RemoveExistingInvitesFromPlayer(Payload.InvitingPlayerId);
 
 	IncomingInvites_.Add(
-		MakeShared<FDriftPartyInvite>(Payload.InviteUrl, Payload.InviteId, Payload.InvitingPlayerId, 0));
+		MakeShared<FDriftPartyInvite>(Payload.InviteUrl, Payload.InviteId, Payload.InvitingPlayerId, Payload.InvitingPlayerName, 0));
 
 	UE_LOG(LogDriftParties, Log, TEXT("Got a party invite from player %d"), Payload.InvitingPlayerId);
 
-	RaisePartyInviteReceived(Payload.InviteId, Payload.InvitingPlayerId);
+	RaisePartyInviteReceived(Payload.InviteId, Payload.InvitingPlayerId, Payload.InvitingPlayerName);
 }
 
 

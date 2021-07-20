@@ -13,10 +13,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogDriftParties, Log, All);
 
 struct FDriftPartyInvite : IDriftPartyInvite
 {
-	FDriftPartyInvite(FString InviteUrl, int32 InviteId, int32 InvitingPlayerId, int32 InvitedPlayerId)
+	FDriftPartyInvite(FString InviteUrl, int32 InviteId, int32 InvitingPlayerId, FString InInvitingPlayerName, int32 InvitedPlayerId)
 		: InviteUrl{ InviteUrl }
 		, InviteId{ InviteId }
 		, InvitingPlayerId{ InvitingPlayerId }
+		, InvitingPlayerName{ InInvitingPlayerName }
 		, InvitedPlayerId{ InvitedPlayerId }
 	{}
 
@@ -30,6 +31,11 @@ struct FDriftPartyInvite : IDriftPartyInvite
 		return InvitingPlayerId;
 	}
 
+	FString GetInvitingPlayerName() const override
+	{
+		return InvitingPlayerName;
+	}
+
 	int GetInvitedPlayerID() const override
 	{
 		return InvitedPlayerId;
@@ -38,6 +44,7 @@ struct FDriftPartyInvite : IDriftPartyInvite
 	FString InviteUrl;
 	int32 InviteId;
 	int32 InvitingPlayerId;
+	FString InvitingPlayerName;
 	int32 InvitedPlayerId;
 };
 
@@ -126,7 +133,7 @@ public:
 	void ConfigureSession(int32 PlayerId, const FString& PartyInvitesUrl, const FString& PartiesUrl);
 
 protected:
-	void RaisePartyInviteReceived(int32 InviteId, int32 FromPlayerId);
+	void RaisePartyInviteReceived(int32 InviteId, int32 FromPlayerId, const FString& FromPlayerName);
 	void RaisePartyInviteAccepted(int32 PlayerId);
 	void RaisePartyInviteDeclined(int32 PlayerId);
 	void RaisePartyInviteCanceled(int32 InviteId, int32 InvitingPlayerId);

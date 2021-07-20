@@ -18,6 +18,7 @@ class IDriftPartyInvite
 public:
 	virtual int GetInviteID() const = 0;
 	virtual int GetInvitingPlayerID() const = 0;
+	virtual FString GetInvitingPlayerName() const = 0;
 	virtual int GetInvitedPlayerID() const = 0;
 
 	virtual ~IDriftPartyInvite() = default;
@@ -42,7 +43,7 @@ DECLARE_DELEGATE_TwoParams(FDeclinePartyIniviteCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FLeavePartyCompletedDelegate, bool, int32);
 
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FPartyInviteReceivedDelegate, int32 /* InviteId */, int32 /* FromPlayerId */);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FPartyInviteReceivedDelegate, int32 /* InviteId */, int32 /* FromPlayerId */, FString /* FromPlayerName */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FPartyInviteAcceptedDelegate, int32 /* AcceptingPlayerId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FPartyInviteDeclinedDelegate, int32 /* DecliningPlayerId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FPartyInviteCanceledDelegate, int32 /* DecliningPlayerId */);
