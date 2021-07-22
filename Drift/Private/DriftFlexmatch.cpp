@@ -113,6 +113,10 @@ FLatencyMap FDriftFlexmatch::GetLatencyAverages()
 
 void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 {
+	if (! RequestManager.IsValid() )
+	{
+		return;
+	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("matchmaker"), *MatchmakingConfiguration);
 	auto Request = RequestManager->Post(FlexmatchURL, Payload, HttpStatusCodes::Ok);
@@ -135,6 +139,10 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 
 void FDriftFlexmatch::StopMatchmaking()
 {
+	if (! RequestManager.IsValid() )
+	{
+		return;
+	}
 	auto Request = RequestManager->Delete(FlexmatchURL);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
@@ -168,6 +176,10 @@ EMatchmakingTicketStatus FDriftFlexmatch::GetMatchmakingStatus()
 
 void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 {
+	if (! RequestManager.IsValid() )
+	{
+		return;
+	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
 	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
@@ -333,6 +345,10 @@ FString FDriftFlexmatch::GetStatusString() const
 
 void FDriftFlexmatch::InitializeLocalState()
 {
+	if (! RequestManager.IsValid() )
+	{
+		return;
+	}
 	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
