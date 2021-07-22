@@ -2228,6 +2228,12 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
         logForwarder->SetLogsUrl(driftEndpoints.clientlogs);
         onStaticRoutesInitialized.Broadcast();
     });
+	request->OnError.BindLambda([this](ResponseContext& context)
+	{
+		context.errorHandled = true;
+		Reset();
+		onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
+	});
     request->Dispatch();
 }
 
