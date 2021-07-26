@@ -214,6 +214,9 @@ bool RequestManager::ShouldRetryCallback(FHttpRequestPtr request, FHttpResponseP
 #elif PLATFORM_HOLOLENS
 	//TODO: figure out which error code to use
 	return false;
+#elif PLATFORM_SWITCH
+//TODO: figure out which error code to use
+	return false;
 #else
 #error "Error code not checked for the current platform"
 #endif

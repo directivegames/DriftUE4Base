@@ -27,6 +27,8 @@ const TCHAR* GetPlatformName()
     return TEXT("Linux");
 #elif PLATFORM_HOLOLENS
 	return TEXT("HoloLens");
+#elif PLATFORM_SWITCH
+	return TEXT("Switch");
 #else
 #error Unknown Platform
 #endif
