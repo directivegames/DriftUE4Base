@@ -313,6 +313,12 @@ void FDriftBase::TickHeartbeat(float deltaTime)
     		// Older versions of the server heartbeat endpoint don't return all the details
             heartbeatDueInSeconds_ = doc[TEXT("next_heartbeat_seconds")].GetInt32();
         }
+
+    	if (heartbeatRetryAttempt_ > 0)
+    	{
+    		DRIFT_LOG(Base, Log, TEXT("[%s] Drift heartbeat recovered after %d retries.")
+					, *FDateTime::UtcNow().ToIso8601(), heartbeatRetryAttempt_);
+		}
     	heartbeatRetryAttempt_ = 0;
 
         DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat done. Next one in %.1f secs. Timeout at: %s")
