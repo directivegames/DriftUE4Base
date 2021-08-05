@@ -3144,7 +3144,7 @@ bool FDriftBase::RegisterServer()
 
 	if (state_ == DriftSessionState::Connecting)
 	{
-        DRIFT_LOG(Base, Log, TEXT("Ignoring attempt to authenticate while another attempt is in progress."));
+        DRIFT_LOG(Base, Log, TEXT("Ignoring attempt to register server while another attempt is in progress."));
 
 		return true;
 	}
