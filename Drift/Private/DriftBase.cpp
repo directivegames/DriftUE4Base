@@ -3260,6 +3260,8 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
          * TODO: Is this the best approach? This should only ever happen in the editor,
          * as in the real game no client can connect before the match has been initialized.
          */
+    	DRIFT_LOG(Base, Warning, TEXT("Attempted to add match while not connected"));
+    	onMatchAdded.Broadcast(false);
         return;
     }
 
@@ -3272,31 +3274,34 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
     payload.status = TEXT("idle");
     payload.num_teams = numTeams;
 
-    DRIFT_LOG(Base, Verbose, TEXT("Adding match to server: %i map: '%s' mode: '%s' players: %i teams: %i"), drift_server.server_id, *mapName, *gameMode, maxPlayers, numTeams);
+    DRIFT_LOG(Base, Log, TEXT("Adding match to server: '%i' map: '%s' mode: '%s' players: '%i' teams: '%i'"), drift_server.server_id, *mapName, *gameMode, maxPlayers, numTeams);
 
-    auto request = GetGameRequestManager()->Post(driftEndpoints.matches, payload);
+    const auto request = GetGameRequestManager()->Post(driftEndpoints.matches, payload);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         FAddMatchResponse match;
         if (!JsonArchive::LoadObject(doc, match))
         {
             context.error = TEXT("Failed to parse add match response.");
+        	onMatchAdded.Broadcast(false);
             return;
         }
 
         DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(doc));
 
-        auto match_request = GetGameRequestManager()->Get(match.url);
+        const auto match_request = GetGameRequestManager()->Get(match.url);
         match_request->OnResponse.BindLambda([this](ResponseContext& matchContext, JsonDocument& matchDoc)
         {
             if (!JsonArchive::LoadObject(matchDoc, match_info))
             {
                 matchContext.error = TEXT("Failed to parse match info response.");
+            	onMatchAdded.Broadcast(false);
                 return;
             }
 
             DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(matchDoc));
 
+        	DRIFT_LOG(Base, Log, TEXT("Match '%i' added to server '%i'"), match_info.match_id, match_info.server_id);
             onMatchAdded.Broadcast(true);
         });
         match_request->Dispatch();
