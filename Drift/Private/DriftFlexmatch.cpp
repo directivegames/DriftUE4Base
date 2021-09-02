@@ -18,10 +18,16 @@ FDriftFlexmatch::~FDriftFlexmatch()
 	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).RemoveAll(this);
 }
 
-void FDriftFlexmatch::ConfigureSession(TSharedPtr<JsonRequestManager> RootRequestManager, const FString& MatchmakingUrl, int32 InPlayerId)
+void FDriftFlexmatch::SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager)
 {
 	RequestManager = RootRequestManager;
-	FlexmatchURL = MatchmakingUrl;
+}
+
+void FDriftFlexmatch::ConfigureSession(const FDriftEndpointsResponse& DriftEndpoints, int32 InPlayerId)
+{
+	FlexmatchLatencyURL = DriftEndpoints.my_flexmatch;
+	FlexmatchTicketsURL = DriftEndpoints.flexmatch_tickets;
+	CurrentTicketUrl = DriftEndpoints.my_flexmatch_ticket;
 	PlayerId = InPlayerId;
 }
 
@@ -119,7 +125,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("matchmaker"), *MatchmakingConfiguration);
-	auto Request = RequestManager->Post(FlexmatchURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Post(FlexmatchLatencyURL, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
@@ -127,7 +133,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
 	{
-		TicketId = doc.FindField(TEXT("TicketId")).GetString();
+		auto TicketId = doc.FindField(TEXT("TicketId")).GetString(); // FIXME: store current ticket url
 		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
 					", TicketId %s, status %s"), *MatchmakingConfiguration, *TicketId, *StatusString);
@@ -143,7 +149,7 @@ void FDriftFlexmatch::StopMatchmaking()
 	{
 		return;
 	}
-	auto Request = RequestManager->Delete(FlexmatchURL);
+	auto Request = RequestManager->Delete(FlexmatchLatencyURL);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
@@ -154,7 +160,7 @@ void FDriftFlexmatch::StopMatchmaking()
 		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
 		if (StatusString == TEXT("Deleted") || StatusString == TEXT("NoTicketFound"))
 		{
-			TicketId.Empty();
+			CurrentTicketUrl.Empty();
 			Status = EMatchmakingTicketStatus::None;
 			if (StatusString == TEXT("Deleted"))
 			{
@@ -183,7 +189,7 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
 	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
-	auto Request = RequestManager->Put(FlexmatchURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Put(FlexmatchLatencyURL, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchId](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - Failed to update acceptance for match %s"
@@ -349,33 +355,33 @@ void FDriftFlexmatch::InitializeLocalState()
 	{
 		return;
 	}
-	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
+	if (CurrentTicketUrl.IsEmpty())
+	{
+		return;
+	}
+	auto Request = RequestManager->Get(CurrentTicketUrl, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
-		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetCurrentState - Error fetching matchmaking state from server"
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching existing ticket"
 					", Response code %d, error: '%s'"), context.responseCode, *context.error);
+		CurrentTicketUrl.Empty();
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
 		auto Response = doc.GetObject();
 		if ( Response.Num() == 0)
 		{
-			TicketId.Empty();
+			CurrentTicketUrl.Empty();
 			Status = EMatchmakingTicketStatus::None;
 			return;
 		}
-		TicketId = Response["TicketId"].GetString();
+		auto TicketId = Response["TicketId"].GetString();
 		SetStatusFromString(Response["Status"].GetString());
 		if ( Response.Contains("GameSessionConnectionInfo") )
 		{
 			auto SessionInfo = Response["GameSessionConnectionInfo"];
 			ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
 			ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
-		}
-		else
-		{
-			ConnectionString.Empty();
-			ConnectionOptions.Empty();
 		}
 		switch(Status)
 		{

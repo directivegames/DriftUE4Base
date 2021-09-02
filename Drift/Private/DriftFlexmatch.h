@@ -26,7 +26,8 @@ public:
 	FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue);
 	~FDriftFlexmatch() override;
 
-	void ConfigureSession(TSharedPtr<JsonRequestManager> RootRequestManager, const FString& MatchmakingUrl, int32 InPlayerId);
+	void SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager);
+	void ConfigureSession(const FDriftEndpointsResponse& DriftEndpoints, int32 InPlayerId);
 
 	// FTickableGameObject overrides
 	void Tick(float DeltaTime) override;
@@ -67,7 +68,8 @@ private:
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
-	FString FlexmatchURL;
+	FString FlexmatchLatencyURL;
+	FString FlexmatchTicketsURL;
 	int32 PlayerId = 0;
 
 	FMatchmakingStartedDelegate OnMatchmakingStartedDelegate;
@@ -91,7 +93,7 @@ private:
 	// Current state
 	bool IsInitialized = false;
 	EMatchmakingTicketStatus Status = EMatchmakingTicketStatus::None;
-	FString TicketId;
+	FString CurrentTicketUrl;
 	FString ConnectionString;
 	FString ConnectionOptions;
 };

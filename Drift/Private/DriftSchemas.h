@@ -32,7 +32,7 @@ struct FDriftEndpointsResponse
 	FString clients;
 	FString counters;
 	FString eventlogs;
-	FString flexmatch;
+	FString flexmatch_tickets;
 	FString machines;
 	FString matches;
 	FString matchqueue;
@@ -48,6 +48,8 @@ struct FDriftEndpointsResponse
 	FString party_invites;
 
 	// Added after authentication
+	FString my_flexmatch;
+	FString my_flexmatch_ticket;
 	FString my_friends;
 	FString my_gamestate;
 	FString my_gamestates;
