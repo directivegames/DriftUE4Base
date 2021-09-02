@@ -618,3 +618,10 @@ struct FDriftFriendRequestsResponse
 
 	bool Serialize(class SerializationContext& context);
 };
+
+struct FDriftFlexmatchLatencySchema
+{
+	JsonValue latencies{rapidjson::kObjectType};
+
+	bool Serialize(class SerializationContext& context);
+};

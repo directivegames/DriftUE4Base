@@ -57,7 +57,7 @@ TStatId FDriftFlexmatch::GetStatId() const
 void FDriftFlexmatch::ReportLatencies()
 {
 	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
-	TMap<FString, int> LatenciesByRegion;
+	TSharedRef<TMap<FString, int>, ESPMode::ThreadSafe> LatenciesByRegion(new TMap<FString, int>());
 	const auto HttpModule = &FHttpModule::Get();
 	for(auto Region: PingRegions)
 	{
@@ -65,20 +65,19 @@ void FDriftFlexmatch::ReportLatencies()
 		Request->SetVerb("GET");
 		Request->SetURL(FString::Format(*PingUrlTemplate, {Region}));
 		Request->OnProcessRequestComplete().BindLambda(
-		[this, Region, &LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+		[this, Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
 		{
 			if (!bConnectedSuccessfully)
 			{
 				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to connect to '%s'"), *Request->GetURL());
-				LatenciesByRegion.Add(Region, -1);
+				LatenciesByRegion->Add(Region, -1);
 			}
 			else
 			{
-				LatenciesByRegion.Add(Region, int(Request->GetElapsedTime() * 1000));
+				LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
 			}
-
 			// if all regions have been added to the map, report back to drift ...
-			if (LatenciesByRegion.Num() == PingRegions.Num())
+			if (LatenciesByRegion->Num() == PingRegions.Num())
 			{
 				// ... unless we've been stopped or have dropped the connection to the backend
 				if ( ! (DoPings && RequestManager) )
@@ -86,7 +85,7 @@ void FDriftFlexmatch::ReportLatencies()
 					return;
 				}
 				JsonValue LatenciesPayload{rapidjson::kObjectType};
-				for (auto entry: LatenciesByRegion)
+				for (auto entry: *LatenciesByRegion)
 				{
 					if ( entry.Value == -1 ) // failed ping, skip it from the map
 					{
@@ -104,7 +103,14 @@ void FDriftFlexmatch::ReportLatencies()
 				});
 				PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 				{
-					for( auto Entry: doc.GetObject() )
+					FDriftFlexmatchLatencySchema LatencyAverages;
+					if (!JsonArchive::LoadObject(doc, LatencyAverages))
+					{
+						UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Error parsing reponse from PATCHing latencies"
+							", Response code %d, error: '%s'"), context.responseCode, *context.error);
+						return;
+					}
+					for( auto Entry: LatencyAverages.latencies.GetObject() )
 					{
 						AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
 					}

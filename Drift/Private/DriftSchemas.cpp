@@ -481,3 +481,9 @@ bool FDriftFriendRequestsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, modify_date)
 		&& SERIALIZE_PROPERTY(context, token);
 }
+
+
+bool FDriftFlexmatchLatencySchema::Serialize(SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, latencies);
+}
