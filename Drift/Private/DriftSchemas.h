@@ -625,3 +625,19 @@ struct FDriftFlexmatchLatencySchema
 
 	bool Serialize(class SerializationContext& context);
 };
+
+struct FDriftFlexmatchTicketPostResponse
+{
+	FString ticket_url;
+	FString ticket_id;
+	FString ticket_status;
+
+	bool Serialize(class SerializationContext& context);
+};
+
+struct FDriftFlexmatchTicketDeleteResponse
+{
+	FString status;
+
+	bool Serialize(class SerializationContext& context);
+};

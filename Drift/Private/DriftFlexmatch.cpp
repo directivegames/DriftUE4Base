@@ -151,7 +151,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("matchmaker"), *MatchmakingConfiguration);
-	auto Request = RequestManager->Post(FlexmatchLatencyURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
@@ -159,11 +159,16 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
 	{
-		auto TicketId = doc.FindField(TEXT("TicketId")).GetString(); // FIXME: store current ticket url
-		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
+		FDriftFlexmatchTicketPostResponse Response;
+		if (!JsonArchive::LoadObject(doc, Response))
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to parse response from POST to %s"
+						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+		}
+		CurrentTicketUrl = Response.ticket_url;
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
-					", TicketId %s, status %s"), *MatchmakingConfiguration, *TicketId, *StatusString);
-		SetStatusFromString(StatusString);
+					", TicketId %s, status %s"), *MatchmakingConfiguration, *Response.ticket_id, *Response.ticket_status);
+		SetStatusFromString(Response.ticket_status);
 	});
 	Request->Dispatch();
 	Status = EMatchmakingTicketStatus::None;
@@ -175,7 +180,12 @@ void FDriftFlexmatch::StopMatchmaking()
 	{
 		return;
 	}
-	auto Request = RequestManager->Delete(FlexmatchLatencyURL);
+	if ( CurrentTicketUrl.IsEmpty() )
+	{
+		UE_LOG(LogDriftMatchmaking, Warning, TEXT("FDriftFlexmatch::StopMatchmaking - Cancelling without a known ticket"));
+		return;
+	}
+	auto Request = RequestManager->Delete(CurrentTicketUrl);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
@@ -183,19 +193,25 @@ void FDriftFlexmatch::StopMatchmaking()
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
+		FDriftFlexmatchTicketDeleteResponse Response;
+		if (!JsonArchive::LoadObject(doc, Response))
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to parse response from DELETE to %s"
+						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+		}
 		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
-		if (StatusString == TEXT("Deleted") || StatusString == TEXT("NoTicketFound"))
+		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
 		{
 			CurrentTicketUrl.Empty();
 			Status = EMatchmakingTicketStatus::None;
-			if (StatusString == TEXT("Deleted"))
+			if (Response.status == TEXT("Deleted"))
 			{
-				UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."), *StatusString);
+				UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."));
 			}
 		}
 		else
 		{
-			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
+			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *Response.status);
 		}
 	});
 	Request->Dispatch();

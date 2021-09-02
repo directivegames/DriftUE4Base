@@ -487,3 +487,15 @@ bool FDriftFlexmatchLatencySchema::Serialize(SerializationContext& context)
 {
 	return SERIALIZE_PROPERTY(context, latencies);
 }
+
+bool FDriftFlexmatchTicketPostResponse::Serialize(SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, ticket_url)
+		&& SERIALIZE_PROPERTY(context, ticket_id)
+		&& SERIALIZE_PROPERTY(context, ticket_status);
+}
+
+bool FDriftFlexmatchTicketDeleteResponse::Serialize(SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, status);
+}
