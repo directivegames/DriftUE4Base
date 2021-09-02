@@ -16,10 +16,11 @@ public class RapidJson : ModuleRules
 {
     public RapidJson(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
+        bUseUnity = false;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
 
-        
+        PrivatePCHHeaderFile = "Private/RapidJsonPCH.h";
+
         PublicIncludePaths.AddRange(
             new string[] {
                 // ... add public include paths required here ...

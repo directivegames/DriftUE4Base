@@ -17,7 +17,7 @@ public class Drift : ModuleRules
 {
     public Drift(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
+        bUseUnity = false;
         //PCHUsage = PCHUsageMode.NoSharedPCHs;
 
         
@@ -74,7 +74,8 @@ public class Drift : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.Mac)
         {
             // Needed for the keychain access
-            PublicAdditionalFrameworks.Add(new UEBuildFramework("Security"));
+            //PublicAdditionalFrameworks.Add(new UEBuildFramework("Security"));
+            PublicFrameworks.Add("Security");
         }
 
 #if UE_4_19_OR_LATER

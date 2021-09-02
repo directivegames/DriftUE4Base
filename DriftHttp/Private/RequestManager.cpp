@@ -123,7 +123,7 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 
     check(IsInGameThread());
 
-    TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
+    auto request = FHttpModule::Get().CreateRequest();
     request->SetURL(url);
     request->SetVerb(verbs[(int)method]);
 

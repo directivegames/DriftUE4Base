@@ -16,8 +16,10 @@ public class DriftHttp : ModuleRules
 {
     public DriftHttp(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
-        bFasterWithoutUnity = true;
+        bUseUnity = false;
         PCHUsage = PCHUsageMode.NoSharedPCHs;
+
+        PrivatePCHHeaderFile = "Private/DriftHttpPCH.h";
 
 #if UE_4_19_OR_LATER
         PublicDefinitions.Add("WITH_ENGINE_VERSION_MACROS");

@@ -40,7 +40,7 @@ void HttpRequest::SetCache(TSharedPtr<IHttpCache> cache)
 }
 
 
-void HttpRequest::BindActualRequest(TSharedRef<IHttpRequest> request)
+void HttpRequest::BindActualRequest(TSharedRef<IHttpRequest, ESPMode::ThreadSafe> request)
 {
     wrappedRequest_ = request;
     wrappedRequest_->OnProcessRequestComplete().BindSP(this, &HttpRequest::InternalRequestCompleted);
