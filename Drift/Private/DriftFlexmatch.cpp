@@ -56,6 +56,8 @@ TStatId FDriftFlexmatch::GetStatId() const
 
 void FDriftFlexmatch::ReportLatencies()
 {
+	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
+	TMap<FString, int> LatenciesByRegion;
 	const auto HttpModule = &FHttpModule::Get();
 	for(auto Region: PingRegions)
 	{
@@ -63,34 +65,52 @@ void FDriftFlexmatch::ReportLatencies()
 		Request->SetVerb("GET");
 		Request->SetURL(FString::Format(*PingUrlTemplate, {Region}));
 		Request->OnProcessRequestComplete().BindLambda(
-		[this, Region](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+		[this, Region, &LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
 		{
 			if (!bConnectedSuccessfully)
 			{
 				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to connect to '%s'"), *Request->GetURL());
-				return;
+				LatenciesByRegion.Add(Region, -1);
 			}
-			if ( ! (DoPings && RequestManager) )
+			else
 			{
-				return;
+				LatenciesByRegion.Add(Region, int(Request->GetElapsedTime() * 1000));
 			}
-			JsonValue Payload{rapidjson::kObjectType};
-			JsonArchive::AddMember(Payload, TEXT("region"), *Region);
-			JsonArchive::AddMember(Payload, TEXT("latency_ms"), Request->GetElapsedTime() * 1000);
-			auto PatchRequest = RequestManager->Patch(FlexmatchURL, Payload, HttpStatusCodes::Ok);
-			PatchRequest->OnError.BindLambda([this](ResponseContext& context)
+
+			// if all regions have been added to the map, report back to drift ...
+			if (LatenciesByRegion.Num() == PingRegions.Num())
 			{
-				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
-					", Response code %d, error: '%s'"), *FlexmatchURL, context.responseCode, *context.error);
-			});
-			PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
-			{
-				for( auto Entry: doc.GetObject() )
+				// ... unless we've been stopped or have dropped the connection to the backend
+				if ( ! (DoPings && RequestManager) )
 				{
-					AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
+					return;
 				}
-			});
-			PatchRequest->Dispatch();
+				JsonValue LatenciesPayload{rapidjson::kObjectType};
+				for (auto entry: LatenciesByRegion)
+				{
+					if ( entry.Value == -1 ) // failed ping, skip it from the map
+					{
+						continue;
+					}
+					JsonArchive::AddMember(LatenciesPayload, entry.Key, entry.Value);
+				}
+				JsonValue PatchPayload{rapidjson::kObjectType};
+				JsonArchive::AddMember(PatchPayload, TEXT("latencies"), LatenciesPayload);
+				auto PatchRequest = RequestManager->Patch(FlexmatchLatencyURL, PatchPayload, HttpStatusCodes::Ok);
+				PatchRequest->OnError.BindLambda([this](ResponseContext& context)
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
+						", Response code %d, error: '%s'"), *FlexmatchLatencyURL, context.responseCode, *context.error);
+				});
+				PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+				{
+					for( auto Entry: doc.GetObject() )
+					{
+						AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
+					}
+				});
+				PatchRequest->Dispatch();
+			}
 		});
 		Request->ProcessRequest();
 	}
