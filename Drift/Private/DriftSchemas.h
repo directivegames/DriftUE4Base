@@ -32,7 +32,7 @@ struct FDriftEndpointsResponse
 	FString clients;
 	FString counters;
 	FString eventlogs;
-	FString flexmatch;
+	FString flexmatch_tickets;
 	FString machines;
 	FString matches;
 	FString matchqueue;
@@ -48,6 +48,8 @@ struct FDriftEndpointsResponse
 	FString party_invites;
 
 	// Added after authentication
+	FString my_flexmatch;
+	FString my_flexmatch_ticket;
 	FString my_friends;
 	FString my_gamestate;
 	FString my_gamestates;
@@ -613,6 +615,29 @@ struct FDriftFriendRequestsResponse
 	FString issued_to_player_url;
 	FDateTime modify_date;
 	FString token;
+
+	bool Serialize(class SerializationContext& context);
+};
+
+struct FDriftFlexmatchLatencySchema
+{
+	JsonValue latencies{rapidjson::kObjectType};
+
+	bool Serialize(class SerializationContext& context);
+};
+
+struct FDriftFlexmatchTicketPostResponse
+{
+	FString ticket_url;
+	FString ticket_id;
+	FString ticket_status;
+
+	bool Serialize(class SerializationContext& context);
+};
+
+struct FDriftFlexmatchTicketDeleteResponse
+{
+	FString status;
 
 	bool Serialize(class SerializationContext& context);
 };

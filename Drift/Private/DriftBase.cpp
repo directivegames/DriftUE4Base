@@ -2486,8 +2486,8 @@ void FDriftBase::RegisterClient()
         logForwarder->SetRequestManager(manager);
         messageQueue->SetRequestManager(manager);
         partyManager->SetRequestManager(manager);
+        matchmaker->SetRequestManager(manager);
         partyManager->ConfigureSession(driftClient.player_id, driftEndpoints.party_invites, driftEndpoints.parties);
-        matchmaker->ConfigureSession(manager, driftEndpoints.flexmatch, driftClient.player_id);
         GetPlayerEndpoints();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
@@ -2518,7 +2518,7 @@ void FDriftBase::GetPlayerEndpoints()
             context.error = TEXT("My player endpoint is empty");
             return;
         }
-
+        matchmaker->ConfigureSession(driftEndpoints, driftClient.player_id);
         GetPlayerInfo();
     });
     request->OnError.BindLambda([this](ResponseContext& context)

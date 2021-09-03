@@ -14,25 +14,31 @@ FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue)
 
 FDriftFlexmatch::~FDriftFlexmatch()
 {
-	DoPings = false;
+	bDoPings = false;
 	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).RemoveAll(this);
 }
 
-void FDriftFlexmatch::ConfigureSession(TSharedPtr<JsonRequestManager> RootRequestManager, const FString& MatchmakingUrl, int32 InPlayerId)
+void FDriftFlexmatch::SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager)
 {
 	RequestManager = RootRequestManager;
-	FlexmatchURL = MatchmakingUrl;
+}
+
+void FDriftFlexmatch::ConfigureSession(const FDriftEndpointsResponse& DriftEndpoints, int32 InPlayerId)
+{
+	FlexmatchLatencyURL = DriftEndpoints.my_flexmatch;
+	FlexmatchTicketsURL = DriftEndpoints.flexmatch_tickets;
+	CurrentTicketUrl = DriftEndpoints.my_flexmatch_ticket;
 	PlayerId = InPlayerId;
 }
 
 void FDriftFlexmatch::Tick( float DeltaTime )
 {
-	if ( DoPings )
+	if ( bDoPings )
 	{
 		TimeToPing -= DeltaTime;
-		if (TimeToPing < 0)
+		if (TimeToPing < 0 && !bIsPinging)
 		{
-			ReportLatencies();
+			MeasureLatencies();
 			TimeToPing = PingInterval;
 		}
 	}
@@ -48,8 +54,12 @@ TStatId FDriftFlexmatch::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FDriftFlexmatch, STATGROUP_Tickables);
 }
 
-void FDriftFlexmatch::ReportLatencies()
+void FDriftFlexmatch::MeasureLatencies()
 {
+	bIsPinging = true;
+	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
+	auto LatenciesByRegion{ MakeShared<TMap<FString, int>>() };
+	//TSharedRef<TMap<FString, int>, ESPMode::ThreadSafe> LatenciesByRegion(new TMap<FString, int>());
 	const auto HttpModule = &FHttpModule::Get();
 	for(auto Region: PingRegions)
 	{
@@ -57,52 +67,88 @@ void FDriftFlexmatch::ReportLatencies()
 		Request->SetVerb("GET");
 		Request->SetURL(FString::Format(*PingUrlTemplate, {Region}));
 		Request->OnProcessRequestComplete().BindLambda(
-		[this, Region](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+		[this, Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
 		{
 			if (!bConnectedSuccessfully)
 			{
-				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to connect to '%s'"), *Request->GetURL());
-				return;
+				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
+				LatenciesByRegion->Add(Region, -1);
 			}
-			if ( ! (DoPings && RequestManager) )
+			else
 			{
-				return;
+				LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
 			}
-			JsonValue Payload{rapidjson::kObjectType};
-			JsonArchive::AddMember(Payload, TEXT("region"), *Region);
-			JsonArchive::AddMember(Payload, TEXT("latency_ms"), Request->GetElapsedTime() * 1000);
-			auto PatchRequest = RequestManager->Patch(FlexmatchURL, Payload, HttpStatusCodes::Ok);
-			PatchRequest->OnError.BindLambda([this](ResponseContext& context)
+			// if all regions have been added to the map, report back to drift
+			if (LatenciesByRegion->Num() == PingRegions.Num())
 			{
-				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
-					", Response code %d, error: '%s'"), *FlexmatchURL, context.responseCode, *context.error);
-			});
-			PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
-			{
-				for( auto Entry: doc.GetObject() )
-				{
-					AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
-				}
-			});
-			PatchRequest->Dispatch();
+				bIsPinging = false;
+				ReportLatencies(LatenciesByRegion);
+			}
 		});
 		Request->ProcessRequest();
 	}
 }
 
+void FDriftFlexmatch::ReportLatencies(const TSharedRef<TMap<FString, int>> LatenciesByRegion)
+{
+	// If we've lost connection, bail
+	if ( ! RequestManager )
+	{
+		return;
+	}
+	JsonValue LatenciesPayload{rapidjson::kObjectType};
+	for (auto entry: *LatenciesByRegion)
+	{
+		if ( entry.Value == -1 ) // failed ping, skip it from the map
+		{
+			continue;
+		}
+		JsonArchive::AddMember(LatenciesPayload, entry.Key, entry.Value);
+	}
+	if (LatenciesPayload.MemberCount() == 0)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - No valid values to report!"));
+		return;
+	}
+	JsonValue PatchPayload{rapidjson::kObjectType};
+	JsonArchive::AddMember(PatchPayload, TEXT("latencies"), LatenciesPayload);
+	const auto PatchRequest = RequestManager->Patch(FlexmatchLatencyURL, PatchPayload, HttpStatusCodes::Ok);
+	PatchRequest->OnError.BindLambda([this](ResponseContext& context)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
+			", Response code %d, error: '%s'"), *FlexmatchLatencyURL, context.responseCode, *context.error);
+	});
+	PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	{
+		FDriftFlexmatchLatencySchema LatencyAverages;
+		if (!JsonArchive::LoadObject(doc, LatencyAverages))
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Error parsing reponse from PATCHing latencies"
+				", Response code %d, error: '%s'"), context.responseCode, *context.error);
+			return;
+		}
+		for( auto Entry: LatencyAverages.latencies.GetObject() )
+		{
+			AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
+		}
+	});
+	PatchRequest->Dispatch();
+}
+
+
 void FDriftFlexmatch::StartLatencyReporting()
 {
-	DoPings = true;
-	if (! IsInitialized )
+	bDoPings = true;
+	if (! bIsInitialized )
 	{
 		InitializeLocalState();
-		IsInitialized = true;
+		bIsInitialized = true;
 	}
 }
 
 void FDriftFlexmatch::StopLatencyReporting()
 {
-	DoPings = false;
+	bDoPings = false;
 	TimeToPing = 0.0;
 }
 
@@ -115,23 +161,31 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 {
 	if (! RequestManager.IsValid() )
 	{
+		OnDriftMatchmakingFailed().Broadcast(TEXT("No Connection"));
 		return;
 	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("matchmaker"), *MatchmakingConfiguration);
-	auto Request = RequestManager->Post(FlexmatchURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
 					", Response code %d, error: '%s'"), *MatchmakingConfiguration, context.responseCode, *context.error);
+		OnDriftMatchmakingFailed().Broadcast(TEXT("Server Error"));
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
 	{
-		TicketId = doc.FindField(TEXT("TicketId")).GetString();
-		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
+		FDriftFlexmatchTicketPostResponse Response;
+		if (!JsonArchive::LoadObject(doc, Response))
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to parse response from POST to %s"
+						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+			return;
+		}
+		CurrentTicketUrl = Response.ticket_url;
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
-					", TicketId %s, status %s"), *MatchmakingConfiguration, *TicketId, *StatusString);
-		SetStatusFromString(StatusString);
+					", TicketId %s, status %s"), *MatchmakingConfiguration, *Response.ticket_id, *Response.ticket_status);
+		SetStatusFromString(Response.ticket_status);
 	});
 	Request->Dispatch();
 	Status = EMatchmakingTicketStatus::None;
@@ -143,7 +197,12 @@ void FDriftFlexmatch::StopMatchmaking()
 	{
 		return;
 	}
-	auto Request = RequestManager->Delete(FlexmatchURL);
+	if ( CurrentTicketUrl.IsEmpty() )
+	{
+		UE_LOG(LogDriftMatchmaking, Warning, TEXT("FDriftFlexmatch::StopMatchmaking - Cancelling without a known ticket"));
+		return;
+	}
+	auto Request = RequestManager->Delete(CurrentTicketUrl);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
@@ -151,19 +210,25 @@ void FDriftFlexmatch::StopMatchmaking()
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
-		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
-		if (StatusString == TEXT("Deleted") || StatusString == TEXT("NoTicketFound"))
+		FDriftFlexmatchTicketDeleteResponse Response;
+		if (!JsonArchive::LoadObject(doc, Response))
 		{
-			TicketId.Empty();
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to parse response from DELETE to %s"
+						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+			return;
+		}
+		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
+		{
+			CurrentTicketUrl.Empty();
 			Status = EMatchmakingTicketStatus::None;
-			if (StatusString == TEXT("Deleted"))
+			if (Response.status == TEXT("Deleted"))
 			{
-				UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."), *StatusString);
+				UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket cancelled."));
 			}
 		}
 		else
 		{
-			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *StatusString);
+			UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::StopMatchmaking - Ticket is in state '%s' and cannot be cancelled anymore."), *Response.status);
 		}
 	});
 	Request->Dispatch();
@@ -180,10 +245,15 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	{
 		return;
 	}
+	if (CurrentTicketUrl.IsEmpty())
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - SetAcceptance called for match %s with client having no ticket URL"), *MatchId);
+		return;
+	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
 	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
-	auto Request = RequestManager->Put(FlexmatchURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Patch(CurrentTicketUrl, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchId](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - Failed to update acceptance for match %s"
@@ -223,6 +293,7 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 	{
 		case EDriftMatchmakingEvent::MatchmakingStarted:
 			Status = EMatchmakingTicketStatus::Queued;
+			CurrentTicketUrl = EventData.FindField("ticket_url").GetString();
 			OnDriftMatchmakingStarted().Broadcast();
 			break;
 		case EDriftMatchmakingEvent::MatchmakingSearching:
@@ -349,33 +420,33 @@ void FDriftFlexmatch::InitializeLocalState()
 	{
 		return;
 	}
-	auto Request = RequestManager->Get(FlexmatchURL, HttpStatusCodes::Ok);
+	if (CurrentTicketUrl.IsEmpty())
+	{
+		return;
+	}
+	auto Request = RequestManager->Get(CurrentTicketUrl, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this](ResponseContext& context)
 	{
-		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetCurrentState - Error fetching matchmaking state from server"
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching existing ticket"
 					", Response code %d, error: '%s'"), context.responseCode, *context.error);
+		CurrentTicketUrl.Empty();
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
 		auto Response = doc.GetObject();
 		if ( Response.Num() == 0)
 		{
-			TicketId.Empty();
+			CurrentTicketUrl.Empty();
 			Status = EMatchmakingTicketStatus::None;
 			return;
 		}
-		TicketId = Response["TicketId"].GetString();
+		auto TicketId = Response["TicketId"].GetString();
 		SetStatusFromString(Response["Status"].GetString());
 		if ( Response.Contains("GameSessionConnectionInfo") )
 		{
 			auto SessionInfo = Response["GameSessionConnectionInfo"];
 			ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
 			ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
-		}
-		else
-		{
-			ConnectionString.Empty();
-			ConnectionOptions.Empty();
 		}
 		switch(Status)
 		{

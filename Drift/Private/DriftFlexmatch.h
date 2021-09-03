@@ -26,7 +26,8 @@ public:
 	FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue);
 	~FDriftFlexmatch() override;
 
-	void ConfigureSession(TSharedPtr<JsonRequestManager> RootRequestManager, const FString& MatchmakingUrl, int32 InPlayerId);
+	void SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager);
+	void ConfigureSession(const FDriftEndpointsResponse& DriftEndpoints, int32 InPlayerId);
 
 	// FTickableGameObject overrides
 	void Tick(float DeltaTime) override;
@@ -59,7 +60,8 @@ public:
 
 private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
-	void ReportLatencies();
+	void MeasureLatencies();
+	void ReportLatencies(const TSharedRef<TMap<FString, int>> LatenciesByRegion);
 	void SetStatusFromString(const FString& StatusString);
 	FString GetStatusString() const;
 	void InitializeLocalState();
@@ -67,7 +69,8 @@ private:
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
-	FString FlexmatchURL;
+	FString FlexmatchLatencyURL;
+	FString FlexmatchTicketsURL;
 	int32 PlayerId = 0;
 
 	FMatchmakingStartedDelegate OnMatchmakingStartedDelegate;
@@ -80,7 +83,8 @@ private:
 	FMatchmakingSuccessDelegate OnMatchmakingSuccessDelegate;
 
 	// Latency measuring/reporting
-	bool DoPings = false;
+	bool bDoPings = false;
+	bool bIsPinging = false;
 	const float PingInterval = 3.0;
 	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
@@ -89,9 +93,9 @@ private:
 	const TArray<FString> PingRegions{"eu-west-1"};
 
 	// Current state
-	bool IsInitialized = false;
+	bool bIsInitialized = false;
 	EMatchmakingTicketStatus Status = EMatchmakingTicketStatus::None;
-	FString TicketId;
+	FString CurrentTicketUrl;
 	FString ConnectionString;
 	FString ConnectionOptions;
 };

@@ -23,7 +23,7 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, clients)
 		&& SERIALIZE_PROPERTY(context, counters)
 		&& SERIALIZE_PROPERTY(context, eventlogs)
-		&& SERIALIZE_PROPERTY(context, flexmatch)
+		&& SERIALIZE_PROPERTY(context, flexmatch_tickets)
 		&& SERIALIZE_PROPERTY(context, machines)
 		&& SERIALIZE_PROPERTY(context, matches)
 		&& SERIALIZE_PROPERTY(context, matchqueue)
@@ -39,6 +39,8 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, parties)
 
 		// Optional
+		&& SERIALIZE_PROPERTY(context, my_flexmatch)
+		&& SERIALIZE_PROPERTY(context, my_flexmatch_ticket)
 		&& SERIALIZE_PROPERTY(context, my_friends)
 		&& SERIALIZE_PROPERTY(context, my_gamestate)
 		&& SERIALIZE_PROPERTY(context, my_gamestates)
@@ -478,4 +480,22 @@ bool FDriftFriendRequestsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, issued_to_player_url)
 		&& SERIALIZE_PROPERTY(context, modify_date)
 		&& SERIALIZE_PROPERTY(context, token);
+}
+
+
+bool FDriftFlexmatchLatencySchema::Serialize(SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, latencies);
+}
+
+bool FDriftFlexmatchTicketPostResponse::Serialize(SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, ticket_url)
+		&& SERIALIZE_PROPERTY(context, ticket_id)
+		&& SERIALIZE_PROPERTY(context, ticket_status);
+}
+
+bool FDriftFlexmatchTicketDeleteResponse::Serialize(SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, status);
 }
