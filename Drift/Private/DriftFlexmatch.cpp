@@ -14,7 +14,7 @@ FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue)
 
 FDriftFlexmatch::~FDriftFlexmatch()
 {
-	DoPings = false;
+	bDoPings = false;
 	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).RemoveAll(this);
 }
 
@@ -33,12 +33,12 @@ void FDriftFlexmatch::ConfigureSession(const FDriftEndpointsResponse& DriftEndpo
 
 void FDriftFlexmatch::Tick( float DeltaTime )
 {
-	if ( DoPings )
+	if ( bDoPings )
 	{
 		TimeToPing -= DeltaTime;
-		if (TimeToPing < 0)
+		if (TimeToPing < 0 && !bIsPinging)
 		{
-			ReportLatencies();
+			MeasureLatencies();
 			TimeToPing = PingInterval;
 		}
 	}
@@ -54,10 +54,12 @@ TStatId FDriftFlexmatch::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FDriftFlexmatch, STATGROUP_Tickables);
 }
 
-void FDriftFlexmatch::ReportLatencies()
+void FDriftFlexmatch::MeasureLatencies()
 {
+	bIsPinging = true;
 	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
-	TSharedRef<TMap<FString, int>, ESPMode::ThreadSafe> LatenciesByRegion(new TMap<FString, int>());
+	auto LatenciesByRegion{ MakeShared<TMap<FString, int>>() };
+	//TSharedRef<TMap<FString, int>, ESPMode::ThreadSafe> LatenciesByRegion(new TMap<FString, int>());
 	const auto HttpModule = &FHttpModule::Get();
 	for(auto Region: PingRegions)
 	{
@@ -69,67 +71,74 @@ void FDriftFlexmatch::ReportLatencies()
 		{
 			if (!bConnectedSuccessfully)
 			{
-				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to connect to '%s'"), *Request->GetURL());
+				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
 				LatenciesByRegion->Add(Region, -1);
 			}
 			else
 			{
 				LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
 			}
-			// if all regions have been added to the map, report back to drift ...
+			// if all regions have been added to the map, report back to drift
 			if (LatenciesByRegion->Num() == PingRegions.Num())
 			{
-				// ... unless we've been stopped or have dropped the connection to the backend
-				if ( ! (DoPings && RequestManager) )
-				{
-					return;
-				}
-				JsonValue LatenciesPayload{rapidjson::kObjectType};
-				for (auto entry: *LatenciesByRegion)
-				{
-					if ( entry.Value == -1 ) // failed ping, skip it from the map
-					{
-						continue;
-					}
-					JsonArchive::AddMember(LatenciesPayload, entry.Key, entry.Value);
-				}
-				if (LatenciesPayload.MemberCount() == 0)
-				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - No valid values to report!"));
-					return;
-				}
-				JsonValue PatchPayload{rapidjson::kObjectType};
-				JsonArchive::AddMember(PatchPayload, TEXT("latencies"), LatenciesPayload);
-				auto PatchRequest = RequestManager->Patch(FlexmatchLatencyURL, PatchPayload, HttpStatusCodes::Ok);
-				PatchRequest->OnError.BindLambda([this](ResponseContext& context)
-				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
-						", Response code %d, error: '%s'"), *FlexmatchLatencyURL, context.responseCode, *context.error);
-				});
-				PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
-				{
-					FDriftFlexmatchLatencySchema LatencyAverages;
-					if (!JsonArchive::LoadObject(doc, LatencyAverages))
-					{
-						UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Error parsing reponse from PATCHing latencies"
-							", Response code %d, error: '%s'"), context.responseCode, *context.error);
-						return;
-					}
-					for( auto Entry: LatencyAverages.latencies.GetObject() )
-					{
-						AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
-					}
-				});
-				PatchRequest->Dispatch();
+				bIsPinging = false;
+				ReportLatencies(LatenciesByRegion);
 			}
 		});
 		Request->ProcessRequest();
 	}
 }
 
+void FDriftFlexmatch::ReportLatencies(const TSharedRef<TMap<FString, int>> LatenciesByRegion)
+{
+	// If we've lost connection, bail
+	if ( ! RequestManager )
+	{
+		return;
+	}
+	JsonValue LatenciesPayload{rapidjson::kObjectType};
+	for (auto entry: *LatenciesByRegion)
+	{
+		if ( entry.Value == -1 ) // failed ping, skip it from the map
+		{
+			continue;
+		}
+		JsonArchive::AddMember(LatenciesPayload, entry.Key, entry.Value);
+	}
+	if (LatenciesPayload.MemberCount() == 0)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - No valid values to report!"));
+		return;
+	}
+	JsonValue PatchPayload{rapidjson::kObjectType};
+	JsonArchive::AddMember(PatchPayload, TEXT("latencies"), LatenciesPayload);
+	const auto PatchRequest = RequestManager->Patch(FlexmatchLatencyURL, PatchPayload, HttpStatusCodes::Ok);
+	PatchRequest->OnError.BindLambda([this](ResponseContext& context)
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
+			", Response code %d, error: '%s'"), *FlexmatchLatencyURL, context.responseCode, *context.error);
+	});
+	PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	{
+		FDriftFlexmatchLatencySchema LatencyAverages;
+		if (!JsonArchive::LoadObject(doc, LatencyAverages))
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Error parsing reponse from PATCHing latencies"
+				", Response code %d, error: '%s'"), context.responseCode, *context.error);
+			return;
+		}
+		for( auto Entry: LatencyAverages.latencies.GetObject() )
+		{
+			AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
+		}
+	});
+	PatchRequest->Dispatch();
+}
+
+
 void FDriftFlexmatch::StartLatencyReporting()
 {
-	DoPings = true;
+	bDoPings = true;
 	if (! bIsInitialized )
 	{
 		InitializeLocalState();
@@ -139,7 +148,7 @@ void FDriftFlexmatch::StartLatencyReporting()
 
 void FDriftFlexmatch::StopLatencyReporting()
 {
-	DoPings = false;
+	bDoPings = false;
 	TimeToPing = 0.0;
 }
 
@@ -206,6 +215,7 @@ void FDriftFlexmatch::StopMatchmaking()
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to parse response from DELETE to %s"
 						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+			return;
 		}
 		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
 		{

@@ -60,7 +60,8 @@ public:
 
 private:
 	void HandleMatchmakingEvent(const FMessageQueueEntry& Message);
-	void ReportLatencies();
+	void MeasureLatencies();
+	void ReportLatencies(const TSharedRef<TMap<FString, int>> LatenciesByRegion);
 	void SetStatusFromString(const FString& StatusString);
 	FString GetStatusString() const;
 	void InitializeLocalState();
@@ -82,7 +83,8 @@ private:
 	FMatchmakingSuccessDelegate OnMatchmakingSuccessDelegate;
 
 	// Latency measuring/reporting
-	bool DoPings = false;
+	bool bDoPings = false;
+	bool bIsPinging = false;
 	const float PingInterval = 3.0;
 	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
