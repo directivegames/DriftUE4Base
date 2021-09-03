@@ -207,7 +207,6 @@ void FDriftFlexmatch::StopMatchmaking()
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to parse response from DELETE to %s"
 						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
 		}
-		const auto StatusString = doc.FindField(TEXT("Status")).GetString();
 		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
 		{
 			CurrentTicketUrl.Empty();
