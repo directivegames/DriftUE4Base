@@ -321,6 +321,11 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
                 }
             }
         }
+    	else if (jValue.IsNull())
+    	{
+    		cValue = FDateTime{ 0 };
+    		success = true;
+    	}
     }
     else
     {

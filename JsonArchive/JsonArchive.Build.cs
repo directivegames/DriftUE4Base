@@ -46,5 +46,10 @@ public class JsonArchive : ModuleRules
         PrivateDependencyModuleNames.AddRange(new string[]
         {
         });
+
+        if (TargetRules.bBuildEditor == true)
+        {
+	        PrivateDependencyModuleNames.Add("UnrealEd");
+        }
     }
 }

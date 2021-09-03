@@ -521,5 +521,3 @@ bool SerializationContext::SerializeOptionalProperty(const TCHAR* propertyName, 
 	}
 	return archive.SerializeProperty(value, propertyName, property);
 }
-
-
