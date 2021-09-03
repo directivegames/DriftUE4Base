@@ -171,6 +171,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to parse response from POST to %s"
 						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+			return;
 		}
 		CurrentTicketUrl = Response.ticket_url;
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
