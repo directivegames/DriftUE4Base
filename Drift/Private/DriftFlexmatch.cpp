@@ -147,6 +147,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 {
 	if (! RequestManager.IsValid() )
 	{
+		OnDriftMatchmakingFailed().Broadcast(TEXT("No Connection"));
 		return;
 	}
 	JsonValue Payload{rapidjson::kObjectType};
@@ -156,6 +157,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
 					", Response code %d, error: '%s'"), *MatchmakingConfiguration, context.responseCode, *context.error);
+		OnDriftMatchmakingFailed().Broadcast(TEXT("Server Error"));
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
 	{
