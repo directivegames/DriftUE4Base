@@ -91,7 +91,7 @@ private:
 	const TArray<FString> PingRegions{"eu-west-1"};
 
 	// Current state
-	bool IsInitialized = false;
+	bool bIsInitialized = false;
 	EMatchmakingTicketStatus Status = EMatchmakingTicketStatus::None;
 	FString CurrentTicketUrl;
 	FString ConnectionString;

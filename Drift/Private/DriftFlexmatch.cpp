@@ -125,10 +125,10 @@ void FDriftFlexmatch::ReportLatencies()
 void FDriftFlexmatch::StartLatencyReporting()
 {
 	DoPings = true;
-	if (! IsInitialized )
+	if (! bIsInitialized )
 	{
 		InitializeLocalState();
-		IsInitialized = true;
+		bIsInitialized = true;
 	}
 }
 
@@ -228,10 +228,15 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	{
 		return;
 	}
+	if (CurrentTicketUrl.IsEmpty())
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - SetAcceptance called for match %s with client having no ticket URL"), *MatchId);
+		return;
+	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
 	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
-	auto Request = RequestManager->Put(FlexmatchLatencyURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Patch(CurrentTicketUrl, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchId](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - Failed to update acceptance for match %s"
@@ -271,6 +276,7 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 	{
 		case EDriftMatchmakingEvent::MatchmakingStarted:
 			Status = EMatchmakingTicketStatus::Queued;
+			CurrentTicketUrl = EventData.FindField("ticket_url").GetString();
 			OnDriftMatchmakingStarted().Broadcast();
 			break;
 		case EDriftMatchmakingEvent::MatchmakingSearching:
