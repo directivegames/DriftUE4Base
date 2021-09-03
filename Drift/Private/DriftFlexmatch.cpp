@@ -93,6 +93,11 @@ void FDriftFlexmatch::ReportLatencies()
 					}
 					JsonArchive::AddMember(LatenciesPayload, entry.Key, entry.Value);
 				}
+				if (LatenciesPayload.MemberCount() == 0)
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - No valid values to report!"));
+					return;
+				}
 				JsonValue PatchPayload{rapidjson::kObjectType};
 				JsonArchive::AddMember(PatchPayload, TEXT("latencies"), LatenciesPayload);
 				auto PatchRequest = RequestManager->Patch(FlexmatchLatencyURL, PatchPayload, HttpStatusCodes::Ok);
