@@ -5,17 +5,19 @@
 
 DEFINE_LOG_CATEGORY(LogDriftMatchmaking);
 
+static const FString MatchmakingMessageQueue(TEXT("matchmaking"));
+
 FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue)
 	: MessageQueue{MoveTemp(InMessageQueue)}
 {
-	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).AddRaw(
+	MessageQueue->OnMessageQueueMessage(MatchmakingMessageQueue).AddRaw(
 		this, &FDriftFlexmatch::HandleMatchmakingEvent);
 }
 
 FDriftFlexmatch::~FDriftFlexmatch()
 {
 	bDoPings = false;
-	MessageQueue->OnMessageQueueMessage(TEXT("matchmaking")).RemoveAll(this);
+	MessageQueue->OnMessageQueueMessage(MatchmakingMessageQueue).RemoveAll(this);
 }
 
 void FDriftFlexmatch::SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager)
