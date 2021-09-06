@@ -182,6 +182,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to parse response from POST to %s"
 						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+			OnDriftMatchmakingFailed().Broadcast(TEXT("Server Response Error"));
 			return;
 		}
 		CurrentTicketUrl = Response.ticket_url;
@@ -216,7 +217,7 @@ void FDriftFlexmatch::StopMatchmaking()
 		if (!JsonArchive::LoadObject(doc, Response))
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to parse response from DELETE to %s"
-						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+						", Response code %d, error: '%s'"), *CurrentTicketUrl, context.responseCode, *context.error);
 			return;
 		}
 		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
