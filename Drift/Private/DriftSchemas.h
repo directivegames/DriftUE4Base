@@ -46,6 +46,7 @@ struct FDriftEndpointsResponse
 	FString friend_requests;
 	FString parties;
 	FString party_invites;
+	FString lobbies;
 
 	// Added after authentication
 	FString my_flexmatch;
@@ -57,6 +58,9 @@ struct FDriftEndpointsResponse
 	FString my_player_groups;
 	FString my_player;
 	FString my_user;
+	FString my_lobby;
+	FString my_lobby_members;
+	FString my_lobby_member;
 
 	bool Serialize(SerializationContext& context);
 };

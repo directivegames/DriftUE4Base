@@ -37,6 +37,7 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, friend_requests)
 		&& SERIALIZE_PROPERTY(context, party_invites)
 		&& SERIALIZE_PROPERTY(context, parties)
+		&& SERIALIZE_PROPERTY(context, lobbies)
 
 		// Optional
 		&& SERIALIZE_PROPERTY(context, my_flexmatch)
@@ -47,7 +48,10 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, my_messages)
 		&& SERIALIZE_PROPERTY(context, my_player_groups)
 		&& SERIALIZE_PROPERTY(context, my_player)
-		&& SERIALIZE_PROPERTY(context, my_user);
+		&& SERIALIZE_PROPERTY(context, my_user)
+		&& SERIALIZE_PROPERTY(context, my_lobby)
+		&& SERIALIZE_PROPERTY(context, my_lobby_members)
+		&& SERIALIZE_PROPERTY(context, my_lobby_member);
 }
 
 
