@@ -33,6 +33,11 @@ void FDriftLobbyManager::ConfigureSession(const FDriftEndpointsResponse& DriftEn
 	CurrentLobbyURL = DriftEndpoints.my_lobby;
 	CurrentLobbyMembersURL = DriftEndpoints.my_lobby_members;
 	CurrentLobbyMemberURL = DriftEndpoints.my_lobby_member;
+
+	if (HasSession())
+	{
+		QueryLobby({});
+	}
 }
 
 bool FDriftLobbyManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -40,6 +45,12 @@ bool FDriftLobbyManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (FParse::Command(&Cmd, TEXT("Drift.Lobby")))
 	{
+		if (PlayerId == INDEX_NONE || !RequestManager)
+		{
+			UE_LOG(LogDriftLobby, Verbose, TEXT("FDriftLobbyManager::Exec - Lobby manager potentially not initialized. Ignoring command"));
+			return false;
+		}
+
 		auto GetString = [](const TCHAR* Cmd)
 		{
 			return FParse::Token(Cmd, false);
@@ -151,13 +162,16 @@ bool FDriftLobbyManager::QueryLobby(FQueryLobbyCompletedDelegate Delegate)
 		const auto Response = Doc.GetObject();
 		if (Response.Num() == 0)
 		{
-			const auto bLobbyDeleted = !CurrentLobbyId.IsEmpty();
+			UE_LOG(LogDriftLobby, Log, TEXT("No lobby found"));
+
+			const auto OldLobbyId = CurrentLobbyId;
+			const auto bLobbyDeleted = !OldLobbyId.IsEmpty();
 
 			ResetCurrentLobby();
 
 			if (bLobbyDeleted)
 			{
-				OnLobbyDeletedDelegate.Broadcast(CurrentLobbyId);
+				OnLobbyDeletedDelegate.Broadcast(OldLobbyId);
 			}
 
 			(void)Delegate.ExecuteIfBound(true, "");
@@ -208,7 +222,7 @@ bool FDriftLobbyManager::JoinLobby(FString LobbyId, FJoinLobbyCompletedDelegate 
 
 	UE_LOG(LogDriftLobby, Log, TEXT("Joining lobby %s"), *LobbyId);
 
-	const FString URL = FString::Printf(TEXT("%s/%s/members"), *LobbiesURL, *LobbyId); // Manual URL constructing. Maybe figure out a better way to get the members resource of the lobby
+	const FString URL = FString::Printf(TEXT("%s%s/members"), *LobbiesURL, *LobbyId); // Manual URL constructing. Maybe figure out a better way to get the members resource of the lobby
 
 	const JsonValue Payload{rapidjson::kObjectType};
 	const auto Request = RequestManager->Post(URL, Payload);
@@ -222,6 +236,8 @@ bool FDriftLobbyManager::JoinLobby(FString LobbyId, FJoinLobbyCompletedDelegate 
 		}
 
 		ExtractLobby(LobbyResponse);
+
+		UE_LOG(LogDriftLobby, Log, TEXT("Joined lobby '%s'"), *CurrentLobbyId);
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId);
 	});
 	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
@@ -242,18 +258,19 @@ bool FDriftLobbyManager::LeaveLobby(FLeaveLobbyCompletedDelegate Delegate)
 		return false;
 	}
 
-	UE_LOG(LogDriftLobby, Log, TEXT("Leaving current lobby. Local cached lobby: '%s'"), *CurrentLobbyId);
+	UE_LOG(LogDriftLobby, Log, TEXT("Leaving current lobby. Locally cached lobby: '%s'"), *CurrentLobbyId);
 
 	const auto Request = RequestManager->Delete(LobbiesURL, HttpStatusCodes::NoContent);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{
-		const auto bLobbyDeleted = !CurrentLobbyId.IsEmpty();
+		const auto OldLobbyId = CurrentLobbyId;
+		const auto bLobbyDeleted = !OldLobbyId.IsEmpty();
 
 		ResetCurrentLobby();
 
 		if (bLobbyDeleted)
 		{
-			OnLobbyDeletedDelegate.Broadcast(CurrentLobbyId);
+			OnLobbyDeletedDelegate.Broadcast(OldLobbyId);
 		}
 
 		(void)Delegate.ExecuteIfBound(true, "");
@@ -400,24 +417,30 @@ bool FDriftLobbyManager::UpdatePlayer(FDriftLobbyMemberProperties PlayerProperti
 
 	UE_LOG(LogDriftLobby, Log, TEXT("Updating player properties with properties: '%s'"), *PlayerProperties.ToString());
 
+	auto TeamName = CurrentPlayerProperties.TeamName;
+	auto bReady = CurrentPlayerProperties.bReady;
+
 	JsonValue Payload{rapidjson::kObjectType};
 
 	if (PlayerProperties.TeamName.IsSet())
 	{
-		JsonArchive::AddMember(Payload, TEXT("team"), *PlayerProperties.TeamName.GetValue());
+		TeamName = PlayerProperties.TeamName;
 		CurrentPlayerProperties.TeamName = PlayerProperties.TeamName.GetValue();
 	}
 
 	if (PlayerProperties.bReady.IsSet())
 	{
-		JsonArchive::AddMember(Payload, TEXT("ready"), PlayerProperties.bReady.GetValue());
+		bReady = PlayerProperties.bReady;
 		CurrentPlayerProperties.bReady = PlayerProperties.bReady.GetValue();
 	}
 
-	UpdateCurrentPlayerProperties();
+	JsonArchive::AddMember(Payload, TEXT("team_name"), TeamName.IsSet() ? *TeamName.GetValue() : nullptr);
+	JsonArchive::AddMember(Payload, TEXT("ready"), bReady.IsSet() ? bReady.GetValue() : false);
+
+	ApplyCurrentPlayerProperties();
 	OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 
-	const auto Request = RequestManager->Patch(LobbiesURL, Payload);
+	const auto Request = RequestManager->Put(CurrentLobbyMemberURL, Payload);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId);
@@ -480,7 +503,7 @@ bool FDriftLobbyManager::KickLobbyMember(int32 MemberPlayerId, FKickMemberComple
 
 	if (URL.IsEmpty())
 	{
-		URL = FString::Printf(TEXT("%s/%s/members/%d"), *LobbiesURL, *CurrentLobbyId, MemberPlayerId); // Manual URL constructing as a last resort
+		URL = FString::Printf(TEXT("%s%s/members/%d"), *LobbiesURL, *CurrentLobbyId, MemberPlayerId); // Manual URL constructing as a last resort
 	}
 
 	const auto Request = RequestManager->Delete(URL, HttpStatusCodes::NoContent);
@@ -546,7 +569,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 	UE_LOG(LogDriftLobby, Verbose, TEXT("FDriftLobbyManager::HandleLobbyEvent - Incoming event '%s'"), *Event);
 
-	if (EventData.HasField("lobby_id"))
+	if (!EventData.HasField("lobby_id"))
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Event data doesn't contain 'lobby_id'. Discarding the event. Current cached lobby id: '%s'"), *CurrentLobbyId);
 		return;
@@ -557,7 +580,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 	// Verify that this event is relevant to us
 	if (LobbyId != CurrentLobbyId)
 	{
-		UE_LOG(LogDriftLobby, Warning, TEXT("FDriftLobbyManager::HandleLobbyEvent - Cached lobby '%s' does not match the event lobby '%s'. Will determine if this event is relevant to us by checking the lobby members."), *LobbyId, *CurrentLobbyId);
+		UE_LOG(LogDriftLobby, Warning, TEXT("FDriftLobbyManager::HandleLobbyEvent - Cached lobby '%s' does not match the event lobby '%s'. Will determine if this event is relevant to us by checking the lobby members."), *CurrentLobbyId, *LobbyId);
 
 		if (!EventData.HasField("members"))
 		{
@@ -739,7 +762,9 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse)
 		LobbyResponse.LobbyMemberURL
 	);
 
-	UE_LOG(LogDriftLobby, Display, TEXT("Current lobby updated: '%s'"), *CurrentLobbyId);
+	UpdateCurrentPlayerProperties();
+
+	UE_LOG(LogDriftLobby, Log, TEXT("Current lobby updated: '%s'"), *CurrentLobbyId);
 	OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 }
 
@@ -768,6 +793,8 @@ bool FDriftLobbyManager::ExtractMembers(const JsonValue& EventData)
 
 	CurrentLobby->Members = MoveTemp(Members);
 
+	UpdateCurrentPlayerProperties();
+
 	return true;
 }
 
@@ -775,13 +802,14 @@ void FDriftLobbyManager::ResetCurrentLobby()
 {
 	CurrentLobby.Reset();
 	CurrentLobbyId.Empty();
+	CurrentLobbyURL.Empty();
 	CurrentLobbyMembersURL.Empty();
 	CurrentLobbyMemberURL.Empty();
 
 	CurrentPlayerProperties.bReady = false;
 	CurrentPlayerProperties.TeamName.Reset();
 
-	UE_LOG(LogDriftLobby, Log, TEXT("Current lobby state reset"));
+	UE_LOG(LogDriftLobby, Verbose, TEXT("Current lobby state reset"));
 }
 
 bool FDriftLobbyManager::IsCurrentLobbyHost() const
@@ -812,6 +840,37 @@ bool FDriftLobbyManager::UpdateCurrentPlayerProperties()
 		return false;
 	}
 
+	const auto PlayerPtr = CurrentLobby->Members.FindByPredicate([this](const TSharedPtr<FDriftLobbyMember>& Member)
+	{
+		return Member->PlayerId == PlayerId;
+	});
+
+	if (!PlayerPtr)
+	{
+		UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::UpdateCurrentPlayerProperties - Player isn't a member of the locally cached lobby"));
+		return false;
+	}
+
+	const auto Player = *PlayerPtr;
+	if (!Player.IsValid())
+	{
+		UE_LOG(LogDriftLobby, Error, TEXT("Failed to update current player properties. Player member pointer is invalid"));
+		return false;
+	}
+
+	CurrentPlayerProperties.TeamName = Player->TeamName;
+	CurrentPlayerProperties.bReady = Player->bReady;
+
+	return true;
+}
+
+bool FDriftLobbyManager::ApplyCurrentPlayerProperties()
+{
+	if (!CurrentLobby.IsValid())
+	{
+		return false;
+	}
+
 	const auto PlayerIndex = CurrentLobby->Members.IndexOfByPredicate([this](const TSharedPtr<FDriftLobbyMember>& Member)
 	{
 		return Member->PlayerId == PlayerId;
@@ -819,14 +878,14 @@ bool FDriftLobbyManager::UpdateCurrentPlayerProperties()
 
 	if (PlayerIndex == INDEX_NONE)
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Failed to update current player properties. Player isn't a member of the locally cached lobby"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Failed to apply current player properties. Player isn't a member of the locally cached lobby"));
 		return false;
 	}
 
 	const auto Player = CurrentLobby->Members[PlayerIndex];
 	if (!Player.IsValid())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Failed to update current player properties. Player member pointer is invalid"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Failed to apply current player properties. Player member pointer is invalid"));
 		return false;
 	}
 

@@ -197,6 +197,7 @@ private:
 	bool IsCurrentLobbyHost() const;
 
 	bool UpdateCurrentPlayerProperties();
+	bool ApplyCurrentPlayerProperties();
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
@@ -205,7 +206,7 @@ private:
 	FString CurrentLobbyURL;
 	FString CurrentLobbyMembersURL;
 	FString CurrentLobbyMemberURL;
-	int32 PlayerId;
+	int32 PlayerId = INDEX_NONE;
 
 	TSharedPtr<FDriftLobby> CurrentLobby;
 	FString CurrentLobbyId;
