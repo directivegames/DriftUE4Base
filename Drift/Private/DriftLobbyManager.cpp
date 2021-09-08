@@ -688,6 +688,90 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			break;
 		}
 
+		case EDriftLobbyEvent::LobbyMatchStarting:
+		{
+			if (!EventData.HasField("status"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarting - Event data missing 'status' field"));
+				return;
+			}
+
+			const auto Status = ParseStatus(EventData.FindField("status").GetString());
+			CurrentLobby->LobbyStatus = Status;
+			OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, Status);
+			break;
+		}
+
+		case EDriftLobbyEvent::LobbyMatchStarted:
+		{
+			if (!EventData.HasField("status"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'status' field"));
+				return;
+			}
+
+			if (!EventData.HasField("connection_string"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'connection_string' field"));
+				return;
+			}
+
+			if (!EventData.HasField("connection_options"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'connection_options' field"));
+				return;
+			}
+
+			CurrentLobby->LobbyStatus = ParseStatus(EventData.FindField("status").GetString());
+			CurrentLobby->ConnectionString = EventData.FindField("connection_string").GetString();
+			CurrentLobby->ConnectionOptions = EventData.FindField("connection_options").GetString();
+
+			OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, CurrentLobby->LobbyStatus);
+			break;
+		}
+
+		case EDriftLobbyEvent::LobbyMatchCancelled:
+		{
+			if (!EventData.HasField("status"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchCancelled - Event data missing 'status' field"));
+				return;
+			}
+
+			const auto Status = ParseStatus(EventData.FindField("status").GetString());
+			CurrentLobby->LobbyStatus = Status;
+			OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, Status);
+			break;
+		}
+
+		case EDriftLobbyEvent::LobbyMatchTimedOut:
+		{
+			if (!EventData.HasField("status"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchTimedOut - Event data missing 'status' field"));
+				return;
+			}
+
+			const auto Status = ParseStatus(EventData.FindField("status").GetString());
+			CurrentLobby->LobbyStatus = Status;
+			OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, Status);
+			break;
+		}
+
+		case EDriftLobbyEvent::LobbyMatchFailed:
+		{
+			if (!EventData.HasField("status"))
+			{
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchFailed - Event data missing 'status' field"));
+				return;
+			}
+
+			const auto Status = ParseStatus(EventData.FindField("status").GetString());
+			CurrentLobby->LobbyStatus = Status;
+			OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, Status);
+			break;
+		}
+
 		case EDriftLobbyEvent::Unknown:
 		default:
 			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Unknown event '%s'"), *Event);
@@ -708,6 +792,16 @@ EDriftLobbyEvent FDriftLobbyManager::ParseEvent(const FString& EventName)
 		return EDriftLobbyEvent::LobbyMemberLeft;
 	if (EventName == TEXT("LobbyMemberKicked"))
 		return EDriftLobbyEvent::LobbyMemberKicked;
+	if (EventName == TEXT("LobbyMatchStarting"))
+		return EDriftLobbyEvent::LobbyMatchStarting;
+	if (EventName == TEXT("LobbyMatchStarted"))
+		return EDriftLobbyEvent::LobbyMatchStarted;
+	if (EventName == TEXT("LobbyMatchCancelled"))
+		return EDriftLobbyEvent::LobbyMatchCancelled;
+	if (EventName == TEXT("LobbyMatchTimedOut"))
+		return EDriftLobbyEvent::LobbyMatchTimedOut;
+	if (EventName == TEXT("LobbyMatchFailed"))
+		return EDriftLobbyEvent::LobbyMatchFailed;
 
 	return EDriftLobbyEvent::Unknown;
 }
@@ -720,6 +814,12 @@ EDriftLobbyStatus FDriftLobbyManager::ParseStatus(const FString& Status)
 		return EDriftLobbyStatus::Starting;
 	if (Status == TEXT("started"))
 		return EDriftLobbyStatus::Started;
+	if (Status == TEXT("cancelled"))
+		return EDriftLobbyStatus::Cancelled;
+	if (Status == TEXT("timed_out"))
+		return EDriftLobbyStatus::TimedOut;
+	if (Status == TEXT("failed"))
+		return EDriftLobbyStatus::Failed;
 
 	return EDriftLobbyStatus::Unknown;
 }

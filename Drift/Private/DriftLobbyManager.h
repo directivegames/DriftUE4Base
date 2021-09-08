@@ -10,12 +10,20 @@ DECLARE_LOG_CATEGORY_EXTERN(LogDriftLobby, Log, All);
 enum class EDriftLobbyEvent : uint8
 {
 	Unknown,
+
 	LobbyUpdated,
 	LobbyDeleted,
+
 	LobbyMemberJoined,
 	LobbyMemberUpdated,
 	LobbyMemberLeft,
 	LobbyMemberKicked,
+
+	LobbyMatchStarting,
+	LobbyMatchStarted,
+	LobbyMatchCancelled,
+	LobbyMatchTimedOut,
+	LobbyMatchFailed,
 };
 
 struct FDriftLobbyMember : IDriftLobbyMember
@@ -84,6 +92,8 @@ struct FDriftLobby : IDriftLobby
 	int32 GetTeamCapacity() const override { return TeamCapacity; }
 	EDriftLobbyStatus GetLobbyStatus() const override { return LobbyStatus; }
 	TArray<TSharedPtr<IDriftLobbyMember>> GetMembers() const override { return static_cast<TArray<TSharedPtr<IDriftLobbyMember>>>(Members); }
+	FString GetConnectionString() const override { return ConnectionString; }
+	FString GetConnectionOptions() const override { return ConnectionOptions; }
 
 	FString LobbyId;
 	FString LobbyName;
@@ -96,6 +106,9 @@ struct FDriftLobby : IDriftLobby
 	FString LobbyURL;
 	FString LobbyMembersURL;
 	FString LobbyMemberURL;
+
+	FString ConnectionString = "";
+	FString ConnectionOptions = "";
 };
 
 struct FDriftLobbyResponseMember : FJsonSerializable
@@ -182,6 +195,7 @@ public:
 	FOnLobbyMemberUpdatedDelegate& OnLobbyMemberUpdated() override { return OnLobbyMemberUpdatedDelegate; }
 	FOnLobbyMemberLeftDelegate& OnLobbyMemberLeft() override { return OnLobbyMemberLeftDelegate; }
 	FOnLobbyMemberKickedDelegate& OnLobbyMemberKicked() override { return OnLobbyMemberKickedDelegate; }
+	FOnLobbyStatusChangedDelegate& OnLobbyStatusChanged() override { return OnLobbyStatusChangedDelegate; }
 
 private:
 	void HandleLobbyEvent(const FMessageQueueEntry& Message);
@@ -218,4 +232,5 @@ private:
 	FOnLobbyMemberUpdatedDelegate OnLobbyMemberUpdatedDelegate;
 	FOnLobbyMemberLeftDelegate OnLobbyMemberLeftDelegate;
 	FOnLobbyMemberKickedDelegate OnLobbyMemberKickedDelegate;
+	FOnLobbyStatusChangedDelegate OnLobbyStatusChangedDelegate;
 };

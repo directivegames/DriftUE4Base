@@ -8,6 +8,9 @@ enum class EDriftLobbyStatus : uint8
 	Idle,
 	Starting,
 	Started,
+	Cancelled,
+	TimedOut,
+	Failed,
 };
 
 class IDriftLobbyMember
@@ -32,6 +35,8 @@ public:
 	virtual int32 GetTeamCapacity() const = 0;
 	virtual EDriftLobbyStatus GetLobbyStatus() const = 0;
 	virtual TArray<TSharedPtr<IDriftLobbyMember>> GetMembers() const = 0;
+	virtual FString GetConnectionString() const = 0;
+	virtual FString GetConnectionOptions() const = 0;
 
 	virtual ~IDriftLobby() = default;
 };
@@ -121,6 +126,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberJoinedDelegate, const FString&
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberUpdatedDelegate, const FString& /* LobbyId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberLeftDelegate, const FString& /* LobbyId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberKickedDelegate, const FString& /* LobbyId */);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLobbyStatusChangedDelegate, const FString& /* LobbyId */, EDriftLobbyStatus /* Status */);
 
 class IDriftLobbyManager
 {
@@ -169,6 +175,9 @@ public:
 
 	/* Raised when the host kicks a player from the lobby */
 	virtual FOnLobbyMemberKickedDelegate& OnLobbyMemberKicked() = 0;
+
+	/* Raised when the lobby status changes */
+	virtual FOnLobbyStatusChangedDelegate& OnLobbyStatusChanged() = 0;
 
 	virtual ~IDriftLobbyManager() = default;
 };
