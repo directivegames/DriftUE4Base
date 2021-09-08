@@ -727,6 +727,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			CurrentLobby->ConnectionOptions = EventData.FindField("connection_options").GetString();
 
 			OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, CurrentLobby->LobbyStatus);
+			OnLobbyMatchStartedDelegate.Broadcast(CurrentLobbyId, CurrentLobby->ConnectionString, CurrentLobby->ConnectionOptions);
 			break;
 		}
 

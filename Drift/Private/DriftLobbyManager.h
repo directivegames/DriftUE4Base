@@ -196,6 +196,7 @@ public:
 	FOnLobbyMemberLeftDelegate& OnLobbyMemberLeft() override { return OnLobbyMemberLeftDelegate; }
 	FOnLobbyMemberKickedDelegate& OnLobbyMemberKicked() override { return OnLobbyMemberKickedDelegate; }
 	FOnLobbyStatusChangedDelegate& OnLobbyStatusChanged() override { return OnLobbyStatusChangedDelegate; }
+	FOnLobbyMatchStartedDelegate& OnLobbyMatchStarted() override { return OnLobbyMatchStartedDelegate; }
 
 private:
 	void HandleLobbyEvent(const FMessageQueueEntry& Message);
@@ -233,4 +234,5 @@ private:
 	FOnLobbyMemberLeftDelegate OnLobbyMemberLeftDelegate;
 	FOnLobbyMemberKickedDelegate OnLobbyMemberKickedDelegate;
 	FOnLobbyStatusChangedDelegate OnLobbyStatusChangedDelegate;
+	FOnLobbyMatchStartedDelegate OnLobbyMatchStartedDelegate;
 };

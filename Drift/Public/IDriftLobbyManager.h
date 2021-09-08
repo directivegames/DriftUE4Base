@@ -127,6 +127,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberUpdatedDelegate, const FString
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberLeftDelegate, const FString& /* LobbyId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyMemberKickedDelegate, const FString& /* LobbyId */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLobbyStatusChangedDelegate, const FString& /* LobbyId */, EDriftLobbyStatus /* Status */);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnLobbyMatchStartedDelegate, const FString& /* LobbyId */, const FString& /* ConnectionString */, const FString& /* ConnectionOptions */);
 
 class IDriftLobbyManager
 {
@@ -178,6 +179,9 @@ public:
 
 	/* Raised when the lobby status changes */
 	virtual FOnLobbyStatusChangedDelegate& OnLobbyStatusChanged() = 0;
+
+	/* Raised when the lobby match has started and connection info is available */
+	virtual FOnLobbyMatchStartedDelegate& OnLobbyMatchStarted() = 0;
 
 	virtual ~IDriftLobbyManager() = default;
 };
