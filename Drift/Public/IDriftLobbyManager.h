@@ -21,6 +21,7 @@ public:
 	virtual TOptional<FString> GetTeamName() const = 0;
 	virtual bool IsReady() const = 0;
 	virtual bool IsHost() const = 0;
+	virtual bool IsLocalPlayer() const = 0;
 
 	virtual ~IDriftLobbyMember() = default;
 };
@@ -35,6 +36,8 @@ public:
 	virtual int32 GetTeamCapacity() const = 0;
 	virtual EDriftLobbyStatus GetLobbyStatus() const = 0;
 	virtual TArray<TSharedPtr<IDriftLobbyMember>> GetMembers() const = 0;
+	virtual TSharedPtr<IDriftLobbyMember> GetLocalPlayerMember() const = 0;
+	virtual bool AreAllTeamMembersReady() const = 0;
 	virtual FString GetConnectionString() const = 0;
 	virtual FString GetConnectionOptions() const = 0;
 

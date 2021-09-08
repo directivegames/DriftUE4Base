@@ -32,31 +32,35 @@ struct FDriftLobbyMember : IDriftLobbyMember
 		int32 InPlayerId,
 		FString InPlayerName,
 		TOptional<FString> InTeamName,
-		bool InbReady,
-		bool InbHost,
+		bool bInReady,
+		bool bInHost,
+		bool bInLocalPlayer,
 		FString InLobbyMemberURL)
 		:
 		PlayerId{ InPlayerId },
 		PlayerName{ InPlayerName },
 		TeamName{ InTeamName },
-		bReady{ InbReady },
-		bHost{ InbHost },
+		bReady{ bInReady },
+		bHost{ bInHost },
+		bLocalPlayer{ bInLocalPlayer },
 		LobbyMemberURL { InLobbyMemberURL }
 	{ }
 
 	int32 GetPlayerId() const override { return PlayerId; }
 	FString GetPlayerName() const override { return PlayerName; }
 	TOptional<FString> GetTeamName() const override { return TeamName; }
-	bool IsReady() const override { return bHost; }
+	bool IsReady() const override { return bReady; }
 	bool IsHost() const override { return bHost; }
+	bool IsLocalPlayer() const override { return bLocalPlayer; }
 
-	int32 PlayerId;
-	FString PlayerName;
+	int32 PlayerId = 0;
+	FString PlayerName = "";
 	TOptional<FString> TeamName;
-	bool bReady;
-	bool bHost;
+	bool bReady = false;
+	bool bHost = false;
+	bool bLocalPlayer = false;
 
-	FString LobbyMemberURL;
+	FString LobbyMemberURL = "";
 };
 
 struct FDriftLobby : IDriftLobby
@@ -69,6 +73,8 @@ struct FDriftLobby : IDriftLobby
 		int32 InTeamCapacity,
 		EDriftLobbyStatus InLobbyStatus,
 		TArray<TSharedPtr<FDriftLobbyMember>> Members,
+		TSharedPtr<FDriftLobbyMember> InLocalPlayerMember,
+		bool bInAllTeamMembersReady,
 		FString InLobbyURL,
 		FString InLobbyMembersURL,
 		FString InLobbyMemberURL)
@@ -80,6 +86,8 @@ struct FDriftLobby : IDriftLobby
 		TeamCapacity{ InTeamCapacity },
 		LobbyStatus{ InLobbyStatus },
 		Members{ MoveTemp(Members) },
+		LocalPlayerMember{ InLocalPlayerMember },
+		bAllTeamMembersReady { bInAllTeamMembersReady },
 		LobbyURL{ InLobbyURL },
 		LobbyMembersURL{ InLobbyMembersURL },
 		LobbyMemberURL{ InLobbyMemberURL }
@@ -92,20 +100,24 @@ struct FDriftLobby : IDriftLobby
 	int32 GetTeamCapacity() const override { return TeamCapacity; }
 	EDriftLobbyStatus GetLobbyStatus() const override { return LobbyStatus; }
 	TArray<TSharedPtr<IDriftLobbyMember>> GetMembers() const override { return static_cast<TArray<TSharedPtr<IDriftLobbyMember>>>(Members); }
+	TSharedPtr<IDriftLobbyMember> GetLocalPlayerMember() const override { return LocalPlayerMember; }
+	bool AreAllTeamMembersReady() const override { return bAllTeamMembersReady; }
 	FString GetConnectionString() const override { return ConnectionString; }
 	FString GetConnectionOptions() const override { return ConnectionOptions; }
 
-	FString LobbyId;
-	FString LobbyName;
-	FString MapName;
+	FString LobbyId = "";
+	FString LobbyName = "";
+	FString MapName = "";
 	TArray<FString> TeamNames;
-	int32 TeamCapacity;
-	EDriftLobbyStatus LobbyStatus;
+	int32 TeamCapacity = 0;
+	EDriftLobbyStatus LobbyStatus = EDriftLobbyStatus::Unknown;
 	TArray<TSharedPtr<FDriftLobbyMember>> Members;
+	TSharedPtr<FDriftLobbyMember> LocalPlayerMember;
+	bool bAllTeamMembersReady = false;
 
-	FString LobbyURL;
-	FString LobbyMembersURL;
-	FString LobbyMemberURL;
+	FString LobbyURL = "";
+	FString LobbyMembersURL = "";
+	FString LobbyMemberURL = "";
 
 	FString ConnectionString = "";
 	FString ConnectionOptions = "";
@@ -123,12 +135,12 @@ struct FDriftLobbyResponseMember : FJsonSerializable
 	JSON_SERIALIZE("join_date", JoinDate);
 	END_JSON_SERIALIZER;
 
-	int32 PlayerId;
-	FString PlayerName;
-	FString TeamName;
-	bool bReady;
-	bool bHost;
-	FString LobbyMemberURL;
+	int32 PlayerId = 0;
+	FString PlayerName = "";
+	FString TeamName = "";
+	bool bReady = false;
+	bool bHost = false;
+	FString LobbyMemberURL = "";
 	FDateTime JoinDate;
 };
 
@@ -144,25 +156,30 @@ struct FDriftLobbyResponse : FJsonSerializable
 	JSON_SERIALIZE_ARRAY_SERIALIZABLE("members", Members, FDriftLobbyResponseMember);
 	JSON_SERIALIZE("create_date", CreateDate);
 	JSON_SERIALIZE("start_date", StartDate);
+	JSON_SERIALIZE("connection_string", ConnectionString);
+	JSON_SERIALIZE("connection_options", ConnectionOptions);
 	JSON_SERIALIZE("lobby_url", LobbyURL);
 	JSON_SERIALIZE("lobby_members_url", LobbyMembersURL);
 	JSON_SERIALIZE("lobby_member_url", LobbyMemberURL);
 	END_JSON_SERIALIZER;
 
-	FString LobbyId;
-	FString LobbyName;
-	FString MapName;
+	FString LobbyId = "";
+	FString LobbyName = "";
+	FString MapName = "";
 	TArray<FString> TeamNames;
-	int32 TeamCapacity;
-	FString LobbyStatus;
+	int32 TeamCapacity = 0;
+	FString LobbyStatus = "";
 	TArray<FDriftLobbyResponseMember> Members;
+
+	FString ConnectionString = "";
+	FString ConnectionOptions = "";
 
 	FDateTime CreateDate;
 	FDateTime StartDate;
 
-	FString LobbyURL;
-	FString LobbyMembersURL;
-	FString LobbyMemberURL;
+	FString LobbyURL = "";
+	FString LobbyMembersURL = "";
+	FString LobbyMemberURL = "";
 };
 
 class FDriftLobbyManager : public IDriftLobbyManager, public FSelfRegisteringExec
