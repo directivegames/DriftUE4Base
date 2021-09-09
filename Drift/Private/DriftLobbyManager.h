@@ -152,7 +152,7 @@ struct FDriftLobbyResponse : FJsonSerializable
 	JSON_SERIALIZE("map_name", MapName);
 	JSON_SERIALIZE_ARRAY("team_names", TeamNames);
 	JSON_SERIALIZE("team_capacity", TeamCapacity);
-	JSON_SERIALIZE("lobby_status", LobbyStatus);
+	JSON_SERIALIZE("status", LobbyStatus);
 	JSON_SERIALIZE_ARRAY_SERIALIZABLE("members", Members, FDriftLobbyResponseMember);
 	JSON_SERIALIZE("create_date", CreateDate);
 	JSON_SERIALIZE("start_date", StartDate);
@@ -223,7 +223,7 @@ private:
 
 	bool HasSession() const;
 
-	void ExtractLobby(const FDriftLobbyResponse& LobbyResponse);
+	void ExtractLobby(const FDriftLobbyResponse& LobbyResponse, bool bUpdateURLs = true);
 	bool ExtractMembers(const JsonValue& EventData);
 	void ResetCurrentLobby();
 	bool IsCurrentLobbyHost() const;

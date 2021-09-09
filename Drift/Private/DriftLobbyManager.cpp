@@ -641,7 +641,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 				return;
 			}
 
-			ExtractLobby(LobbyResponse);
+			ExtractLobby(LobbyResponse, false);
 			OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 			break;
 		}
@@ -847,12 +847,16 @@ bool FDriftLobbyManager::HasSession() const
 	return !LobbiesURL.IsEmpty() && RequestManager.IsValid();
 }
 
-void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse)
+void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, bool bUpdateURLs)
 {
 	CurrentLobbyId = LobbyResponse.LobbyId;
-	CurrentLobbyURL = LobbyResponse.LobbyURL;
-	CurrentLobbyMembersURL = LobbyResponse.LobbyMembersURL;
-	CurrentLobbyMemberURL = LobbyResponse.LobbyMemberURL;
+
+	if (bUpdateURLs)
+	{
+		CurrentLobbyURL = LobbyResponse.LobbyURL;
+		CurrentLobbyMembersURL = LobbyResponse.LobbyMembersURL;
+		CurrentLobbyMemberURL = LobbyResponse.LobbyMemberURL;
+	}
 
 	bool bAllTeamMembersReady = true;
 	TSharedPtr<FDriftLobbyMember> LocalMember;
@@ -874,7 +878,7 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse)
 			LocalMember = Member;
 		}
 
-		if (!Member->bReady)
+		if (!Member->bReady && Member->TeamName.IsSet())
 		{
 			bAllTeamMembersReady = false;
 		}
@@ -962,8 +966,9 @@ void FDriftLobbyManager::ResetCurrentLobby()
 
 bool FDriftLobbyManager::IsCurrentLobbyHost() const
 {
-	if (CurrentLobby.IsValid())
+	if (!CurrentLobby.IsValid())
 	{
+		UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::IsCurrentLobbyHost - No locally cached lobby"));
 		return false;
 	}
 
@@ -972,6 +977,8 @@ bool FDriftLobbyManager::IsCurrentLobbyHost() const
 		UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::IsCurrentLobbyHost - Player isn't a member of the locally cached lobby"));
 		return false;
 	}
+
+	UE_LOG(LogDriftLobby, Verbose, TEXT("FDriftLobbyManager::IsCurrentLobbyHost - Local player is host: '%s'"), CurrentLobby->LocalPlayerMember->bHost ? TEXT("Yes") : TEXT("No"));
 
 	return CurrentLobby->LocalPlayerMember->bHost;
 }
