@@ -20,7 +20,7 @@ enum class EDriftMatchmakingEvent : uint8
 	MatchmakingFailed
 };
 
-class FDriftFlexmatch : public IDriftMatchmaker, FTickableGameObject
+class FDriftFlexmatch : public IDriftMatchmaker, public FTickableGameObject, public TSharedFromThis<FDriftFlexmatch>
 {
 public:
 	FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue);

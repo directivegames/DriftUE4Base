@@ -69,22 +69,25 @@ void FDriftFlexmatch::MeasureLatencies()
 		Request->SetVerb("GET");
 		Request->SetURL(FString::Format(*PingUrlTemplate, {Region}));
 		Request->OnProcessRequestComplete().BindLambda(
-		[this, Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+		[WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
 		{
-			if (!bConnectedSuccessfully)
+			if (auto Self = WeakSelf.Pin())
 			{
-				UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
-				LatenciesByRegion->Add(Region, -1);
-			}
-			else
-			{
-				LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
-			}
-			// if all regions have been added to the map, report back to drift
-			if (LatenciesByRegion->Num() == PingRegions.Num())
-			{
-				bIsPinging = false;
-				ReportLatencies(LatenciesByRegion);
+				if (!bConnectedSuccessfully)
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
+					LatenciesByRegion->Add(Region, -1);
+				}
+				else
+				{
+					LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
+				}
+				// if all regions have been added to the map, report back to drift
+				if (LatenciesByRegion->Num() == Self->PingRegions.Num())
+				{
+					Self->bIsPinging = false;
+					Self->ReportLatencies(LatenciesByRegion);
+				}
 			}
 		});
 		Request->ProcessRequest();
