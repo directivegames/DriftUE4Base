@@ -888,7 +888,7 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, 
 			LocalMember = Member;
 		}
 
-		if (!Member->bReady && Member->TeamName.IsSet())
+		if (!Member->bReady && Member->TeamName.IsSet() && !Member->TeamName->IsEmpty())
 		{
 			bAllTeamMembersReady = false;
 		}
@@ -946,7 +946,7 @@ bool FDriftLobbyManager::ExtractMembers(const JsonValue& EventData)
 			LobbyResponseMember.LobbyMemberURL
 		));
 
-		if (!LobbyResponseMember.bReady)
+		if (!LobbyResponseMember.bReady && !LobbyResponseMember.TeamName.IsEmpty())
 		{
 			bAllTeamMembersReady = false;
 		}
