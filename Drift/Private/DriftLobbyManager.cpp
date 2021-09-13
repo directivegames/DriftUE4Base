@@ -569,9 +569,13 @@ bool FDriftLobbyManager::StartLobbyMatch(FStartLobbyMatchCompletedDelegate Deleg
 		UE_LOG(LogDriftLobby, Log, TEXT("Lobby match start request accepted"));
 
 		(void)Delegate.ExecuteIfBound(true, "");
+
+		OnLobbyStatusChangedDelegate.Broadcast(CurrentLobbyId, CurrentLobby->LobbyStatus);
 	});
-	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+	Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
 	{
+	    CurrentLobby->LobbyStatus = EDriftLobbyStatus::Failed;
+
 		Context.errorHandled = true;
 		(void)Delegate.ExecuteIfBound(false, "");
 	});
