@@ -256,7 +256,7 @@ bool FDriftLobbyManager::LeaveLobby(FLeaveLobbyCompletedDelegate Delegate)
 {
 	if (!HasSession())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Trying to leave a lobby without a session"));
 		(void)Delegate.ExecuteIfBound(false, "");
 		return false;
 	}
@@ -293,7 +293,7 @@ bool FDriftLobbyManager::CreateLobby(FDriftLobbyProperties LobbyProperties, FCre
 {
 	if (!HasSession())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Trying to create a lobby without a session"));
 		(void)Delegate.ExecuteIfBound(false, "");
 		return false;
 	}
@@ -352,7 +352,7 @@ bool FDriftLobbyManager::UpdateLobby(FDriftLobbyProperties LobbyProperties, FUpd
 {
 	if (!HasSession())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Trying to update lobby properties without a session"));
 		(void)Delegate.ExecuteIfBound(false, "");
 		return false;
 	}
@@ -414,7 +414,7 @@ bool FDriftLobbyManager::UpdatePlayer(FDriftLobbyMemberProperties PlayerProperti
 {
 	if (!HasSession())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Trying to update player properties without a session"));
 		(void)Delegate.ExecuteIfBound(false, "");
 		return false;
 	}
@@ -471,7 +471,7 @@ bool FDriftLobbyManager::KickLobbyMember(int32 MemberPlayerId, FKickMemberComple
 {
 	if (!HasSession())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Trying to kick a lobby member without a session"));
 		(void)Delegate.ExecuteIfBound(false, "", INDEX_NONE);
 		return false;
 	}
@@ -539,7 +539,7 @@ bool FDriftLobbyManager::StartLobbyMatch(FStartLobbyMatchCompletedDelegate Deleg
 {
 	if (!HasSession())
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
+		UE_LOG(LogDriftLobby, Error, TEXT("Trying to start the lobby match without a session"));
 		(void)Delegate.ExecuteIfBound(false, "");
 		return false;
 	}
@@ -549,6 +549,12 @@ bool FDriftLobbyManager::StartLobbyMatch(FStartLobbyMatchCompletedDelegate Deleg
 		UE_LOG(LogDriftLobby, Error, TEXT("Only the lobby host can start the match"));
 		(void)Delegate.ExecuteIfBound(false, "");
 		return false;
+	}
+
+	if (CurrentLobby->LobbyStatus == EDriftLobbyStatus::Starting)
+	{
+		UE_LOG(LogDriftLobby, Warning, TEXT("Lobby match is already starting, ignoring start lobby match request"));
+		return true;
 	}
 
 	UE_LOG(LogDriftLobby, Log, TEXT("Starting the lobby match for lobby '%s'"), *CurrentLobbyId);
