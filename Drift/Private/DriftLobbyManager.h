@@ -75,6 +75,7 @@ struct FDriftLobby : IDriftLobby
 		TArray<TSharedPtr<FDriftLobbyMember>> Members,
 		TSharedPtr<FDriftLobbyMember> InLocalPlayerMember,
 		bool bInAllTeamMembersReady,
+		FString InCustomData,
 		FString InLobbyURL,
 		FString InLobbyMembersURL,
 		FString InLobbyMemberURL)
@@ -88,6 +89,7 @@ struct FDriftLobby : IDriftLobby
 		Members{ MoveTemp(Members) },
 		LocalPlayerMember{ InLocalPlayerMember },
 		bAllTeamMembersReady { bInAllTeamMembersReady },
+		CustomData { InCustomData },
 		LobbyURL{ InLobbyURL },
 		LobbyMembersURL{ InLobbyMembersURL },
 		LobbyMemberURL{ InLobbyMemberURL }
@@ -104,6 +106,7 @@ struct FDriftLobby : IDriftLobby
 	bool AreAllTeamMembersReady() const override { return bAllTeamMembersReady; }
 	FString GetConnectionString() const override { return ConnectionString; }
 	FString GetConnectionOptions() const override { return ConnectionOptions; }
+	FString GetCustomData() const override { return CustomData; }
 
 	FString LobbyId = "";
 	FString LobbyName = "";
@@ -114,6 +117,7 @@ struct FDriftLobby : IDriftLobby
 	TArray<TSharedPtr<FDriftLobbyMember>> Members;
 	TSharedPtr<FDriftLobbyMember> LocalPlayerMember;
 	bool bAllTeamMembersReady = false;
+	FString CustomData = "";
 
 	FString LobbyURL = "";
 	FString LobbyMembersURL = "";
@@ -154,6 +158,7 @@ struct FDriftLobbyResponse : FJsonSerializable
 	JSON_SERIALIZE("team_capacity", TeamCapacity);
 	JSON_SERIALIZE("status", LobbyStatus);
 	JSON_SERIALIZE_ARRAY_SERIALIZABLE("members", Members, FDriftLobbyResponseMember);
+	JSON_SERIALIZE("custom_data", CustomData);
 	JSON_SERIALIZE("create_date", CreateDate);
 	JSON_SERIALIZE("start_date", StartDate);
 	JSON_SERIALIZE("connection_string", ConnectionString);
@@ -170,6 +175,7 @@ struct FDriftLobbyResponse : FJsonSerializable
 	int32 TeamCapacity = 0;
 	FString LobbyStatus = "";
 	TArray<FDriftLobbyResponseMember> Members;
+	FString CustomData = "";
 
 	FString ConnectionString = "";
 	FString ConnectionOptions = "";

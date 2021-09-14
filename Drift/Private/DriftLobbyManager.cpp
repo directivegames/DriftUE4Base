@@ -392,6 +392,12 @@ bool FDriftLobbyManager::UpdateLobby(FDriftLobbyProperties LobbyProperties, FUpd
 		CurrentLobby->TeamCapacity = LobbyProperties.TeamCapacity.GetValue();
 	}
 
+	if (LobbyProperties.CustomData.IsSet())
+	{
+		JsonArchive::AddMember(Payload, TEXT("custom_data"), LobbyProperties.CustomData.GetValue());
+		CurrentLobby->CustomData = LobbyProperties.CustomData.GetValue();
+	}
+
 	OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 
 	const auto Request = RequestManager->Patch(LobbiesURL, Payload);
@@ -906,6 +912,7 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, 
 		MoveTemp(Members),
 		LocalMember,
 		bAllTeamMembersReady,
+		LobbyResponse.CustomData,
 		LobbyResponse.LobbyURL,
 		LobbyResponse.LobbyMembersURL,
 		LobbyResponse.LobbyMemberURL

@@ -40,6 +40,7 @@ public:
 	virtual bool AreAllTeamMembersReady() const = 0;
 	virtual FString GetConnectionString() const = 0;
 	virtual FString GetConnectionOptions() const = 0;
+	virtual FString GetCustomData() const = 0;
 
 	virtual ~IDriftLobby() = default;
 };
@@ -50,6 +51,7 @@ struct FDriftLobbyProperties
 	TOptional<FString> MapName;
 	TOptional<TArray<FString>> TeamNames;
 	TOptional<int32> TeamCapacity;
+	TOptional<FString> CustomData;
 
 	FString ToString() const
 	{
@@ -81,6 +83,11 @@ struct FDriftLobbyProperties
 		if (TeamCapacity.IsSet())
 		{
 			Ret += FString::Printf(TEXT(" | Team capacity: '%d'"), TeamCapacity.GetValue());
+		}
+
+		if (CustomData.IsSet())
+		{
+			Ret += FString::Printf(TEXT(" | Custom data: '%s'"), *CustomData.GetValue());
 		}
 
 		Ret.RemoveFromStart(" | ");
