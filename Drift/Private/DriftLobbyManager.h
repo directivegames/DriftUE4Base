@@ -78,7 +78,8 @@ struct FDriftLobby : IDriftLobby
 		FString InCustomData,
 		FString InLobbyURL,
 		FString InLobbyMembersURL,
-		FString InLobbyMemberURL)
+		FString InLobbyMemberURL,
+		FString InLobbyMatchPlacementURL)
 		:
 		LobbyId{ InLobbyId },
 		LobbyName{ InLobbyName },
@@ -92,7 +93,8 @@ struct FDriftLobby : IDriftLobby
 		CustomData { InCustomData },
 		LobbyURL{ InLobbyURL },
 		LobbyMembersURL{ InLobbyMembersURL },
-		LobbyMemberURL{ InLobbyMemberURL }
+		LobbyMemberURL{ InLobbyMemberURL },
+		LobbyMatchPlacementURL{ InLobbyMatchPlacementURL }
 	{ }
 
 	FString GetLobbyId() const override { return LobbyId; }
@@ -122,6 +124,7 @@ struct FDriftLobby : IDriftLobby
 	FString LobbyURL = "";
 	FString LobbyMembersURL = "";
 	FString LobbyMemberURL = "";
+	FString LobbyMatchPlacementURL = "";
 
 	FString ConnectionString = "";
 	FString ConnectionOptions = "";
@@ -166,6 +169,7 @@ struct FDriftLobbyResponse : FJsonSerializable
 	JSON_SERIALIZE("lobby_url", LobbyURL);
 	JSON_SERIALIZE("lobby_members_url", LobbyMembersURL);
 	JSON_SERIALIZE("lobby_member_url", LobbyMemberURL);
+	JSON_SERIALIZE("lobby_match_placement_url", LobbyMatchPlacementURL);
 	END_JSON_SERIALIZER;
 
 	FString LobbyId = "";
@@ -186,6 +190,7 @@ struct FDriftLobbyResponse : FJsonSerializable
 	FString LobbyURL = "";
 	FString LobbyMembersURL = "";
 	FString LobbyMemberURL = "";
+	FString LobbyMatchPlacementURL = "";
 };
 
 class FDriftLobbyManager : public IDriftLobbyManager, public FSelfRegisteringExec
@@ -222,6 +227,8 @@ public:
 	FOnLobbyMatchStartedDelegate& OnLobbyMatchStarted() override { return OnLobbyMatchStartedDelegate; }
 
 private:
+	void InitializeLocalState();
+
 	void HandleLobbyEvent(const FMessageQueueEntry& Message);
 
 	static EDriftLobbyEvent ParseEvent(const FString& EventName);
@@ -240,6 +247,7 @@ private:
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 
+	FString MatchPlacementsURL;
 	FString LobbiesURL;
 	FString CurrentLobbyURL;
 	FString CurrentLobbyMembersURL;

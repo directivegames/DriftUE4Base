@@ -47,6 +47,7 @@ struct FDriftEndpointsResponse
 	FString parties;
 	FString party_invites;
 	FString lobbies;
+	FString match_placements;
 
 	// Added after authentication
 	FString my_flexmatch;
