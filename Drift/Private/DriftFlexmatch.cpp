@@ -61,7 +61,6 @@ void FDriftFlexmatch::MeasureLatencies()
 	bIsPinging = true;
 	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
 	auto LatenciesByRegion{ MakeShared<TMap<FString, int>>() };
-	//TSharedRef<TMap<FString, int>, ESPMode::ThreadSafe> LatenciesByRegion(new TMap<FString, int>());
 	const auto HttpModule = &FHttpModule::Get();
 	for(auto Region: PingRegions)
 	{
