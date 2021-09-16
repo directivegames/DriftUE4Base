@@ -17,8 +17,8 @@
 #include "JsonUtils.h"
 #include "DriftAPI.h"
 #include "JTIRequestManager.h"
+#include "JWTRequestManager.h"
 #include "ErrorResponse.h"
-#include "DriftCredentialsFactory.h"
 #include "DriftPartyManager.h"
 #include "Details/PlatformName.h"
 #include "Details/UrlHelper.h"
@@ -2346,21 +2346,21 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        FString jti;
-        const auto member = doc.FindField(TEXT("jti"));
+        FString token;
+        const auto member = doc.FindField(TEXT("token"));
         if (member.IsString())
         {
-            jti = member.GetString();
+            token = member.GetString();
         }
-        if (jti.IsEmpty())
+        if (token.IsEmpty())
         {
-            context.error = TEXT("Session 'jti' missing.");
+            context.error = TEXT("Session 'token' missing.");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Got JTI %s"), *jti);
+        DRIFT_LOG(Base, Verbose, TEXT("Got JWT %s"), *token);
 
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(token));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
