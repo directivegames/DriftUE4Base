@@ -3,6 +3,8 @@
 #include "DriftPartyManager.h"
 
 
+#include "ErrorResponse.h"
+#include "JsonUtils.h"
 #include "Details/UrlHelper.h"
 #include "Json/Public/Serialization/JsonSerializerMacros.h"
 
@@ -385,7 +387,7 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 	if (!Element)
 	{
 		UE_LOG(LogDriftParties, Error, TEXT("Trying to accept non-existing invite %d"), PartyInviteId);
-		(void)Callback.ExecuteIfBound(false, PartyInviteId, ""); // TODO: Send a 404 message with this callback
+		(void)Callback.ExecuteIfBound(false, PartyInviteId, 404, ""); // TODO: Send a 404 message with this callback
 		return false;
 	}
 
@@ -404,7 +406,7 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 		{
 			UE_LOG(LogDriftParties, Error, TEXT("Failed to serialize accept party invite response"));
 
-			(void)Callback.ExecuteIfBound(false, PartyInviteId, Context.response->GetContentAsString());
+			(void)Callback.ExecuteIfBound(false, PartyInviteId, Context.responseCode, "");
 			return;
 		}
 
@@ -412,13 +414,22 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 
 		UE_LOG(LogDriftParties, Verbose, TEXT("Joined party %s"), *Payload.PartyUrl);
 
-		(void)Callback.ExecuteIfBound(true, PartyInviteId, Context.response->GetContentAsString());
+		(void)Callback.ExecuteIfBound(true, PartyInviteId, Context.responseCode, "");
 
 		QueryParty({});
 	});
 	Request->OnError.BindLambda([this, Callback, PartyInviteId](ResponseContext& Context)
 	{
-		(void)Callback.ExecuteIfBound(false, PartyInviteId, Context.response->GetContentAsString());
+		Context.errorHandled = true;
+		if (Context.error.IsEmpty() && Context.response.IsValid())
+		{
+			GenericRequestErrorResponse response;
+			if (JsonUtils::ParseResponse(Context.response, response))
+			{
+				Context.error = response.GetErrorDescription();
+			}
+		}
+		(void)Callback.ExecuteIfBound(false, PartyInviteId, Context.responseCode, Context.error);
 	});
 	Request->Dispatch();
 	return true;

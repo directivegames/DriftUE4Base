@@ -37,7 +37,7 @@ public:
 
 DECLARE_DELEGATE_TwoParams(FQueryPartyCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FInvitePlayerToPartyCompletedDelegate, bool, int32);
-DECLARE_DELEGATE_ThreeParams(FAcceptPartyInviteCompletedDelegate, bool, int32, const FString& /* Error message */);
+DECLARE_DELEGATE_FourParams(FAcceptPartyInviteCompletedDelegate, bool, int32, int32 /* Status Code */, const FString& /* Error description */);
 DECLARE_DELEGATE_TwoParams(FCancelPartyIniviteCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDeclinePartyIniviteCompletedDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FLeavePartyCompletedDelegate, bool, int32);
