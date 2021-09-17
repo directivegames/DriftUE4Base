@@ -385,8 +385,7 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 	if (!Element)
 	{
 		UE_LOG(LogDriftParties, Error, TEXT("Trying to accept non-existing invite %d"), PartyInviteId);
-
-		(void)Callback.ExecuteIfBound(false, PartyInviteId);
+		(void)Callback.ExecuteIfBound(false, PartyInviteId, ""); // TODO: Send a 404 message with this callback
 		return false;
 	}
 
@@ -403,9 +402,9 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 		FDriftAcceptPartyInviteResponse Payload{};
 		if (!Payload.FromJson(Doc.GetInternalValue()->AsObject()))
 		{
-			UE_LOG(LogDriftParties, Error, TEXT("Failed to serialize aceept party invite response"));
+			UE_LOG(LogDriftParties, Error, TEXT("Failed to serialize accept party invite response"));
 
-			(void)Callback.ExecuteIfBound(false, PartyInviteId);
+			(void)Callback.ExecuteIfBound(false, PartyInviteId, Context.response->GetContentAsString());
 			return;
 		}
 
@@ -413,13 +412,13 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 
 		UE_LOG(LogDriftParties, Verbose, TEXT("Joined party %s"), *Payload.PartyUrl);
 
-		(void)Callback.ExecuteIfBound(true, PartyInviteId);
+		(void)Callback.ExecuteIfBound(true, PartyInviteId, Context.response->GetContentAsString());
 
 		QueryParty({});
 	});
 	Request->OnError.BindLambda([this, Callback, PartyInviteId](ResponseContext& Context)
 	{
-		(void)Callback.ExecuteIfBound(false, PartyInviteId);
+		(void)Callback.ExecuteIfBound(false, PartyInviteId, Context.response->GetContentAsString());
 	});
 	Request->Dispatch();
 	return true;
