@@ -1016,6 +1016,17 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, 
 		LobbyResponse.LobbyMatchPlacementURL
 	);
 
+	if (!LobbyResponse.ConnectionString.IsEmpty())
+	{
+		CurrentLobby->ConnectionString = LobbyResponse.ConnectionString;
+
+		if (LobbyResponse.ConnectionOptions.IsEmpty())
+		{
+			// Default to spectator
+			CurrentLobby->ConnectionOptions = "SpectatorOnly=1";
+		}
+	}
+
 	UpdateCurrentPlayerProperties();
 
 	UE_LOG(LogDriftLobby, Log, TEXT("Current lobby updated: '%s'"), *CurrentLobbyId);
