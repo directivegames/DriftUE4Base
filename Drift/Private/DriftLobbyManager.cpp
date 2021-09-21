@@ -1160,5 +1160,11 @@ bool FDriftLobbyManager::ApplyCurrentPlayerProperties()
 		CurrentLobby->LocalPlayerMember->bReady = CurrentPlayerProperties.bReady.GetValue();
 	}
 
+	// Local player isn't ready and in a team
+	if (!CurrentLobby->LocalPlayerMember->bReady && !CurrentLobby->LocalPlayerMember->TeamName.Get("").IsEmpty())
+	{
+		CurrentLobby->bAllTeamMembersReady = false;
+	}
+
 	return true;
 }
