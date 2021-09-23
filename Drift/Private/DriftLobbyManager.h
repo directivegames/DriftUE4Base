@@ -244,6 +244,8 @@ private:
 	bool UpdateCurrentPlayerProperties();
 	bool ApplyCurrentPlayerProperties();
 
+	static bool GetResponseError(const ResponseContext& Context, FString& Error);
+
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 

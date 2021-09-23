@@ -121,14 +121,14 @@ struct FDriftLobbyMemberProperties
 	}
 };
 
-DECLARE_DELEGATE_TwoParams(FQueryLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
-DECLARE_DELEGATE_TwoParams(FLeaveLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
-DECLARE_DELEGATE_TwoParams(FJoinLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
-DECLARE_DELEGATE_TwoParams(FCreateLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
-DECLARE_DELEGATE_TwoParams(FUpdateLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
-DECLARE_DELEGATE_TwoParams(FUpdatePlayerCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
-DECLARE_DELEGATE_ThreeParams(FKickMemberCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, int32 /* KickedPlayerId */);
-DECLARE_DELEGATE_TwoParams(FStartLobbyMatchCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */);
+DECLARE_DELEGATE_ThreeParams(FQueryLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FLeaveLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FJoinLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FCreateLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FUpdateLobbyCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FUpdatePlayerCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_FourParams(FKickMemberCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, int32 /* KickedPlayerId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FStartLobbyMatchCompletedDelegate, bool /* bSuccess */, const FString& /* LobbyId */, const FString& /* ErrorMessage */);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyUpdatedDelegate, const FString& /* LobbyId */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyDeletedDelegate, const FString& /* LobbyId */);
