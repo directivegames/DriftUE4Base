@@ -1027,12 +1027,7 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, 
 	if (!LobbyResponse.ConnectionString.IsEmpty())
 	{
 		CurrentLobby->ConnectionString = LobbyResponse.ConnectionString;
-
-		if (LobbyResponse.ConnectionOptions.IsEmpty())
-		{
-			// Default to spectator
-			CurrentLobby->ConnectionOptions = "SpectatorOnly=1";
-		}
+		CurrentLobby->ConnectionOptions = LobbyResponse.ConnectionOptions.IsEmpty() ? "SpectatorOnly=1" : LobbyResponse.ConnectionOptions;
 	}
 
 	UpdateCurrentPlayerProperties();
