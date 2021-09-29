@@ -17,8 +17,8 @@
 #include "JsonUtils.h"
 #include "DriftAPI.h"
 #include "JTIRequestManager.h"
+#include "JWTRequestManager.h"
 #include "ErrorResponse.h"
-#include "DriftCredentialsFactory.h"
 #include "DriftPartyManager.h"
 #include "Details/PlatformName.h"
 #include "Details/UrlHelper.h"
@@ -961,7 +961,7 @@ void FDriftBase::AuthenticatePlayer(FAuthenticationSettings AuthenticationSettin
         FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
     }
 
-    if (!cli.jti.IsEmpty())
+    if (IsPreAuthenticated())
     {
         GetRootEndpoints([this]()
         {
@@ -2346,21 +2346,21 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        FString jti;
-        const auto member = doc.FindField(TEXT("jti"));
+        FString token;
+        const auto member = doc.FindField(TEXT("token"));
         if (member.IsString())
         {
-            jti = member.GetString();
+            token = member.GetString();
         }
-        if (jti.IsEmpty())
+        if (token.IsEmpty())
         {
-            context.error = TEXT("Session 'jti' missing.");
+            context.error = TEXT("Session 'token' missing.");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Got JTI %s"), *jti);
+        DRIFT_LOG(Base, Verbose, TEXT("Got JWT %s"), *token);
 
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(token));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
@@ -2475,7 +2475,7 @@ void FDriftBase::RegisterClient()
         }
         heartbeatUrl = driftClient.url;
         heartbeatDueInSeconds_ = driftClient.next_heartbeat_seconds;
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(driftClient.jti));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(driftClient.jwt));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
@@ -2684,21 +2684,20 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this, progressDelegate, provider](ResponseContext& context, JsonDocument& doc)
     {
-        FString jti;
-        const auto member = doc.FindField(TEXT("jti"));
+        FString jwt;
+        auto member = doc.FindField(TEXT("token"));
         if (member.IsString())
         {
-            jti = member.GetString();
+            jwt = member.GetString();
         }
-        if (jti.IsEmpty())
+        if (jwt.IsEmpty())
         {
-            context.error = TEXT("Identity 'jti' missing.");
+            context.error = TEXT("No authorization token found.");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Got JTI %s"), *jti);
-
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(jti));
+        DRIFT_LOG(Base, Verbose, TEXT("Got JWT %s"), *jwt);
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(jwt));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
@@ -2998,23 +2997,17 @@ void FDriftBase::InitServerAuthentication()
 
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-		serverJTI_ = doc[TEXT("jti")].GetString();
-		serverJWT_ = doc[TEXT("token")].GetString();
-        if (serverJTI_.IsEmpty())
+        serverJTI_ = doc[TEXT("jti")].GetString();
+        serverJWT_ = doc[TEXT("token")].GetString();
+
+        if (serverJWT_.IsEmpty())
         {
-            context.error = TEXT("Session 'jti' missing.");
+            context.error = TEXT("Session 'token' missing.");
             return;
         }
+        DRIFT_LOG(Base, Verbose, TEXT("GOT JWT %s"), *serverJWT_);
 
-		if (serverJWT_.IsEmpty())
-		{
-			context.error = TEXT("Session 'jwt' missing.");
-			return;
-		}
-
-        DRIFT_LOG(Base, Verbose, TEXT("GOT JTI %s"), *serverJTI_);
-
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(serverJTI_));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(serverJWT_));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());

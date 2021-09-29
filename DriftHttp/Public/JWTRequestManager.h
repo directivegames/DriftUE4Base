@@ -15,7 +15,7 @@
 #include "JsonRequestManager.h"
 
 
-class JWTRequestManager : public JsonRequestManager
+class DRIFTHTTP_API JWTRequestManager : public JsonRequestManager
 {
 public:
     JWTRequestManager(const FString& token);
