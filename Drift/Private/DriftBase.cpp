@@ -418,9 +418,9 @@ const TMap<FString, FDateTime>& FDriftBase::GetDeprecations()
 
 FString FDriftBase::GetJWT() const
 {
-	if (serverJWT_.Len())
+	if (serverBearerToken_.Len())
 	{
-		return serverJWT_;
+		return serverBearerToken_;
 	}
 	else if (driftClient.jwt.Len())
 	{
@@ -598,7 +598,7 @@ void FDriftBase::Reset()
     previousDeprecationHeader_.Empty();
 
 	serverJTI_ = {};
-	serverJWT_ = {};
+	serverBearerToken_ = {};
 }
 
 
@@ -2346,21 +2346,21 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
-        FString token;
+        FString bearerToken;
         const auto member = doc.FindField(TEXT("token"));
         if (member.IsString())
         {
-            token = member.GetString();
+            bearerToken = member.GetString();
         }
-        if (token.IsEmpty())
+        if (bearerToken.IsEmpty())
         {
             context.error = TEXT("Session 'token' missing.");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Got JWT %s"), *token);
+        DRIFT_LOG(Base, Verbose, TEXT("Got bearer token %s"), *bearerToken);
 
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(token));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(bearerToken));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
@@ -2684,20 +2684,20 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this, progressDelegate, provider](ResponseContext& context, JsonDocument& doc)
     {
-        FString jwt;
+        FString bearerToken;
         auto member = doc.FindField(TEXT("token"));
         if (member.IsString())
         {
-            jwt = member.GetString();
+            bearerToken = member.GetString();
         }
-        if (jwt.IsEmpty())
+        if (bearerToken.IsEmpty())
         {
             context.error = TEXT("No authorization token found.");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Got JWT %s"), *jwt);
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(jwt));
+        DRIFT_LOG(Base, Verbose, TEXT("Got bearer token %s"), *bearerToken);
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(bearerToken));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());
@@ -2998,16 +2998,16 @@ void FDriftBase::InitServerAuthentication()
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
         serverJTI_ = doc[TEXT("jti")].GetString();
-        serverJWT_ = doc[TEXT("token")].GetString();
+        serverBearerToken_ = doc[TEXT("token")].GetString();
 
-        if (serverJWT_.IsEmpty())
+        if (serverBearerToken_.IsEmpty())
         {
             context.error = TEXT("Session 'token' missing.");
             return;
         }
-        DRIFT_LOG(Base, Verbose, TEXT("GOT JWT %s"), *serverJWT_);
+        DRIFT_LOG(Base, Verbose, TEXT("Got bearer token %s"), *serverBearerToken_);
 
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(serverJWT_));
+        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(serverBearerToken_));
         manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
         manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
         manager->SetApiKey(GetApiKeyHeader());

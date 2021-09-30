@@ -455,7 +455,7 @@ private:
     bool ignoreCommandLineArguments_ = false;
 
 	FString serverJTI_;
-	FString serverJWT_;
+	FString serverBearerToken_;
 
 	TMap<int32, int32> PlayerIdToTeamId;
 };
