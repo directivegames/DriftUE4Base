@@ -85,7 +85,8 @@ private:
 	// Latency measuring/reporting
 	bool bDoPings = false;
 	bool bIsPinging = false;
-	const float PingInterval = 3.0;
+	float PingInterval = 2.0;
+	const float MaxPingInterval = 15.0;
 	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
 	// TODO: Fetch valid region->pingServer mapping from backend.

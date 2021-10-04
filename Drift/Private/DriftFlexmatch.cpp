@@ -85,6 +85,10 @@ void FDriftFlexmatch::MeasureLatencies()
 				if (LatenciesByRegion->Num() == Self->PingRegions.Num())
 				{
 					Self->bIsPinging = false;
+					if (Self->PingInterval < Self->MaxPingInterval)
+					{
+						Self->PingInterval += 0.5;
+					}
 					Self->ReportLatencies(LatenciesByRegion);
 				}
 			}
