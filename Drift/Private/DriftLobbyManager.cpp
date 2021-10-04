@@ -709,7 +709,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 	if (!EventData.HasField("lobby_id"))
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Event data doesn't contain 'lobby_id'. Discarding the event. Current cached lobby id: '%s'"), *CurrentLobbyId);
+		UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Event data doesn't contain 'lobby_id'. Discarding the event. Current cached lobby id: '%s'. Querying for the current lobby to sync up just in case."), *CurrentLobbyId);
+		QueryLobby({});
 		return;
 	}
 
@@ -758,7 +759,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			FDriftLobbyResponse LobbyResponse{};
 			if (!LobbyResponse.FromJson(EventData.ToString()))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize LobbyUpdated event data"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize LobbyUpdated event data. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
@@ -779,11 +781,11 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			if (ExtractMembers(EventData))
 			{
 				OnLobbyMemberJoinedDelegate.Broadcast(CurrentLobbyId);
+				return;
 			}
-			else
-			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberUpdated event data"));
-			}
+
+			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberJoined event data. Syncing up the lobby state just in case."));
+			QueryLobby({});
 			break;
 		}
 
@@ -792,11 +794,11 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			if (ExtractMembers(EventData))
 			{
 				OnLobbyMemberUpdatedDelegate.Broadcast(CurrentLobbyId);
+				return;
 			}
-			else
-			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberUpdated event data"));
-			}
+
+			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberUpdated event data. Syncing up the lobby state just in case."));
+			QueryLobby({});
 			break;
 		}
 
@@ -805,11 +807,11 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			if (ExtractMembers(EventData))
 			{
 				OnLobbyMemberLeftDelegate.Broadcast(CurrentLobbyId);
+				return;
 			}
-			else
-			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberUpdated event data"));
-			}
+
+			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberLeft event data. Syncing up the lobby state just in case."));
+			QueryLobby({});
 			break;
 		}
 
@@ -818,11 +820,11 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 			if (ExtractMembers(EventData))
 			{
 				OnLobbyMemberKickedDelegate.Broadcast(CurrentLobbyId);
+				return;
 			}
-			else
-			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberKicked event data"));
-			}
+
+			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Failed to serialize one or more members for LobbyMemberKicked event data. Syncing up the lobby state just in case."));
+			QueryLobby({});
 			break;
 		}
 
@@ -830,7 +832,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 		{
 			if (!EventData.HasField("status"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarting - Event data missing 'status' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarting - Event data missing 'status' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
@@ -844,19 +847,22 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 		{
 			if (!EventData.HasField("status"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'status' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'status' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
 			if (!EventData.HasField("connection_string"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'connection_string' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'connection_string' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
 			if (!EventData.HasField("connection_options"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'connection_options' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchStarted - Event data missing 'connection_options' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
@@ -873,7 +879,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 		{
 			if (!EventData.HasField("status"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchCancelled - Event data missing 'status' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchCancelled - Event data missing 'status' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
@@ -887,7 +894,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 		{
 			if (!EventData.HasField("status"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchTimedOut - Event data missing 'status' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchTimedOut - Event data missing 'status' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
@@ -901,7 +909,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 		{
 			if (!EventData.HasField("status"))
 			{
-				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchFailed - Event data missing 'status' field"));
+				UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - LobbyMatchFailed - Event data missing 'status' field. Syncing up the lobby state just in case."));
+				QueryLobby({});
 				return;
 			}
 
@@ -913,7 +922,8 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 		case EDriftLobbyEvent::Unknown:
 		default:
-			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Unknown event '%s'"), *Event);
+			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::HandleLobbyEvent - Unknown event '%s'. Syncing up the lobby state just in case."), *Event);
+			QueryLobby({});
 	}
 }
 
