@@ -295,7 +295,7 @@ bool FDriftLobbyManager::JoinLobby(FString LobbyId, FJoinLobbyCompletedDelegate 
 	if (!HasSession())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join a lobby without a session"));
-		(void)Delegate.ExecuteIfBound(false, "", "No backend connection");
+		(void)Delegate.ExecuteIfBound(false, LobbyId, "No backend connection");
 		return false;
 	}
 
@@ -321,11 +321,11 @@ bool FDriftLobbyManager::JoinLobby(FString LobbyId, FJoinLobbyCompletedDelegate 
 		UE_LOG(LogDriftLobby, Log, TEXT("Joined lobby '%s'"), *CurrentLobbyId);
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 	});
-	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+	Request->OnError.BindLambda([LobbyId, Delegate](ResponseContext& Context)
 	{
 		FString Error;
 		Context.errorHandled = GetResponseError(Context, Error);
-		(void)Delegate.ExecuteIfBound(false, "", Error);
+		(void)Delegate.ExecuteIfBound(false, LobbyId, Error);
 	});
 
 	return Request->Dispatch();
@@ -336,14 +336,14 @@ bool FDriftLobbyManager::LeaveLobby(FLeaveLobbyCompletedDelegate Delegate)
 	if (!HasSession())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to leave a lobby without a session"));
-		(void)Delegate.ExecuteIfBound(false, "", "No backend connection");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "No backend connection");
 		return false;
 	}
 
 	if (CurrentLobbyMemberURL.IsEmpty())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to leave a lobby without having a locally cached lobby. Unable to determine which lobby to leave."));
-		(void)Delegate.ExecuteIfBound(false, "", "No lobby found to leave");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "No lobby found to leave");
 		return false;
 	}
 
@@ -364,13 +364,13 @@ bool FDriftLobbyManager::LeaveLobby(FLeaveLobbyCompletedDelegate Delegate)
 			OnLobbyDeletedDelegate.Broadcast(OldLobbyId);
 		}
 
-		(void)Delegate.ExecuteIfBound(true, "", "");
+		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 	});
-	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+	Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
 	{
 		FString Error;
 		Context.errorHandled = GetResponseError(Context, Error);
-		(void)Delegate.ExecuteIfBound(false, "", Error);
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, Error);
 	});
 
 	return Request->Dispatch();
@@ -441,14 +441,14 @@ bool FDriftLobbyManager::UpdateLobby(FDriftLobbyProperties LobbyProperties, FUpd
 	if (!HasSession())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to update lobby properties without a session"));
-		(void)Delegate.ExecuteIfBound(false, "", "No backend connection");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "No backend connection");
 		return false;
 	}
 
 	if (!IsCurrentLobbyHost())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Only the lobby host can update the lobby properties"));
-		(void)Delegate.ExecuteIfBound(false, "", "You are not the host. Only the host can update the lobby");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "You are not the host. Only the host can update the lobby");
 		return false;
 	}
 
@@ -495,11 +495,11 @@ bool FDriftLobbyManager::UpdateLobby(FDriftLobbyProperties LobbyProperties, FUpd
 
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 	});
-	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+	Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
 	{
 		FString Error;
 		Context.errorHandled = GetResponseError(Context, Error);
-		(void)Delegate.ExecuteIfBound(false, "", Error);
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, Error);
 	});
 
 	return Request->Dispatch();
@@ -510,14 +510,14 @@ bool FDriftLobbyManager::UpdatePlayer(FDriftLobbyMemberProperties PlayerProperti
 	if (!HasSession())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to update player properties without a session"));
-		(void)Delegate.ExecuteIfBound(false, "", "No backend connection");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "No backend connection");
 		return false;
 	}
 
 	if (!CurrentLobby.IsValid())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to join update player properties while not being in a lobby"));
-		(void)Delegate.ExecuteIfBound(false, "", "You are not in a lobby. Must be in a lobby to update your properties");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "You are not in a lobby. Must be in a lobby to update your properties");
 		return false;
 	}
 
@@ -553,11 +553,11 @@ bool FDriftLobbyManager::UpdatePlayer(FDriftLobbyMemberProperties PlayerProperti
 
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 	});
-	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+	Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
 	{
 		FString Error;
 		Context.errorHandled = GetResponseError(Context, Error);
-		(void)Delegate.ExecuteIfBound(false, "", Error);
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, Error);
 	});
 
 	return Request->Dispatch();
@@ -568,14 +568,14 @@ bool FDriftLobbyManager::KickLobbyMember(int32 MemberPlayerId, FKickMemberComple
 	if (!HasSession())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to kick a lobby member without a session"));
-		(void)Delegate.ExecuteIfBound(false, "", INDEX_NONE, "No backend connection");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, INDEX_NONE, "No backend connection");
 		return false;
 	}
 
 	if (!IsCurrentLobbyHost())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Only the lobby host can kick lobby member"));
-		(void)Delegate.ExecuteIfBound(false, "", INDEX_NONE, "You are not the host. Only the host can kick other lobby members");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, INDEX_NONE, "You are not the host. Only the host can kick other lobby members");
 		return false;
 	}
 
@@ -622,11 +622,11 @@ bool FDriftLobbyManager::KickLobbyMember(int32 MemberPlayerId, FKickMemberComple
 
 		(void)Delegate.ExecuteIfBound(true, "", MemberPlayerId, "");
 	});
-	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+	Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
 	{
 		FString Error;
 		Context.errorHandled = GetResponseError(Context, Error);
-		(void)Delegate.ExecuteIfBound(false, "", INDEX_NONE, Error);
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, INDEX_NONE, Error);
 	});
 
 	return Request->Dispatch();
@@ -637,14 +637,14 @@ bool FDriftLobbyManager::StartLobbyMatch(FStartLobbyMatchCompletedDelegate Deleg
 	if (!HasSession())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Trying to start the lobby match without a session"));
-		(void)Delegate.ExecuteIfBound(false, "", "No backend connection");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "No backend connection");
 		return false;
 	}
 
 	if (!IsCurrentLobbyHost())
 	{
 		UE_LOG(LogDriftLobby, Error, TEXT("Only the lobby host can start the match"));
-		(void)Delegate.ExecuteIfBound(false, "", "You are not the host. Only the host can start the match");
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, "You are not the host. Only the host can start the match");
 		return false;
 	}
 
@@ -688,7 +688,7 @@ bool FDriftLobbyManager::StartLobbyMatch(FStartLobbyMatchCompletedDelegate Deleg
 
 		FString Error;
 		Context.errorHandled = GetResponseError(Context, Error);
-		(void)Delegate.ExecuteIfBound(false, "", Error);
+		(void)Delegate.ExecuteIfBound(false, CurrentLobbyId, Error);
 	});
 
 	return Request->Dispatch();
@@ -1189,11 +1189,11 @@ bool FDriftLobbyManager::GetResponseError(const ResponseContext& Context, FStrin
 		return false;
 	}
 
-	if (!Doc.HasField(TEXT("error")))
+	if (!Doc.HasField(TEXT("message")))
 	{
 		return false;
 	}
 
-	Error = Doc[TEXT("error")].GetString();
+	Error = Doc[TEXT("message")].GetString();
 	return true;
 }
