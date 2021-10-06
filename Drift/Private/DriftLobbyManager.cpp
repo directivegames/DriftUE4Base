@@ -109,9 +109,9 @@ void FDriftLobbyManager::InitializeLocalState()
 	});
 	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
-		Context.errorHandled = true;
-		UE_LOG(LogDriftLobby, Error, TEXT("InitializeLocalState - Error fetching existing lobby"
-					", Response code %d, error: '%s'"), Context.responseCode, *Context.error);
+		FString Error;
+		Context.errorHandled = GetResponseError(Context, Error);
+		UE_LOG(LogDriftLobby, Error, TEXT("InitializeLocalState - Error fetching existing lobby, Response code %d, error: '%s'"), Context.responseCode, *Error);
 		ResetCurrentLobby();
 	});
 
