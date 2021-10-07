@@ -1199,11 +1199,24 @@ bool FDriftLobbyManager::GetResponseError(const ResponseContext& Context, FStrin
 		return false;
 	}
 
-	if (!Doc.HasField(TEXT("message")))
+	// Check if there is a specific error message provided
+	if (Doc.HasField(TEXT("error")))
 	{
-		return false;
+		const auto ErrorField = Doc[TEXT("error")].GetObject();
+		if (const auto ErrorValuePtr = ErrorField.Find("description"))
+		{
+			Error = ErrorValuePtr->GetString();
+			return true;
+		}
+
 	}
 
-	Error = Doc[TEXT("message")].GetString();
-	return true;
+	// Fallback to the generic error message if provided
+	if (Doc.HasField(TEXT("message")))
+	{
+		Error = Doc[TEXT("message")].GetString();
+		return true;
+	}
+
+	return false;
 }
