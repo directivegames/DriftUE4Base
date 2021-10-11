@@ -215,7 +215,7 @@ public:
 	bool UpdateLobby(FDriftLobbyProperties LobbyProperties, FUpdateLobbyCompletedDelegate Delegate) override;
 	bool UpdatePlayer(FDriftLobbyMemberProperties PlayerProperties, FUpdatePlayerCompletedDelegate Delegate) override;
 	bool KickLobbyMember(int32 MemberPlayerId, FKickMemberCompletedDelegate Delegate) override;
-	bool StartLobbyMatch(FStartLobbyMatchCompletedDelegate Delegate) override;
+	bool StartLobbyMatch(FString Queue, FStartLobbyMatchCompletedDelegate Delegate) override;
 
 	FOnLobbyUpdatedDelegate& OnLobbyUpdated() override { return OnLobbyUpdatedDelegate; }
 	FOnLobbyDeletedDelegate& OnLobbyDeleted() override { return OnLobbyDeletedDelegate; }
@@ -242,13 +242,16 @@ private:
 	bool IsCurrentLobbyHost() const;
 
 	bool UpdateCurrentPlayerProperties();
-	bool ApplyCurrentPlayerProperties();
+	bool ApplyLobbyProperties(const FDriftLobbyProperties& LobbyProperties);
+	bool ApplyPlayerProperties(const FDriftLobbyMemberProperties& PlayerProperties);
 
 	static bool GetResponseError(const ResponseContext& Context, FString& Error);
 
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 
+	FString TemplateLobbyMemberURL;
+	FString TemplateLobbyMembersURL;
 	FString MatchPlacementsURL;
 	FString LobbiesURL;
 	FString CurrentLobbyURL;
@@ -258,7 +261,12 @@ private:
 
 	TSharedPtr<FDriftLobby> CurrentLobby;
 	FString CurrentLobbyId;
+
+	FDriftLobbyProperties CurrentLobbyProperties;
+	FDriftLobbyProperties CurrentLocalLobbyProperties;
+
 	FDriftLobbyMemberProperties CurrentPlayerProperties;
+	FDriftLobbyMemberProperties CurrentLocalPlayerProperties;
 
 	FOnLobbyUpdatedDelegate OnLobbyUpdatedDelegate;
 	FOnLobbyDeletedDelegate OnLobbyDeletedDelegate;

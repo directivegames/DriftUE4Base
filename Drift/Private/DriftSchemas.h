@@ -49,6 +49,10 @@ struct FDriftEndpointsResponse
 	FString lobbies;
 	FString match_placements;
 
+	// Templates
+	FString template_lobby_member;
+	FString template_lobby_members;
+
 	// Added after authentication
 	FString my_flexmatch;
 	FString my_flexmatch_ticket;
@@ -59,9 +63,6 @@ struct FDriftEndpointsResponse
 	FString my_player_groups;
 	FString my_player;
 	FString my_user;
-	FString my_lobby;
-	FString my_lobby_members;
-	FString my_lobby_member;
 
 	bool Serialize(SerializationContext& context);
 };

@@ -167,7 +167,7 @@ public:
 	virtual bool KickLobbyMember(int32 MemberPlayerId, FKickMemberCompletedDelegate Delegate) = 0;
 
 	/* Start the lobby match. You must be the host */
-	virtual bool StartLobbyMatch(FStartLobbyMatchCompletedDelegate Delegate) = 0;
+	virtual bool StartLobbyMatch(FString Queue, FStartLobbyMatchCompletedDelegate Delegate) = 0;
 
 	/* Raised when the lobby host updates the lobby properties */
 	virtual FOnLobbyUpdatedDelegate& OnLobbyUpdated() = 0;
