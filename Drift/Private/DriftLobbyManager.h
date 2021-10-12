@@ -236,8 +236,8 @@ private:
 
 	bool HasSession() const;
 
-	void ExtractLobby(const FDriftLobbyResponse& LobbyResponse, bool bUpdateURLs = true);
-	bool ExtractMembers(const JsonValue& EventData);
+	void CacheLobby(const FDriftLobbyResponse& LobbyResponse, bool bUpdateURLs = true);
+	bool CacheMembers(const JsonValue& EventData);
 	void ResetCurrentLobby();
 	bool IsCurrentLobbyHost() const;
 

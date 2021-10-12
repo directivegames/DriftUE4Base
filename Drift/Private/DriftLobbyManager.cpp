@@ -90,7 +90,7 @@ void FDriftLobbyManager::InitializeLocalState()
 
 		if (LobbyMember)
 		{
-			ExtractLobby(LobbyResponse);
+			CacheLobby(LobbyResponse);
 		}
 		else
 		{
@@ -270,7 +270,7 @@ bool FDriftLobbyManager::QueryLobby(FQueryLobbyCompletedDelegate Delegate)
 
 		if (LobbyMember)
 		{
-			ExtractLobby(LobbyResponse);
+			CacheLobby(LobbyResponse);
 			(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 		}
 		else
@@ -316,7 +316,7 @@ bool FDriftLobbyManager::JoinLobby(FString LobbyId, FJoinLobbyCompletedDelegate 
 			return;
 		}
 
-		ExtractLobby(LobbyResponse);
+		CacheLobby(LobbyResponse);
 
 		UE_LOG(LogDriftLobby, Log, TEXT("Joined lobby '%s'"), *CurrentLobbyId);
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
@@ -423,7 +423,7 @@ bool FDriftLobbyManager::CreateLobby(FDriftLobbyProperties LobbyProperties, FCre
 			return;
 		}
 
-		ExtractLobby(LobbyResponse);
+		CacheLobby(LobbyResponse);
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 	});
 	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
@@ -787,7 +787,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 				return;
 			}
 
-			ExtractLobby(LobbyResponse, false);
+			CacheLobby(LobbyResponse, false);
 			OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 			break;
 		}
@@ -801,7 +801,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 		case EDriftLobbyEvent::LobbyMemberJoined:
 		{
-			if (ExtractMembers(EventData))
+			if (CacheMembers(EventData))
 			{
 				OnLobbyMemberJoinedDelegate.Broadcast(CurrentLobbyId);
 				return;
@@ -814,7 +814,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 		case EDriftLobbyEvent::LobbyMemberUpdated:
 		{
-			if (ExtractMembers(EventData))
+			if (CacheMembers(EventData))
 			{
 				OnLobbyMemberUpdatedDelegate.Broadcast(CurrentLobbyId);
 				return;
@@ -827,7 +827,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 		case EDriftLobbyEvent::LobbyMemberLeft:
 		{
-			if (ExtractMembers(EventData))
+			if (CacheMembers(EventData))
 			{
 				OnLobbyMemberLeftDelegate.Broadcast(CurrentLobbyId);
 				return;
@@ -840,7 +840,7 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 		case EDriftLobbyEvent::LobbyMemberKicked:
 		{
-			if (ExtractMembers(EventData))
+			if (CacheMembers(EventData))
 			{
 				OnLobbyMemberKickedDelegate.Broadcast(CurrentLobbyId);
 				return;
@@ -1005,7 +1005,7 @@ bool FDriftLobbyManager::HasSession() const
 		RequestManager.IsValid();
 }
 
-void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, bool bUpdateURLs)
+void FDriftLobbyManager::CacheLobby(const FDriftLobbyResponse& LobbyResponse, bool bUpdateURLs)
 {
 	CurrentLobbyId = LobbyResponse.LobbyId;
 
@@ -1073,11 +1073,11 @@ void FDriftLobbyManager::ExtractLobby(const FDriftLobbyResponse& LobbyResponse, 
 	OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 }
 
-bool FDriftLobbyManager::ExtractMembers(const JsonValue& EventData)
+bool FDriftLobbyManager::CacheMembers(const JsonValue& EventData)
 {
 	if (!CurrentLobby)
 	{
-		UE_LOG(LogDriftLobby, Error, TEXT("Cannot extract members when no local lobby is present. EventData:\n'%s'"), *EventData.ToString());
+		UE_LOG(LogDriftLobby, Error, TEXT("Cannot cache members when no local lobby is present. EventData:\n'%s'"), *EventData.ToString());
 		return false;
 	}
 
@@ -1089,7 +1089,7 @@ bool FDriftLobbyManager::ExtractMembers(const JsonValue& EventData)
 		FDriftLobbyResponseMember LobbyResponseMember{};
 		if (!LobbyResponseMember.FromJson(Elem.ToString()))
 		{
-			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::ExtractMembers - Failed to serialize member data. EventData:\n'%s'"), *EventData.ToString());
+			UE_LOG(LogDriftLobby, Error, TEXT("FDriftLobbyManager::CacheMembers - Failed to serialize member data. EventData:\n'%s'"), *EventData.ToString());
 			return false;
 		}
 
