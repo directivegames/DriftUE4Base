@@ -37,6 +37,7 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, friend_requests)
 		&& SERIALIZE_PROPERTY(context, party_invites)
 		&& SERIALIZE_PROPERTY(context, parties)
+		&& SERIALIZE_PROPERTY(context, app_roots)
 
 		// Optional
 		&& SERIALIZE_PROPERTY(context, my_flexmatch)

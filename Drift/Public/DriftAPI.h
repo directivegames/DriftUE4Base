@@ -881,6 +881,10 @@ public:
      */
     virtual FString GetRootURL() const = 0;
     /**
+    * Return the root endpoints of other drift-apps
+    */
+    virtual JsonValue GetAppRoots() const = 0;
+    /**
     * Return the current environment specifier
     */
     virtual FString GetEnvironment() const = 0;

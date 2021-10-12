@@ -133,6 +133,7 @@ public:
     FString GetJWT() const override;
     FString GetJTI() const override;
     FString GetRootURL() const override;
+    JsonValue GetAppRoots() const override;
     FString GetEnvironment() const override;
     FString GetGameVersion() const override;
     FString GetGameBuild() const override;

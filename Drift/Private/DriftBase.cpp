@@ -457,6 +457,11 @@ FString FDriftBase::GetRootURL() const
     return driftEndpoints.root;
 }
 
+JsonValue FDriftBase::GetAppRoots() const
+{
+    return driftEndpoints.app_roots;
+}
+
 
 FString FDriftBase::GetEnvironment() const
 {

@@ -46,6 +46,7 @@ struct FDriftEndpointsResponse
 	FString friend_requests;
 	FString parties;
 	FString party_invites;
+	JsonValue app_roots{rapidjson::kObjectType};
 
 	// Added after authentication
 	FString my_flexmatch;
