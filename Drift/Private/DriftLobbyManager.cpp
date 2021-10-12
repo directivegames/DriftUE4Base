@@ -952,46 +952,29 @@ void FDriftLobbyManager::HandleLobbyEvent(const FMessageQueueEntry& Message)
 
 EDriftLobbyEvent FDriftLobbyManager::ParseEvent(const FString& EventName)
 {
-	if (EventName == TEXT("LobbyUpdated"))
-		return EDriftLobbyEvent::LobbyUpdated;
-	if (EventName == TEXT("LobbyDeleted"))
-		return EDriftLobbyEvent::LobbyDeleted;
-	if (EventName == TEXT("LobbyMemberJoined"))
-		return EDriftLobbyEvent::LobbyMemberJoined;
-	if (EventName == TEXT("LobbyMemberUpdated"))
-		return EDriftLobbyEvent::LobbyMemberUpdated;
-	if (EventName == TEXT("LobbyMemberLeft"))
-		return EDriftLobbyEvent::LobbyMemberLeft;
-	if (EventName == TEXT("LobbyMemberKicked"))
-		return EDriftLobbyEvent::LobbyMemberKicked;
-	if (EventName == TEXT("LobbyMatchStarting"))
-		return EDriftLobbyEvent::LobbyMatchStarting;
-	if (EventName == TEXT("LobbyMatchStarted"))
-		return EDriftLobbyEvent::LobbyMatchStarted;
-	if (EventName == TEXT("LobbyMatchCancelled"))
-		return EDriftLobbyEvent::LobbyMatchCancelled;
-	if (EventName == TEXT("LobbyMatchTimedOut"))
-		return EDriftLobbyEvent::LobbyMatchTimedOut;
-	if (EventName == TEXT("LobbyMatchFailed"))
-		return EDriftLobbyEvent::LobbyMatchFailed;
+	if (EventName == TEXT("LobbyUpdated")) { return EDriftLobbyEvent::LobbyUpdated; }
+	if (EventName == TEXT("LobbyDeleted")) { return EDriftLobbyEvent::LobbyDeleted; }
+	if (EventName == TEXT("LobbyMemberJoined")) { return EDriftLobbyEvent::LobbyMemberJoined; }
+	if (EventName == TEXT("LobbyMemberUpdated")) { return EDriftLobbyEvent::LobbyMemberUpdated; }
+	if (EventName == TEXT("LobbyMemberLeft")) { return EDriftLobbyEvent::LobbyMemberLeft; }
+	if (EventName == TEXT("LobbyMemberKicked")) { return EDriftLobbyEvent::LobbyMemberKicked; }
+	if (EventName == TEXT("LobbyMatchStarting")) { return EDriftLobbyEvent::LobbyMatchStarting; }
+	if (EventName == TEXT("LobbyMatchStarted")) { return EDriftLobbyEvent::LobbyMatchStarted; }
+	if (EventName == TEXT("LobbyMatchCancelled")) { return EDriftLobbyEvent::LobbyMatchCancelled; }
+	if (EventName == TEXT("LobbyMatchTimedOut")) { return EDriftLobbyEvent::LobbyMatchTimedOut; }
+	if (EventName == TEXT("LobbyMatchFailed")) { return EDriftLobbyEvent::LobbyMatchFailed; }
 
 	return EDriftLobbyEvent::Unknown;
 }
 
 EDriftLobbyStatus FDriftLobbyManager::ParseStatus(const FString& Status)
 {
-	if (Status == TEXT("idle"))
-		return EDriftLobbyStatus::Idle;
-	if (Status == TEXT("starting"))
-		return EDriftLobbyStatus::Starting;
-	if (Status == TEXT("started"))
-		return EDriftLobbyStatus::Started;
-	if (Status == TEXT("cancelled"))
-		return EDriftLobbyStatus::Cancelled;
-	if (Status == TEXT("timed_out"))
-		return EDriftLobbyStatus::TimedOut;
-	if (Status == TEXT("failed"))
-		return EDriftLobbyStatus::Failed;
+	if (Status == TEXT("idle")) { return EDriftLobbyStatus::Idle; }
+	if (Status == TEXT("starting")) { return EDriftLobbyStatus::Starting; }
+	if (Status == TEXT("started")) { return EDriftLobbyStatus::Started; }
+	if (Status == TEXT("cancelled")) { return EDriftLobbyStatus::Cancelled; }
+	if (Status == TEXT("timed_out")) { return EDriftLobbyStatus::TimedOut; }
+	if (Status == TEXT("failed")) { return EDriftLobbyStatus::Failed; }
 
 	return EDriftLobbyStatus::Unknown;
 }
