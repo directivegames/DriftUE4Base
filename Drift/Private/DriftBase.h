@@ -21,6 +21,7 @@
 #include "DriftMessageQueue.h"
 #include "DriftPartyManager.h"
 #include "DriftFlexmatch.h"
+#include "DriftLobbyManager.h"
 #include "LogForwarder.h"
 
 #include "Tickable.h"
@@ -190,7 +191,8 @@ public:
     bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
     TSharedPtr<IDriftPartyManager> GetPartyManager() override;
-    TSharedPtr<IDriftMatchmaker> GetMatchmaker() override;
+	TSharedPtr<IDriftMatchmaker> GetMatchmaker() override;
+	TSharedPtr<IDriftLobbyManager> GetLobbyManager() override;
 
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
@@ -310,7 +312,8 @@ private:
     void CreateLogForwarder();
     void CreateMessageQueue();
     void CreatePartyManager();
-    void CreateMatchmaker();
+	void CreateMatchmaker();
+	void CreateLobbyManager();
 
     void CachePlayerInfo(int32 playerID);
 
@@ -406,6 +409,8 @@ private:
 	TSharedPtr<FDriftPartyManager> partyManager;
 
 	TSharedPtr<FDriftFlexmatch> matchmaker;
+
+	TSharedPtr<FDriftLobbyManager> lobbyManager;
 
     bool countersLoaded = false;
     TArray<FDriftCounterInfo> counterInfos;

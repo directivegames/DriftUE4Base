@@ -46,6 +46,12 @@ struct FDriftEndpointsResponse
 	FString friend_requests;
 	FString parties;
 	FString party_invites;
+	FString lobbies;
+	FString match_placements;
+
+	// Templates
+	FString template_lobby_member;
+	FString template_lobby_members;
 
 	// Added after authentication
 	FString my_flexmatch;

@@ -51,6 +51,9 @@ void FDriftModule::PopulateAutoCompleteEntries(TArray<FAutoCompleteCommand>& Aut
 {
 	const UConsoleSettings* ConsoleSettings = GetDefault<UConsoleSettings>();
 
+
+	// Drift parties
+
 	auto Index = AutoCompleteList.AddDefaulted();
 	AutoCompleteList[Index].Command = TEXT("Drift.Party SendInvite");
 	AutoCompleteList[Index].Desc = TEXT("<player_id> Send a party invite to another player");
@@ -74,6 +77,68 @@ void FDriftModule::PopulateAutoCompleteEntries(TArray<FAutoCompleteCommand>& Aut
 	Index = AutoCompleteList.AddDefaulted();
 	AutoCompleteList[Index].Command = TEXT("Drift.Party Leave");
 	AutoCompleteList[Index].Desc = TEXT("Leave the current party");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	// Drift lobbies
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby Get");
+	AutoCompleteList[Index].Desc = TEXT("Gets the current lobby");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby Create");
+	AutoCompleteList[Index].Desc = TEXT("Creates a new lobby");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby Join");
+	AutoCompleteList[Index].Desc = TEXT("<lobby_id> Joins a lobby");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby Leave");
+	AutoCompleteList[Index].Desc = TEXT("Leaves the current lobby");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby UpdateLobbyName");
+	AutoCompleteList[Index].Desc = TEXT("<lobby_name> Updates the current lobby name. Must be the host");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby UpdateLobbyMap");
+	AutoCompleteList[Index].Desc = TEXT("<map_name> Updates the current lobby map. Must be the host");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby UpdateLobbyTeamCapacity");
+	AutoCompleteList[Index].Desc = TEXT("<team_capacity> Updates the current lobby team capacity. Must be the host");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby UpdateLobbyTeamNames");
+	AutoCompleteList[Index].Desc = TEXT("<team_names> Updates the current lobby team names. Must be the host. Comma seperated list");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby UpdatePlayerTeamName");
+	AutoCompleteList[Index].Desc = TEXT("<team_name> Updates the player's team name");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby UpdatePlayerReady");
+	AutoCompleteList[Index].Desc = TEXT("<ready> Updates the player's ready status. 0 or 1");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby KickPlayer");
+	AutoCompleteList[Index].Desc = TEXT("<player_id> Kicks the player from the current lobby. Must be the host");
+	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+	Index = AutoCompleteList.AddDefaulted();
+	AutoCompleteList[Index].Command = TEXT("Drift.Lobby StartMatch");
+	AutoCompleteList[Index].Desc = TEXT("Starts the lobby match. Must be the host");
 	AutoCompleteList[Index].Color = ConsoleSettings->AutoCompleteCommandColor;
 }
 #endif // ALLOW_CONSOLE
