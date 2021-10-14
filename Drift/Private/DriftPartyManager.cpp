@@ -371,7 +371,7 @@ TArray<TSharedPtr<IDriftPartyInvite>> FDriftPartyManager::GetIncomingPartyInvite
 }
 
 
-bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInviteCompletedDelegate Callback)
+bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, bool bLeaveExistingParty, FAcceptPartyInviteCompletedDelegate Callback)
 {
 	if (!HasSession())
 	{
@@ -398,6 +398,7 @@ bool FDriftPartyManager::AcceptPartyInvite(int PartyInviteId, FAcceptPartyInvite
 
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("inviter_id"), (Invite)->InvitingPlayerId);
+	JsonArchive::AddMember(Payload, TEXT("leave_existing_party"), bLeaveExistingParty);
 	auto Request = RequestManager_->Patch((Invite)->InviteUrl, Payload, HttpStatusCodes::Ok);
 	Request->OnResponse.BindLambda([this, Callback, PartyInviteId](ResponseContext& Context, JsonDocument& Doc)
 	{
@@ -805,7 +806,7 @@ bool FDriftPartyManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 		}
 		else if (FParse::Command(&Cmd, TEXT("AcceptInvite")))
 		{
-			AcceptPartyInvite(GetInt32(Cmd), {});
+			AcceptPartyInvite(GetInt32(Cmd), false, {});
 		}
 		else if (FParse::Command(&Cmd, TEXT("DeclineInvite")))
 		{
