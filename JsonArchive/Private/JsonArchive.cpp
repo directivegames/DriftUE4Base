@@ -303,23 +303,25 @@ bool JsonArchive::SerializeObject<FDateTime>(JsonValue& jValue, FDateTime& cValu
         if (jValue.IsString())
         {
             FString temp = jValue.GetString();
-            // Date only
-            if (temp.Right(1) == TEXT("Z") && !temp.Contains(TEXT("T")))
+            if (!temp.Contains(TEXT("T")))  // Date only
             {
-                temp = temp.LeftChop(1);
-                success = FDateTime::ParseIso8601(*temp, cValue);
-            }
-            // FDateTime refuses to accept more than 3 digits of sub-second resolution
-            else if (temp.Right(1) == TEXT("Z") || (temp.Contains(TEXT("T")) && temp.Right(1).IsNumeric()))
-            {
-                int32 millisecondPeriod;
-                if (temp.FindLastChar(L'.', millisecondPeriod))
-                {
-                    // period plus 3 digits
-                    temp = temp.Left(millisecondPeriod + 4) + TEXT("Z");
-                    success = FDateTime::ParseIso8601(*temp, cValue);
+                if (temp.Right(1) == TEXT("Z"))
+                {  // remove potential 'Z' suffix for dates sans time element
+                    temp = temp.LeftChop(1);
                 }
             }
+            else  // date and time
+            {
+                if (temp.Right(1) == TEXT("Z") || temp.Right(1).IsNumeric())
+                { // FDateTime refuses to accept more than 3 digits of sub-second resolution
+                    int32 millisecondPeriod;
+                    if (temp.FindLastChar(L'.', millisecondPeriod))
+                    {   // period plus 3 digits
+                        temp = temp.Left(millisecondPeriod + 4) + TEXT("Z");
+                    }
+                }
+            }
+            success = FDateTime::ParseIso8601(*temp, cValue);
         }
     	else if (jValue.IsNull())
     	{
