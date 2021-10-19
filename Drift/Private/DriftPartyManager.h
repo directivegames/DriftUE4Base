@@ -110,7 +110,7 @@ public:
 	TArray<TSharedPtr<IDriftPartyInvite>> GetOutgoingPartyInvites() const override;
 	TArray<TSharedPtr<IDriftPartyInvite>> GetIncomingPartyInvites() const override;
 
-	bool AcceptPartyInvite(int PartyInviteId, FAcceptPartyInviteCompletedDelegate Callback) override;
+	bool AcceptPartyInvite(int PartyInviteId, bool bLeaveExistingParty, FAcceptPartyInviteCompletedDelegate Callback) override;
 	bool CancelPartyInvite(int PartyInviteId, FCancelPartyIniviteCompletedDelegate Callback) override;
 	bool DeclinePartyInvite(int PartyInviteId, FDeclinePartyIniviteCompletedDelegate Callback) override;
 

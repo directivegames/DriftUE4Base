@@ -75,7 +75,7 @@ public:
 	virtual TArray<TSharedPtr<IDriftPartyInvite>> GetIncomingPartyInvites() const = 0;
 
 	/* Accept an invite to a party from another player */
-	virtual bool AcceptPartyInvite(int PartyInviteID, FAcceptPartyInviteCompletedDelegate Callback) = 0;
+	virtual bool AcceptPartyInvite(int PartyInviteID, bool bLeaveExistingParty, FAcceptPartyInviteCompletedDelegate Callback) = 0;
 
 	/* Cancel a party invite you have sent to another player */
 	virtual bool CancelPartyInvite(int PartyInviteID, FCancelPartyIniviteCompletedDelegate Callback) = 0;
