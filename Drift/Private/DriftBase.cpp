@@ -988,7 +988,7 @@ void FDriftBase::AuthenticatePlayer(FAuthenticationSettings AuthenticationSettin
 		FString credentialType;
 		if (!ignoreCommandLineArguments_)
 		{
-			FParse::Value(FCommandLine::Get(), TEXT("-auth_type="), credentialType);
+			FParse::Value(FCommandLine::Get(), TEXT("-cred_type="), credentialType);
 		}
 
 		if (credentialType.IsEmpty())
