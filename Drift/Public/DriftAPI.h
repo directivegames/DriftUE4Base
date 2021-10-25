@@ -81,8 +81,8 @@ struct FDriftUpdateMatchProperties
     TOptional<FString> status;
     TOptional<int32> maxPlayers;
 
-	TOptional<JsonValue> details;
-	TOptional<JsonValue> match_statistics;
+   	TOptional<JsonValue> details;
+   	TOptional<JsonValue> match_statistics;
 
     /**
      * uniqueKey enforces uniqueness of running matches by not allowing Drift to accept two matches with the same
@@ -916,8 +916,8 @@ public:
     /** Get the matchmaker */
     virtual TSharedPtr<IDriftMatchmaker> GetMatchmaker() = 0;
 
-	/** Get the player lobby manager */
-	virtual TSharedPtr<IDriftLobbyManager> GetLobbyManager() = 0;
+    /** Get the player lobby manager */
+    virtual TSharedPtr<IDriftLobbyManager> GetLobbyManager() = 0;
 
     /** Return the index of this drift instance */
     virtual int32 GetInstanceIndex() const = 0;
