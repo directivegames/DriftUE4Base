@@ -159,7 +159,7 @@ public:
      */
     virtual bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) = 0;
 
-	virtual TArray<FDriftMatchTeam> GetMatchTeams() const = 0;
+	   virtual TArray<FDriftMatchTeam> GetMatchTeams() const = 0;
 
     /**
      * Server Specific Notifications
