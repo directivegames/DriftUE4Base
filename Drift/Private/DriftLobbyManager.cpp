@@ -268,6 +268,8 @@ bool FDriftLobbyManager::QueryLobby(FQueryLobbyCompletedDelegate Delegate)
 			return PlayerId == Member.PlayerId;
 		});
 
+		ResetCurrentLobby();
+
 		if (LobbyMember)
 		{
 			CacheLobby(LobbyResponse);
@@ -276,7 +278,6 @@ bool FDriftLobbyManager::QueryLobby(FQueryLobbyCompletedDelegate Delegate)
 		else
 		{
 			UE_LOG(LogDriftLobby, Error, TEXT("Found existing lobby but player is not a member"));
-			ResetCurrentLobby();
 			(void)Delegate.ExecuteIfBound(false, "", "Lobby found, but you're not registered as a member of the lobby");
 		}
 	});
@@ -316,6 +317,7 @@ bool FDriftLobbyManager::JoinLobby(FString LobbyId, FJoinLobbyCompletedDelegate 
 			return;
 		}
 
+		ResetCurrentLobby();
 		CacheLobby(LobbyResponse);
 
 		UE_LOG(LogDriftLobby, Log, TEXT("Joined lobby '%s'"), *CurrentLobbyId);
@@ -423,6 +425,7 @@ bool FDriftLobbyManager::CreateLobby(FDriftLobbyProperties LobbyProperties, FCre
 			return;
 		}
 
+		ResetCurrentLobby();
 		CacheLobby(LobbyResponse);
 		(void)Delegate.ExecuteIfBound(true, CurrentLobbyId, "");
 	});
