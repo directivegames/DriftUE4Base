@@ -165,7 +165,7 @@ FLatencyMap FDriftFlexmatch::GetLatencyAverages()
 	return AverageLatencyMap;
 }
 
-void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
+void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration, const JsonValue& ExtraData)
 {
 	if (! RequestManager.IsValid() )
 	{
@@ -174,6 +174,10 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration)
 	}
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("matchmaker"), *MatchmakingConfiguration);
+	if (ExtraData.MemberCount())
+	{
+		JsonArchive::AddMember(Payload, TEXT("extras"), ExtraData);
+	}
 	auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Ok);
 	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
 	{

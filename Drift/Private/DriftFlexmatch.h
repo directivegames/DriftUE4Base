@@ -39,7 +39,7 @@ public:
 	void StopLatencyReporting() override;
 	FLatencyMap GetLatencyAverages() override;
 
-	void StartMatchmaking(const FString& MatchmakingConfiguration) override;
+	void StartMatchmaking(const FString& MatchmakingConfiguration, const JsonValue& ExtraData = rapidjson::kObjectType) override;
 	void StopMatchmaking() override;
 	EMatchmakingTicketStatus GetMatchmakingStatus() override;
 

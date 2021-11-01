@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "JsonValueWrapper.h"
+
 enum class EMatchmakingTicketStatus : uint8
 {
 	None, // No Ticket
@@ -48,7 +50,7 @@ public:
 	virtual FLatencyMap GetLatencyAverages() = 0;
 
 	/* Start matchmaking for player/players party */
-	virtual void StartMatchmaking(const FString& MatchmakingConfiguration) = 0;
+	virtual void StartMatchmaking(const FString& MatchmakingConfiguration, const JsonValue& ExtraData = rapidjson::kObjectType) = 0;
 
 	/* Stop matchmaking for player/players party */
 	virtual void StopMatchmaking() = 0;
