@@ -176,15 +176,24 @@ void FDriftMessageQueue::GetMessages()
                 fetchDelay = DEFAULT_FETCH_THROTTLE_DELAY_SECONDS;
                 return;
             }
-            const auto oldLastMessage = lastMessageNumber;
+            TArray<FMessageQueueEntry> Messages;
             for (const auto& queue : messages.queues)
             {
                 for (const auto& message : queue.Value)
                 {
-                    ProcessMessage(queue.Key, message);
-                    
-                    lastMessageNumber = FMath::Max(lastMessageNumber, message.message_number);
+                    Messages.Add(message);
                 }
+            }
+            Messages.Sort([](const FMessageQueueEntry& lhs, const FMessageQueueEntry& rhs){return lhs.message_number < rhs.message_number; });
+            const auto oldLastMessage = lastMessageNumber;
+            for (const auto& Message: Messages)
+            {
+                ProcessMessage(Message.queue, Message);
+            }
+            lastMessageNumber = oldLastMessage;
+            if (Messages.Num())
+            {
+                lastMessageNumber = Messages[Messages.Num()-1].message_number;
             }
 
             if (oldLastMessage == lastMessageNumber && (FDateTime::UtcNow() - context.sent).GetTotalSeconds() < MESSAGE_FETCH_TIMEOUT_SECONDS)
