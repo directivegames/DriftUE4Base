@@ -190,7 +190,6 @@ void FDriftMessageQueue::GetMessages()
             {
                 ProcessMessage(Message.queue, Message);
             }
-            lastMessageNumber = oldLastMessage;
             if (Messages.Num())
             {
                 lastMessageNumber = Messages[Messages.Num()-1].message_number;
