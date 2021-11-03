@@ -2914,10 +2914,10 @@ void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResp
 
 void FDriftBase::InitServerRootInfo()
 {
-    FString drift_url = cli.drift_url;
-    if (drift_url.IsEmpty())
+    auto DriftURL = cli.drift_url;
+    if (DriftURL.IsEmpty())
     {
-        if (!GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), drift_url, GGameIni))
+        if (!GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), DriftURL, GGameIni))
         {
             DRIFT_LOG(Base, Error, TEXT("Running in server mode, but no Drift url specified."));
 
@@ -2928,25 +2928,39 @@ void FDriftBase::InitServerRootInfo()
         }
     }
 
-    auto request = GetRootRequestManager()->Get(drift_url);
-    request->OnResponse.BindLambda([this, drift_url](ResponseContext& context, JsonDocument& doc)
+    const auto Request = GetRootRequestManager()->Get(DriftURL);
+    Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
     {
-        if (!JsonArchive::LoadObject(doc[TEXT("endpoints")], driftEndpoints))
+        if (!JsonArchive::LoadObject(Doc[TEXT("endpoints")], driftEndpoints))
         {
-            context.error = TEXT("Failed to parse drift endpoints");
+            Context.error = TEXT("Failed to parse drift endpoints");
             state_ = DriftSessionState::Disconnected;
             return;
         }
+
         InitServerAuthentication();
         eventManager->SetEventsUrl(driftEndpoints.eventlogs);
         onStaticRoutesInitialized.Broadcast();
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-        context.errorHandled = true;
-        Reset();
+        Context.errorHandled = true;
+
+    	DRIFT_LOG(Base, Error, TEXT("Failed to fetch Drift endpoints"));
+
+    	if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
+    	{
+    		DRIFT_LOG(Base, Log, TEXT("Retrying fetching Drift endpoints"));
+
+    		// Retry if server error (5XX HTTP status code)
+    		InitServerRootInfo();
+    	}
+    	else
+    	{
+    		Reset();
+    	}
     });
-    request->Dispatch();
+    Request->Dispatch();
 }
 
 
@@ -2965,28 +2979,28 @@ void FDriftBase::InitServerAuthentication()
 {
     if (IsPreAuthenticated())
     {
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JTIRequestManager(cli.jti));
-        manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
-        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
-        manager->SetApiKey(GetApiKeyHeader());
-        manager->SetCache(httpCache_);
-        SetGameRequestManager(manager);
-        eventManager->SetRequestManager(manager);
+        const TSharedRef<JsonRequestManager> Manager = MakeShareable(new JTIRequestManager(cli.jti));
+        Manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        Manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
+        Manager->SetApiKey(GetApiKeyHeader());
+        Manager->SetCache(httpCache_);
+        SetGameRequestManager(Manager);
+        eventManager->SetRequestManager(Manager);
         InitServerRegistration();
         return;
     }
 
-    FString password;
-    FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), password);
+    FString Password;
+    FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), Password);
 
 #if WITH_EDITOR
-    if (GIsEditor && password.IsEmpty())
+    if (GIsEditor && Password.IsEmpty())
     {
-        password = GEditorServerPassword;
+        Password = GEditorServerPassword;
     }
 #endif
 
-    if (password.IsEmpty())
+    if (Password.IsEmpty())
     {
         DRIFT_LOG(Base, Error, TEXT("When not pre-authenticated, credentials must be passed on the command line -driftPass=yyy"));
 
@@ -2995,44 +3009,56 @@ void FDriftBase::InitServerAuthentication()
     }
 
     // Post to 'auth' and get token. Use hacky credentials
-    const auto payload = FString::Printf(
+    const auto Payload = FString::Printf(
         TEXT("{\"username\": \"%s\", \"password\": \"%s\", \"provider\": \"%s\"}"),
-        *SERVER_CREDENTIALS_USERNAME, *password, *SERVER_CREDENTIALS_PROVIDER
+        *SERVER_CREDENTIALS_USERNAME, *Password, *SERVER_CREDENTIALS_PROVIDER
         );
 
-    auto request = GetRootRequestManager()->Post(driftEndpoints.auth, payload, HttpStatusCodes::Ok);
+    const auto Request = GetRootRequestManager()->Post(driftEndpoints.auth, Payload, HttpStatusCodes::Ok);
 
-    DRIFT_LOG(Base, Verbose, TEXT("Authenticating server: %s"), *request->GetAsDebugString(true));
+    DRIFT_LOG(Base, Verbose, TEXT("Authenticating server: %s"), *Request->GetAsDebugString(true));
 
-    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
     {
-        serverJTI_ = doc[TEXT("jti")].GetString();
-        serverBearerToken_ = doc[TEXT("token")].GetString();
+        serverJTI_ = Doc[TEXT("jti")].GetString();
+        serverBearerToken_ = Doc[TEXT("token")].GetString();
 
         if (serverBearerToken_.IsEmpty())
         {
-            context.error = TEXT("Session 'token' missing.");
+            Context.error = TEXT("Session 'token' missing.");
             return;
         }
         DRIFT_LOG(Base, Verbose, TEXT("Got bearer token %s"), *serverBearerToken_);
 
-        TSharedRef<JsonRequestManager> manager = MakeShareable(new JWTRequestManager(serverBearerToken_));
-        manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
-        manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
-        manager->SetApiKey(GetApiKeyHeader());
-        manager->SetCache(httpCache_);
-        SetGameRequestManager(manager);
-        eventManager->SetRequestManager(manager);
+        const TSharedRef<JsonRequestManager> Manager = MakeShareable(new JWTRequestManager(serverBearerToken_));
+        Manager->DefaultErrorHandler.BindRaw(this, &FDriftBase::DefaultErrorHandler);
+        Manager->DefaultDriftDeprecationMessageHandler.BindRaw(this, &FDriftBase::DriftDeprecationMessageHandler);
+        Manager->SetApiKey(GetApiKeyHeader());
+        Manager->SetCache(httpCache_);
+        SetGameRequestManager(Manager);
+        eventManager->SetRequestManager(Manager);
 
         InitServerRegistration();
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-        // TODO: Error handling
-        context.errorHandled = true;
-        Reset();
+    	Context.errorHandled = true;
+
+		DRIFT_LOG(Base, Error, TEXT("Failed to authenticate server"));
+
+		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
+		{
+			DRIFT_LOG(Base, Log, TEXT("Retrying authenticating server"));
+
+			// Retry if server error (5XX HTTP status code)
+			InitServerAuthentication();
+		}
+		else
+		{
+			Reset();
+		}
     });
-    request->Dispatch();
+    Request->Dispatch();
 }
 
 
@@ -3066,73 +3092,121 @@ void FDriftBase::InitServerRegistration()
 {
     if (IsPreRegistered())
     {
-        InitServerInfo(cli.server_url);
+        InitServerInfo();
         return;
     }
 
-    static const int32 defaultPort = 7777;
+    static constexpr int32 DefaultPort = 7777;
 
-    FServerRegistrationPayload payload;
-    payload.placement = defaultPlacement;
-    payload.instance_name = GetInstanceName();
-    payload.ref = buildReference;
-    payload.public_ip = GetPublicIP();
-    payload.port = !cli.port.IsEmpty() && cli.port.IsNumeric() ? FCString::Atoi(*cli.port) : defaultPort;
-    payload.command_line = FCommandLine::Get();
-    payload.pid = FPlatformProcess::GetCurrentProcessId();
-    payload.status = TEXT("starting");
+    FServerRegistrationPayload Payload;
+    Payload.placement = defaultPlacement;
+    Payload.instance_name = GetInstanceName();
+    Payload.ref = buildReference;
+    Payload.public_ip = GetPublicIP();
+    Payload.port = !cli.port.IsEmpty() && cli.port.IsNumeric() ? FCString::Atoi(*cli.port) : DefaultPort;
+    Payload.command_line = FCommandLine::Get();
+    Payload.pid = FPlatformProcess::GetCurrentProcessId();
+    Payload.status = TEXT("starting");
 
-    DRIFT_LOG(Base, Log, TEXT("Registering server ip='%s', ref='%s', placement='%s'"), *payload.public_ip, *payload.ref, *payload.placement);
+    DRIFT_LOG(Base, Log, TEXT("Registering server ip='%s', ref='%s', placement='%s'"), *Payload.public_ip, *Payload.ref, *Payload.placement);
 
-    auto request = GetGameRequestManager()->Post(driftEndpoints.servers, payload);
-    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    const auto Request = GetGameRequestManager()->Post(driftEndpoints.servers, Payload);
+    Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
     {
-        InitServerInfo(doc[TEXT("url")].GetString());
+    	cli.server_url = Doc[TEXT("url")].GetString();
+        InitServerInfo();
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-        // TODO: Error handling
-        context.errorHandled = true;
-        Reset();
+    	Context.errorHandled = true;
+
+		DRIFT_LOG(Base, Error, TEXT("Failed to register server"));
+
+		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
+		{
+			DRIFT_LOG(Base, Log, TEXT("Retrying registering server"));
+
+			// Retry if server error (5XX HTTP status code)
+			InitServerRegistration();
+		}
+		else
+		{
+			Reset();
+		}
     });
-    request->Dispatch();
+    Request->Dispatch();
 }
 
 
-void FDriftBase::InitServerInfo(const FString& serverUrl)
+void FDriftBase::InitServerInfo()
 {
-    cli.server_url = serverUrl;
-
     DRIFT_LOG(Base, Log, TEXT("Fetching server info"));
 
-    JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("status"), TEXT("initializing"));
-    auto request = GetGameRequestManager()->Put(cli.server_url, payload);
-    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    JsonValue Payload{ rapidjson::kObjectType };
+    JsonArchive::AddMember(Payload, TEXT("status"), TEXT("initializing"));
+
+    const auto Request = GetGameRequestManager()->Put(cli.server_url, Payload);
+    Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
     {
-        auto server_request = GetGameRequestManager()->Get(cli.server_url);
-        server_request->OnResponse.BindLambda([this](ResponseContext& serverContext, JsonDocument& serverDoc)
-        {
-            if (!JsonArchive::LoadObject(serverDoc, drift_server))
-            {
-                serverContext.error = TEXT("Failed to parse drift server endpoint response.");
-                return;
-            }
-            heartbeatUrl = drift_server.heartbeat_url;
-            heartbeatDueInSeconds_ = -1.0;
-            state_ = DriftSessionState::Connected;
-            onServerRegistered.Broadcast(true);
-            UpdateServer(TEXT("ready"), TEXT(""), FDriftServerStatusUpdatedDelegate{});
-        });
-        server_request->Dispatch();
+    	FinalizeRegisteringServer();
+
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-        // TODO: Error handling
-        context.errorHandled = true;
-        Reset();
+    	Context.errorHandled = true;
+
+		DRIFT_LOG(Base, Error, TEXT("Failed to initialize server info"));
+
+		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
+		{
+			DRIFT_LOG(Base, Log, TEXT("Retrying initializing server info"));
+
+			// Retry if server error (5XX HTTP status code)
+			InitServerInfo();
+		}
+		else
+		{
+			Reset();
+		}
     });
-    request->Dispatch();
+    Request->Dispatch();
+}
+
+void FDriftBase::FinalizeRegisteringServer()
+{
+	const auto Request = GetGameRequestManager()->Get(cli.server_url);
+	Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
+	{
+		if (!JsonArchive::LoadObject(Doc, drift_server))
+		{
+			Context.error = TEXT("Failed to parse drift server endpoint response.");
+			return;
+		}
+		heartbeatUrl = drift_server.heartbeat_url;
+		heartbeatDueInSeconds_ = -1.0;
+		state_ = DriftSessionState::Connected;
+		onServerRegistered.Broadcast(true);
+		UpdateServer(TEXT("ready"), TEXT(""), FDriftServerStatusUpdatedDelegate{});
+	});
+	Request->OnError.BindLambda([this](ResponseContext& Context)
+	{
+		Context.errorHandled = true;
+
+		DRIFT_LOG(Base, Error, TEXT("Failed to finalize registering server"));
+
+		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
+		{
+			DRIFT_LOG(Base, Log, TEXT("Retrying finalizing register server"));
+
+			// Retry if server error (5XX HTTP status code)
+			FinalizeRegisteringServer();
+		}
+		else
+		{
+			Reset();
+		}
+	});
+	Request->Dispatch();
 }
 
 

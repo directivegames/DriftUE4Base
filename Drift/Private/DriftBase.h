@@ -232,7 +232,8 @@ private:
     void InitServerRootInfo();
     void InitServerAuthentication();
     void InitServerRegistration();
-    void InitServerInfo(const FString& serverUrl);
+	void InitServerInfo();
+	void FinalizeRegisteringServer();
 
     /**
      * Disconnect the player if connected, flush counters and events, and reset the internal state.
