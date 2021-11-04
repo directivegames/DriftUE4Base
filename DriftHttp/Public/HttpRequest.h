@@ -150,6 +150,8 @@ public:
 
 	void SetCache(TSharedPtr<IHttpCache> cache);
 
+	void SetShouldRetryDelegate(FShouldRetryDelegate Delegate) { shouldRetryDelegate_ = Delegate; }
+
 	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
 
 	FString GetAsDebugString(bool detailed = false) const;

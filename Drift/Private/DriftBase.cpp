@@ -2944,22 +2944,18 @@ void FDriftBase::InitServerRootInfo()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-        Context.errorHandled = true;
-
     	DRIFT_LOG(Base, Error, TEXT("Failed to fetch Drift endpoints"));
 
-    	if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
-    	{
-    		DRIFT_LOG(Base, Log, TEXT("Retrying fetching Drift endpoints"));
-
-    		// Retry if server error (5XX HTTP status code)
-    		InitServerRootInfo();
-    	}
-    	else
-    	{
-    		Reset();
-    	}
+        Context.errorHandled = true;
+    	Reset();
     });
+
+	Request->SetRetries(3);
+	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
+	{
+		return Response.IsValid() && Response->GetResponseCode() >= 500;
+	}));
+
     Request->Dispatch();
 }
 
@@ -3042,22 +3038,19 @@ void FDriftBase::InitServerAuthentication()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
+    	DRIFT_LOG(Base, Error, TEXT("Failed to authenticate server"));
+
     	Context.errorHandled = true;
-
-		DRIFT_LOG(Base, Error, TEXT("Failed to authenticate server"));
-
-		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
-		{
-			DRIFT_LOG(Base, Log, TEXT("Retrying authenticating server"));
-
-			// Retry if server error (5XX HTTP status code)
-			InitServerAuthentication();
-		}
-		else
-		{
-			Reset();
-		}
+    	Reset();
     });
+
+	Request->SetRetries(3);
+	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
+	{
+		return Response.IsValid() && Response->GetResponseCode() >= 500;
+	}));
+
+
     Request->Dispatch();
 }
 
@@ -3118,22 +3111,18 @@ void FDriftBase::InitServerRegistration()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
+    	DRIFT_LOG(Base, Error, TEXT("Failed to register server"));
+
     	Context.errorHandled = true;
-
-		DRIFT_LOG(Base, Error, TEXT("Failed to register server"));
-
-		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
-		{
-			DRIFT_LOG(Base, Log, TEXT("Retrying registering server"));
-
-			// Retry if server error (5XX HTTP status code)
-			InitServerRegistration();
-		}
-		else
-		{
-			Reset();
-		}
+    	Reset();
     });
+
+	Request->SetRetries(3);
+	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
+	{
+		return Response.IsValid() && Response->GetResponseCode() >= 500;
+	}));
+
     Request->Dispatch();
 }
 
@@ -3153,22 +3142,18 @@ void FDriftBase::InitServerInfo()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
+    	DRIFT_LOG(Base, Error, TEXT("Failed to initialize server info"));
+
     	Context.errorHandled = true;
-
-		DRIFT_LOG(Base, Error, TEXT("Failed to initialize server info"));
-
-		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
-		{
-			DRIFT_LOG(Base, Log, TEXT("Retrying initializing server info"));
-
-			// Retry if server error (5XX HTTP status code)
-			InitServerInfo();
-		}
-		else
-		{
-			Reset();
-		}
+    	Reset();
     });
+
+	Request->SetRetries(3);
+	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
+	{
+		return Response.IsValid() && Response->GetResponseCode() >= 500;
+	}));
+
     Request->Dispatch();
 }
 
@@ -3190,22 +3175,18 @@ void FDriftBase::FinalizeRegisteringServer()
 	});
 	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
-		Context.errorHandled = true;
-
 		DRIFT_LOG(Base, Error, TEXT("Failed to finalize registering server"));
 
-		if (Context.response.IsValid() && Context.response->GetResponseCode() >= 500)
-		{
-			DRIFT_LOG(Base, Log, TEXT("Retrying finalizing register server"));
-
-			// Retry if server error (5XX HTTP status code)
-			FinalizeRegisteringServer();
-		}
-		else
-		{
-			Reset();
-		}
+		Context.errorHandled = true;
+		Reset();
 	});
+
+	Request->SetRetries(3);
+	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
+	{
+		return Response.IsValid() && Response->GetResponseCode() >= 500;
+	}));
+
 	Request->Dispatch();
 }
 
