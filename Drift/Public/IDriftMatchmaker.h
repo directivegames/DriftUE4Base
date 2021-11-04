@@ -40,11 +40,14 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FMatchmakingSuccessDelegate, const FConnecti
 class IDriftMatchmaker
 {
 public:
-	/* Start latency measuring loop to configured regions and report them to the backend  */
+	/* Start latency measuring loop to configured regions and report them to the backend */
 	virtual void StartLatencyReporting() = 0;
 
-	/* Stop latency measuring loop  */
+	/* Stop latency measuring loop */
 	virtual void StopLatencyReporting() = 0;
+
+	/* Is latency measuring loop active */
+	virtual bool IsLatencyReporting() = 0;
 
 	/* Get reported averages from the backend  */
 	virtual FLatencyMap GetLatencyAverages() = 0;

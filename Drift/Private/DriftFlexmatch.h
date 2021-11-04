@@ -37,6 +37,7 @@ public:
 	// IDriftMatchmaker overrides
 	void StartLatencyReporting() override;
 	void StopLatencyReporting() override;
+	bool IsLatencyReporting() override { return bDoPings; }
 	FLatencyMap GetLatencyAverages() override;
 
 	void StartMatchmaking(const FString& MatchmakingConfiguration, const JsonValue& ExtraData = rapidjson::kObjectType) override;
