@@ -70,6 +70,26 @@ static FAutoConsoleVariableRef CVarEditorServerPassword(
 );
 
 
+bool GetParameter(const FString& CommandLineParameterName, const FString& EnvironmentVariableName, FString& Output)
+{
+	bool bWasSpecified = false;
+	// Get the command line parameter first
+	if (!CommandLineParameterName.IsEmpty())
+	{
+		// If specified, even if empty, it overrides the environment
+		bWasSpecified = FParse::Value(FCommandLine::Get(), *CommandLineParameterName, Output);
+	}
+	// If empty, fall back to the environment
+	if (!bWasSpecified && Output.IsEmpty() && !EnvironmentVariableName.IsEmpty())
+	{
+		Output = FPlatformMisc::GetEnvironmentVariable(*EnvironmentVariableName);
+		// We can't tell here if it's empty or doesn't exist, but the effect is the same
+		bWasSpecified = !Output.IsEmpty();
+	}
+	return bWasSpecified;
+}
+
+
 FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanceName, int32 instanceIndex, const FString& config)
     : instanceName_(instanceName)
     , instanceDisplayName_(instanceName_ == FName(TEXT("DefaultInstance")) ? TEXT("") : FString::Printf(TEXT("[%s] "), *instanceName_.ToString()))
@@ -89,8 +109,8 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
 
     if (!ignoreCommandLineArguments_)
     {
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-        FParse::Value(FCommandLine::Get(), TEXT("-drift_apikey="), versionedApiKey);
+    	GetParameter(TEXT("-DriftUrl="), TEXT("DRIFT_URL"), cli.drift_url);
+    	GetParameter(TEXT("-DriftApiKey="), TEXT("DRIFT_API_KEY"), versionedApiKey);
     }
 
     GConfig->GetString(*settingsSection_, TEXT("GameVersion"), gameVersion, GGameIni);
@@ -113,7 +133,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
         GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
     }
 
-    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-drift_env="), environment))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-DriftEnv="), environment))
     {
         GConfig->GetString(*settingsSection_, TEXT("Environment"), environment, GGameIni);
     }
@@ -130,7 +150,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     ConfigurePlacement();
     ConfigureBuildReference();
 
-    FParse::Value(FCommandLine::Get(), TEXT("-server_url="), cli.server_url);
+    FParse::Value(FCommandLine::Get(), TEXT("-DriftServerUrl="), cli.server_url);
 
     rootRequestManager_->SetApiKey(GetApiKeyHeader());
     rootRequestManager_->SetCache(httpCache_);
@@ -196,7 +216,7 @@ void FDriftBase::CreateLobbyManager()
 
 void FDriftBase::ConfigurePlacement()
 {
-    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-placement="), defaultPlacement))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-DriftPlacement="), defaultPlacement))
     {
         if (!GConfig->GetString(*settingsSection_, TEXT("Placement"), defaultPlacement, GGameIni))
         {
@@ -212,7 +232,7 @@ void FDriftBase::ConfigurePlacement()
 
 void FDriftBase::ConfigureBuildReference()
 {
-    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-ref="), buildReference))
+    if (ignoreCommandLineArguments_ || !FParse::Value(FCommandLine::Get(), TEXT("-DriftRef="), buildReference))
     {
         if (!GConfig->GetString(*settingsSection_, TEXT("BuildReference"), buildReference, GGameIni))
         {
@@ -965,7 +985,7 @@ void FDriftBase::AuthenticatePlayer(FAuthenticationSettings AuthenticationSettin
 
     if (!ignoreCommandLineArguments_)
     {
-        FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
+    	GetParameter(TEXT("-DriftJti="), TEXT("DRIFT_JTI"), cli.jti);
     }
 
     if (IsPreAuthenticated())
@@ -988,7 +1008,7 @@ void FDriftBase::AuthenticatePlayer(FAuthenticationSettings AuthenticationSettin
 		FString credentialType;
 		if (!ignoreCommandLineArguments_)
 		{
-			FParse::Value(FCommandLine::Get(), TEXT("-DriftCredentialsType="), credentialType);
+			GetParameter(TEXT("-DriftCredentialsType="), TEXT("DRIFT_CREDENTIALS_TYPE"), versionedApiKey);
 		}
 
 		if (credentialType.IsEmpty())
@@ -1062,7 +1082,7 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
 bool FDriftBase::IsRunningAsServer() const
 {
     FString dummy;
-    return IsPreRegistered() || FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), dummy);
+    return IsPreRegistered() || GetParameter(TEXT("-DriftPass="), TEXT("DRIFT_PASS"), dummy);
 }
 
 
@@ -2977,7 +2997,7 @@ void FDriftBase::InitServerAuthentication()
     }
 
     FString password;
-    FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), password);
+	GetParameter(TEXT("-DriftPass="), TEXT("DRIFT_PASS"), password);
 
 #if WITH_EDITOR
     if (GIsEditor && password.IsEmpty())
@@ -2988,7 +3008,7 @@ void FDriftBase::InitServerAuthentication()
 
     if (password.IsEmpty())
     {
-        DRIFT_LOG(Base, Error, TEXT("When not pre-authenticated, credentials must be passed on the command line -driftPass=yyy"));
+        DRIFT_LOG(Base, Error, TEXT("When not pre-authenticated, credentials must be passed on the command line -driftPass=yyy or via the DRIFT_PASS environment variable"));
 
         Reset();
         return;
@@ -3136,45 +3156,6 @@ void FDriftBase::InitServerInfo(const FString& serverUrl)
 }
 
 
-bool FDriftBase::RegisterServer()
-{
-    if (state_ == DriftSessionState::Connected)
-    {
-        onServerRegistered.Broadcast(true);
-        return true;
-    }
-
-	if (state_ == DriftSessionState::Connecting)
-	{
-        DRIFT_LOG(Base, Log, TEXT("Ignoring attempt to register server while another attempt is in progress."));
-
-		return true;
-	}
-
-	state_ = DriftSessionState::Connecting;
-
-    FParse::Value(FCommandLine::Get(), TEXT("-public_ip="), cli.public_ip);
-    FParse::Value(FCommandLine::Get(), TEXT("-drift_url="), cli.drift_url);
-    FParse::Value(FCommandLine::Get(), TEXT("-port="), cli.port);
-    FParse::Value(FCommandLine::Get(), TEXT("-jti="), cli.jti);
-
-    if (cli.drift_url.IsEmpty())
-    {
-        GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
-    }
-
-    if (cli.drift_url.IsEmpty())
-    {
-        DRIFT_LOG(Base, Error, TEXT("Running in server mode, but no Drift url specified."));
-        // TODO: Error handling
-        state_ = DriftSessionState::Disconnected;
-        return false;
-    }
-
-    InitServerRootInfo();
-    return true;
-}
-
 void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
@@ -3220,6 +3201,47 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
     request->Dispatch();
 
     CachePlayerInfo(playerID);
+}
+
+
+bool FDriftBase::RegisterServer()
+{
+	if (state_ == DriftSessionState::Connected)
+	{
+		onServerRegistered.Broadcast(true);
+		return true;
+	}
+
+	if (state_ == DriftSessionState::Connecting)
+	{
+		DRIFT_LOG(Base, Log, TEXT("Ignoring attempt to register server while another attempt is in progress."));
+
+		return true;
+	}
+
+	state_ = DriftSessionState::Connecting;
+
+	GetParameter(TEXT("-DriftPublicIp="), TEXT("DRIFT_PUBLIC_IP"), cli.public_ip);
+	GetParameter(TEXT("-DriftUrl="), TEXT("DRIFT_URL"), cli.drift_url);
+	GetParameter(TEXT("-DriftJti="), TEXT("DRIFT_JTI"), cli.jti);
+
+	FParse::Value(FCommandLine::Get(), TEXT("-Port="), cli.port);
+
+	if (cli.drift_url.IsEmpty())
+	{
+		GConfig->GetString(*settingsSection_, TEXT("DriftUrl"), cli.drift_url, GGameIni);
+	}
+
+	if (cli.drift_url.IsEmpty())
+	{
+		DRIFT_LOG(Base, Error, TEXT("Running in server mode, but no Drift url specified."));
+		// TODO: Error handling
+		state_ = DriftSessionState::Disconnected;
+		return false;
+	}
+
+	InitServerRootInfo();
+	return true;
 }
 
 
@@ -3578,7 +3600,7 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
 #if !UE_BUILD_SHIPPING
     {
         FString fakeFriendsArgument;
-        FParse::Value(FCommandLine::Get(), TEXT("-friends="), fakeFriendsArgument, false);
+        FParse::Value(FCommandLine::Get(), TEXT("-DriftFriends="), fakeFriendsArgument, false);
         TArray<FString> fakeFriends;
         fakeFriendsArgument.ParseIntoArray(fakeFriends, TEXT(","));
 
