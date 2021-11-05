@@ -437,6 +437,7 @@ void FDriftFlexmatch::InitializeLocalState()
 	}
 	if (CurrentTicketUrl.IsEmpty())
 	{
+		bIsInitialized = true;
 		return;
 	}
 	auto Request = RequestManager->Get(CurrentTicketUrl, HttpStatusCodes::Ok);
