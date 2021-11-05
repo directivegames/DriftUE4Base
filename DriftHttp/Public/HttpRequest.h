@@ -154,6 +154,8 @@ public:
 
 	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
 
+	void AddRetryHandlingOnServerError();
+
 	FString GetAsDebugString(bool detailed = false) const;
 
 	FString GetRequestURL() const;

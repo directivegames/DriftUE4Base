@@ -2950,11 +2950,7 @@ void FDriftBase::InitServerRootInfo()
     	Reset();
     });
 
-	Request->SetRetries(3);
-	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
-	{
-		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
-	}));
+	Request->AddRetryHandlingOnServerError();
 
     Request->Dispatch();
 }
@@ -3044,12 +3040,7 @@ void FDriftBase::InitServerAuthentication()
     	Reset();
     });
 
-	Request->SetRetries(3);
-	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
-	{
-		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
-	}));
-
+	Request->AddRetryHandlingOnServerError();
 
     Request->Dispatch();
 }
@@ -3117,11 +3108,7 @@ void FDriftBase::InitServerRegistration()
     	Reset();
     });
 
-	Request->SetRetries(3);
-	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
-	{
-		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
-	}));
+	Request->AddRetryHandlingOnServerError();
 
     Request->Dispatch();
 }
@@ -3148,11 +3135,7 @@ void FDriftBase::InitServerInfo()
     	Reset();
     });
 
-	Request->SetRetries(3);
-	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
-	{
-		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
-	}));
+	Request->AddRetryHandlingOnServerError();
 
     Request->Dispatch();
 }
@@ -3181,11 +3164,7 @@ void FDriftBase::FinalizeRegisteringServer()
 		Reset();
 	});
 
-	Request->SetRetries(3);
-	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
-	{
-		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
-	}));
+	Request->AddRetryHandlingOnServerError();
 
 	Request->Dispatch();
 }
