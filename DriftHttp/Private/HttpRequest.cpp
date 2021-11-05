@@ -19,6 +19,7 @@
 #include "JsonUtils.h"
 #include "ErrorResponse.h"
 #include "IErrorReporter.h"
+#include "RetryConfig.h"
 
 
 #define LOCTEXT_NAMESPACE "Drift"
@@ -470,14 +471,11 @@ FString HttpRequest::GetRequestURL() const
 }
 
 
-void HttpRequest::AddRetryHandlingOnServerError()
+void HttpRequest::SetRetryConfig(const FRetryConfig& Config)
 {
-	MaxRetries_ = 3;
-	shouldRetryDelegate_ = FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
-	{
-		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
-	});
+	Config.Apply(*this);
 }
+
 
 FString HttpRequest::GetAsDebugString(bool detailed) const
 {

@@ -27,6 +27,7 @@
 #include "IErrorReporter.h"
 #include "Auth/DriftUuidAuthProviderFactory.h"
 #include "Auth/DriftUserPassAuthProviderFactory.h"
+#include "RetryConfig.h"
 
 #include "SocketSubsystem.h"
 #include "GeneralProjectSettings.h"
@@ -2950,7 +2951,7 @@ void FDriftBase::InitServerRootInfo()
     	Reset();
     });
 
-	Request->AddRetryHandlingOnServerError();
+	Request->SetRetryConfig(FRetryOnServerError{});
 
     Request->Dispatch();
 }
@@ -3040,7 +3041,7 @@ void FDriftBase::InitServerAuthentication()
     	Reset();
     });
 
-	Request->AddRetryHandlingOnServerError();
+	Request->SetRetryConfig(FRetryOnServerError{});
 
     Request->Dispatch();
 }
@@ -3108,7 +3109,7 @@ void FDriftBase::InitServerRegistration()
     	Reset();
     });
 
-	Request->AddRetryHandlingOnServerError();
+	Request->SetRetryConfig(FRetryOnServerError{});
 
     Request->Dispatch();
 }
@@ -3135,7 +3136,7 @@ void FDriftBase::InitServerInfo()
     	Reset();
     });
 
-	Request->AddRetryHandlingOnServerError();
+	Request->SetRetryConfig(FRetryOnServerError{});
 
     Request->Dispatch();
 }
@@ -3164,7 +3165,7 @@ void FDriftBase::FinalizeRegisteringServer()
 		Reset();
 	});
 
-	Request->AddRetryHandlingOnServerError();
+	Request->SetRetryConfig(FRetryOnServerError{});
 
 	Request->Dispatch();
 }

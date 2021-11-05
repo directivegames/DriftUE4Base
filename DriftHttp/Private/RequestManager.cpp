@@ -36,9 +36,9 @@ RequestManager::RequestManager()
 
 RequestManager::~RequestManager()
 {
-	for (auto& request : activeRequests_)
+	for (const auto& Request : activeRequests_)
 	{
-		request->Discard();
+		Request->Discard();
 	}
 }
 
@@ -115,55 +115,55 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const FString& url
                                                       , HttpStatusCodes expectedResponseCode)
 {
-	static const FString verbs[] =
+	static const FString Verbs[] =
 	{
 		TEXT("GET"), TEXT("PUT"), TEXT("POST"), TEXT("PATCH"), TEXT("DELETE"), TEXT("HEAD"), TEXT("OPTIONS"),
 	};
 
 	check(IsInGameThread());
 
-	auto request = FHttpModule::Get().CreateRequest();
-	request->SetURL(url);
-	request->SetVerb(verbs[static_cast<int>(method)]);
+	const auto Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(url);
+	Request->SetVerb(Verbs[static_cast<int>(method)]);
 
-	TSharedRef<HttpRequest> wrapper(new HttpRequest());
-	wrapper->BindActualRequest(request);
-	wrapper->expectedResponseCode_ = static_cast<int32>(expectedResponseCode);
+	TSharedRef<HttpRequest> Wrapper(new HttpRequest());
+	Wrapper->BindActualRequest(Request);
+	Wrapper->expectedResponseCode_ = static_cast<int32>(expectedResponseCode);
 
-	wrapper->DefaultErrorHandler = DefaultErrorHandler;
-	wrapper->OnUnhandledError = DefaultUnhandledErrorHandler;
-	wrapper->OnDriftDeprecationMessage = DefaultDriftDeprecationMessageHandler;
+	Wrapper->DefaultErrorHandler = DefaultErrorHandler;
+	Wrapper->OnUnhandledError = DefaultUnhandledErrorHandler;
+	Wrapper->OnDriftDeprecationMessage = DefaultDriftDeprecationMessageHandler;
 
-	wrapper->SetCache(cache_);
+	Wrapper->SetCache(cache_);
 
-	AddCustomHeaders(wrapper);
+	AddCustomHeaders(Wrapper);
 
 	if (userContext_.Num() > 0)
 	{
-		JsonValue temp(rapidjson::kObjectType);
+		JsonValue Temp(rapidjson::kObjectType);
 		for (const auto& item : userContext_)
 		{
-			temp.SetField(item.Key, item.Value);
+			Temp.SetField(item.Key, item.Value);
 		}
 
 #if !UE_BUILD_SHIPPING
-		temp.SetField(TEXT("request_id"), *wrapper->RequestID().ToString());
+		Temp.SetField(TEXT("request_id"), *Wrapper->RequestID().ToString());
 #endif
-		FString contextValue;
-		JsonArchive::SaveObject(temp, contextValue);
-		wrapper->SetHeader(TEXT("Drift-Log-Context"), contextValue);
+		FString ContextValue;
+		JsonArchive::SaveObject(Temp, ContextValue);
+		Wrapper->SetHeader(TEXT("Drift-Log-Context"), ContextValue);
 	}
 
-	wrapper->SetRetries(defaultRetries_);
-	wrapper->OnShouldRetry().BindRaw(this, &RequestManager::ShouldRetryCallback);
+	Wrapper->SetRetries(defaultRetries_);
+	Wrapper->OnShouldRetry().BindRaw(this, &RequestManager::ShouldRetryCallback);
 
-	wrapper->OnDispatch.BindSP(this, &RequestManager::ProcessRequest);
-	wrapper->OnRetry.BindSP(this, &RequestManager::EnqueueRequest);
-	wrapper->OnCompleted.BindSP(this, &RequestManager::OnRequestFinished);
+	Wrapper->OnDispatch.BindSP(this, &RequestManager::ProcessRequest);
+	Wrapper->OnRetry.BindSP(this, &RequestManager::EnqueueRequest);
+	Wrapper->OnCompleted.BindSP(this, &RequestManager::OnRequestFinished);
 
-	UE_LOG(LogHttpClient, Verbose, TEXT("'%s' CREATED"), *wrapper->GetAsDebugString());
+	UE_LOG(LogHttpClient, Verbose, TEXT("'%s' CREATED"), *Wrapper->GetAsDebugString());
 
-	return wrapper;
+	return Wrapper;
 }
 
 
@@ -176,9 +176,9 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const FString& url, const FString& payload
                                                       , HttpStatusCodes expectedResponseCode)
 {
-	auto request = CreateRequest(method, url, expectedResponseCode);
-	request->SetPayload(payload);
-	return request;
+	auto Request = CreateRequest(method, url, expectedResponseCode);
+	Request->SetPayload(payload);
+	return Request;
 }
 
 
@@ -193,7 +193,7 @@ void RequestManager::OnRequestFinished(TSharedRef<HttpRequest> request)
 bool RequestManager::ShouldRetryCallback(FHttpRequestPtr request, FHttpResponsePtr response) const
 {
 	// TODO: fix the condition
-	int32 errorCode = -1; //TODO: response->GetErrorCode();
+	int32 ErrorCode = -1; //TODO: response->GetErrorCode();
 #if PLATFORM_APPLE
     if (errorCode == kCFURLErrorTimedOut)
     {

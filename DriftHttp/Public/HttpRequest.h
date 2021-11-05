@@ -15,9 +15,11 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "JsonArchive.h"
+#include "Sound/SoundNode.h"
 
 
 class IHttpCache;
+class FRetryConfig;
 
 
 // based on http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -145,6 +147,7 @@ public:
 
 
 	void SetRetries(int32 retries) { MaxRetries_ = retries; }
+	void SetRetryConfig(const FRetryConfig& Config);
 
 	void SetContentType(const FString& contentType) { contentType_ = contentType; }
 
@@ -153,8 +156,6 @@ public:
 	void SetShouldRetryDelegate(FShouldRetryDelegate Delegate) { shouldRetryDelegate_ = Delegate; }
 
 	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
-
-	void AddRetryHandlingOnServerError();
 
 	FString GetAsDebugString(bool detailed = false) const;
 
