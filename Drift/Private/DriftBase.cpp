@@ -2953,7 +2953,7 @@ void FDriftBase::InitServerRootInfo()
 	Request->SetRetries(3);
 	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
 	{
-		return Response.IsValid() && Response->GetResponseCode() >= 500;
+		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
 	}));
 
     Request->Dispatch();
@@ -3047,7 +3047,7 @@ void FDriftBase::InitServerAuthentication()
 	Request->SetRetries(3);
 	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
 	{
-		return Response.IsValid() && Response->GetResponseCode() >= 500;
+		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
 	}));
 
 
@@ -3120,7 +3120,7 @@ void FDriftBase::InitServerRegistration()
 	Request->SetRetries(3);
 	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
 	{
-		return Response.IsValid() && Response->GetResponseCode() >= 500;
+		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
 	}));
 
     Request->Dispatch();
@@ -3151,7 +3151,7 @@ void FDriftBase::InitServerInfo()
 	Request->SetRetries(3);
 	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
 	{
-		return Response.IsValid() && Response->GetResponseCode() >= 500;
+		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
 	}));
 
     Request->Dispatch();
@@ -3184,7 +3184,7 @@ void FDriftBase::FinalizeRegisteringServer()
 	Request->SetRetries(3);
 	Request->SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
 	{
-		return Response.IsValid() && Response->GetResponseCode() >= 500;
+		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
 	}));
 
 	Request->Dispatch();
