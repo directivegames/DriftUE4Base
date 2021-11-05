@@ -126,11 +126,11 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 
     auto request = FHttpModule::Get().CreateRequest();
     request->SetURL(url);
-    request->SetVerb(verbs[(int)method]);
+    request->SetVerb(verbs[static_cast<int>(method)]);
 
     TSharedRef<HttpRequest> wrapper(new HttpRequest());
     wrapper->BindActualRequest(request);
-    wrapper->expectedResponseCode_ = (int32)expectedResponseCode;
+    wrapper->expectedResponseCode_ = static_cast<int32>(expectedResponseCode);
 
     wrapper->DefaultErrorHandler = DefaultErrorHandler;
     wrapper->OnUnhandledError = DefaultUnhandledErrorHandler;
