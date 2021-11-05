@@ -276,21 +276,21 @@ void RequestManager::UpdateLogContext(TMap<FString, FString>& context)
 void RequestManager::Tick(float DeltaTime)
 {
 	// Check pending retries before processing new requests
-	for (const auto& Retry : pendingRetries_)
+	while (activeRequests_.Num() < maxConcurrentRequests_)
 	{
-		if (activeRequests_.Num() < maxConcurrentRequests_)
+		const auto OverdueRequest = pendingRetries_.FindByPredicate([](const auto& Entry)
 		{
-			if (Retry.Key > FDateTime::Now())
-			{
-				const auto& Request = activeRequests_.Add_GetRef(Retry.Value.ToSharedRef());
-				pendingRetries_.RemoveSingleSwap(Retry);
-				Request->wrappedRequest_->ProcessRequest();
-			}
-		}
-		else
+			return Entry.Key < FDateTime::Now();
+		});
+
+		if (!OverdueRequest)
 		{
 			break;
 		}
+
+		const auto& Request = activeRequests_.Add_GetRef(OverdueRequest->Value.ToSharedRef());
+		pendingRetries_.RemoveSingleSwap(*OverdueRequest);
+		Request->wrappedRequest_->ProcessRequest();
 	}
 
 	// Check any queued requests

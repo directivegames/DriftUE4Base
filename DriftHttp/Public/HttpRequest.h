@@ -206,7 +206,7 @@ protected:
 	int32 CurrentRetry_;
 
 	float RetryDelay_ = 1.0f;
-	float RetryDelayCap_ = 5.0f;
+	float RetryDelayCap_ = 10.0f;
 
 	FString contentType_;
 	FDateTime sent_;

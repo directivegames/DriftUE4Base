@@ -376,16 +376,12 @@ void HttpRequest::LogError(ResponseContext& context)
 
 void HttpRequest::Retry()
 {
-	UE_LOG(LogHttpClient, Verbose, TEXT("Retrying %s"), *GetAsDebugString());
-
 	++CurrentRetry_;
 
 	const auto MaxRetryDelay = FMath::Min(RetryDelayCap_, FMath::Pow(RetryDelay_ * 2, CurrentRetry_));
-	const auto Delay = FMath::RandRange(
-		RetryDelay_ / 2.0f,
-		MaxRetryDelay
-	);
+	const auto Delay = FMath::RandRange(RetryDelay_ / 2.0f, MaxRetryDelay);
 
+	UE_LOG(LogHttpClient, Verbose, TEXT("Scheduling retry for %s in %f seconds"), *GetAsDebugString(), Delay);
 
 	// Note that we explicitly set the request to be queued for retry
 	// the reason is that the internal HTTP processing logic will remove the current request from the system right after this point (Retry is called by the request finish handler)
