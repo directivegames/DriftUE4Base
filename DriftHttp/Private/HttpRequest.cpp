@@ -470,6 +470,15 @@ FString HttpRequest::GetRequestURL() const
 }
 
 
+void HttpRequest::AddRetryHandlingOnServerError()
+{
+	MaxRetries_ = 3;
+	shouldRetryDelegate_ = FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
+	{
+		return Response.IsValid() && Response->GetResponseCode() >= static_cast<int32>(HttpStatusCodes::FirstServerError);
+	});
+}
+
 FString HttpRequest::GetAsDebugString(bool detailed) const
 {
 #if !UE_BUILD_SHIPPING
