@@ -31,11 +31,13 @@ void FDriftFlexmatch::ConfigureSession(const FDriftEndpointsResponse& DriftEndpo
 	FlexmatchTicketsURL = DriftEndpoints.flexmatch_tickets;
 	CurrentTicketUrl = DriftEndpoints.my_flexmatch_ticket;
 	PlayerId = InPlayerId;
+
+	InitializeLocalState();
 }
 
 void FDriftFlexmatch::Tick( float DeltaTime )
 {
-	if ( bDoPings )
+	if ( bIsInitialized && bDoPings )
 	{
 		TimeToPing -= DeltaTime;
 		if (TimeToPing < 0 && !bIsPinging)
@@ -70,7 +72,7 @@ void FDriftFlexmatch::MeasureLatencies()
 		Request->OnProcessRequestComplete().BindLambda(
 		[WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
 		{
-			if (auto Self = WeakSelf.Pin())
+			if (const auto Self = WeakSelf.Pin())
 			{
 				if (!bConnectedSuccessfully)
 				{
@@ -147,11 +149,6 @@ void FDriftFlexmatch::ReportLatencies(const TSharedRef<TMap<FString, int>> Laten
 void FDriftFlexmatch::StartLatencyReporting()
 {
 	bDoPings = true;
-	if (! bIsInitialized )
-	{
-		InitializeLocalState();
-		bIsInitialized = true;
-	}
 }
 
 void FDriftFlexmatch::StopLatencyReporting()
@@ -429,6 +426,11 @@ FString FDriftFlexmatch::GetStatusString() const
 
 void FDriftFlexmatch::InitializeLocalState()
 {
+	if (bIsInitialized)
+	{
+		return;
+	}
+	
 	if (! RequestManager.IsValid() )
 	{
 		return;
@@ -446,6 +448,8 @@ void FDriftFlexmatch::InitializeLocalState()
 	});
 	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
 	{
+		bIsInitialized = true;
+		
 		auto Response = doc.GetObject();
 		if ( Response.Num() == 0)
 		{
@@ -457,7 +461,7 @@ void FDriftFlexmatch::InitializeLocalState()
 		SetStatusFromString(Response["Status"].GetString());
 		if ( Response.Contains("GameSessionConnectionInfo") )
 		{
-			auto SessionInfo = Response["GameSessionConnectionInfo"];
+			const auto SessionInfo = Response["GameSessionConnectionInfo"];
 			ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
 			ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
 		}
