@@ -195,7 +195,7 @@ bool RequestManager::ShouldRetryCallback(FHttpRequestPtr request, FHttpResponseP
 	// TODO: fix the condition
 	int32 ErrorCode = -1; //TODO: response->GetErrorCode();
 #if PLATFORM_APPLE
-    if (errorCode == kCFURLErrorTimedOut)
+    if (ErrorCode == kCFURLErrorTimedOut)
     {
         return true;
     }
