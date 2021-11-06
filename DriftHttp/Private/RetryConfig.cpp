@@ -42,8 +42,8 @@ FRetryOnServerError::FRetryOnServerError()
 void FRetryOnServerError::Apply(HttpRequest& Request) const
 {
 	FRetryConfig::Apply(Request);
-	Request.SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr)
+	Request.SetShouldRetryDelegate(FShouldRetryDelegate::CreateLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response)
 	{
-		return Request->GetStatus() >= EHttpResponseCodes::ServerError;
+		return Response.IsValid() && Response->GetResponseCode() >= EHttpResponseCodes::ServerError;
 	}));
 }
