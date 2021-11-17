@@ -609,18 +609,18 @@ struct FDriftFriendResponse
 
 struct FDriftFriendRequestsResponse
 {
-	FString accept_url = "";
+	FString accept_url = TEXT("");
 	FDateTime create_date;
 	FDateTime expiry_date;
 	int32 id = 0;
-	FString issued_by_player_name = "";
+	FString issued_by_player_name = TEXT("");
 	int32 issued_by_player_id = 0;
-	FString issued_by_player_url = "";
+	FString issued_by_player_url = TEXT("");
 	int32 issued_to_player_id = 0;
-	FString issued_to_player_name = "";
-	FString issued_to_player_url = "";
+	FString issued_to_player_name = TEXT("");
+	FString issued_to_player_url = TEXT("");
 	FDateTime modify_date;
-	FString token = "";
+	FString token = TEXT("");
 
 	bool Serialize(class SerializationContext& context);
 };
