@@ -472,18 +472,21 @@ bool FDriftFriendResponse::Serialize(SerializationContext& context)
 
 bool FDriftFriendRequestsResponse::Serialize(SerializationContext& context)
 {
-	return SERIALIZE_PROPERTY(context, accept_url)
+	const auto Result = SERIALIZE_PROPERTY(context, accept_url)
 		&& SERIALIZE_PROPERTY(context, create_date)
 		&& SERIALIZE_PROPERTY(context, expiry_date)
 		&& SERIALIZE_PROPERTY(context, id)
 		&& SERIALIZE_PROPERTY(context, issued_by_player_name)
 		&& SERIALIZE_PROPERTY(context, issued_by_player_id)
 		&& SERIALIZE_PROPERTY(context, issued_by_player_url)
-		&& SERIALIZE_PROPERTY(context, issued_to_player_id)
-		&& SERIALIZE_PROPERTY(context, issued_to_player_name)
-		&& SERIALIZE_PROPERTY(context, issued_to_player_url)
 		&& SERIALIZE_PROPERTY(context, modify_date)
 		&& SERIALIZE_PROPERTY(context, token);
+
+	SERIALIZE_OPTIONAL_PROPERTY(context, issued_to_player_id);
+	SERIALIZE_OPTIONAL_PROPERTY(context, issued_to_player_name);
+	SERIALIZE_OPTIONAL_PROPERTY(context, issued_to_player_url);
+	
+	return Result;
 }
 
 

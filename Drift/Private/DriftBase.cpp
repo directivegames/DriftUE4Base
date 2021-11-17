@@ -1938,39 +1938,40 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDe
         return false;
     }
 
-    auto url = driftEndpoints.friend_invites;
+    JsonValue Payload{ rapidjson::kObjectType };
+    
     if (PlayerID > 0)
     {
-        internal::UrlHelper::AddUrlOption(url, TEXT("player_id"), PlayerID);
+        JsonArchive::AddMember(Payload, TEXT("player_id"), PlayerID);
     }
 
     DRIFT_LOG(Base, Verbose, TEXT("Issuing a friend request token to %s"), PlayerID > 0 ? *FString::Printf(TEXT("player with ID %d"), PlayerID) : TEXT("any player"));
 
-    auto request = GetGameRequestManager()->Post(url, FString{});
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    const auto Request = GetGameRequestManager()->Post(driftEndpoints.friend_invites, Payload);
+    Request->OnResponse.BindLambda([this, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
-        FString token;
-        const auto member = doc.FindField(TEXT("token"));
+        FString Token;
+        const auto member = Doc.FindField(TEXT("token"));
         if (member.IsString())
         {
-            token = member.GetString();
+            Token = member.GetString();
         }
-        if (token.IsEmpty())
+        if (Token.IsEmpty())
         {
-            context.error = TEXT("Response 'token' missing.");
+            Context.error = TEXT("Response 'token' missing.");
             return;
         }
 
-        DRIFT_LOG(Base, Verbose, TEXT("Got friend request token: %s"), *token);
+        DRIFT_LOG(Base, Verbose, TEXT("Got friend request token: %s"), *Token);
 
-        delegate.ExecuteIfBound(true, token);
+        delegate.ExecuteIfBound(true, Token);
     });
-    request->OnError.BindLambda([delegate](ResponseContext& context)
+    Request->OnError.BindLambda([delegate](ResponseContext& context)
     {
         context.errorHandled = true;
         delegate.ExecuteIfBound(false, {});
     });
-    request->Dispatch();
+    Request->Dispatch();
     return true;
 }
 
@@ -2121,6 +2122,60 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
     });
 
     return request->Dispatch();
+}
+
+bool FDriftBase::GetFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch friend invites without being connected"));
+        return false;
+    }
+    if (driftEndpoints.friend_invites.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to fetch friend invites without a player session"));
+        return false;
+    }
+    DRIFT_LOG(Base, Verbose, TEXT("Getting friend invites...."));
+    const auto Request = GetGameRequestManager()->Get(driftEndpoints.friend_invites);
+    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        DRIFT_LOG(Base, Verbose, TEXT("Loaded friend invites: %s"), *Doc.ToString());
+
+        TArray<FDriftFriendRequestsResponse> Response;
+        if (!JsonArchive::LoadObject(Doc, Response))
+        {
+            Context.error = TEXT("Failed to parse invites response");
+            return;
+        }
+
+        TArray<FDriftFriendRequest> FriendInvites;
+        for (const auto& It: Response)
+        {
+            FriendInvites.Add({
+                It.id,
+                It.create_date,
+                It.expiry_date,
+                It.issued_by_player_id,
+                It.issued_by_player_url,
+                It.issued_by_player_name,
+                It.issued_to_player_id,
+                It.issued_to_player_url,
+                It.issued_to_player_name,
+                It.accept_url,
+                It.token
+            });
+        }
+
+        (void)Delegate.ExecuteIfBound(true, FriendInvites);
+    });
+    Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
+    {
+        Context.errorHandled = true;
+        Delegate.ExecuteIfBound(false, {});
+    });
+
+    return Request->Dispatch();
 }
 
 bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate)

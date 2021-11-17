@@ -747,6 +747,11 @@ public:
     virtual bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
 
     /**
+     * Get Friend Requests issued by the current player
+     */
+    virtual bool GetFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
+
+    /**
     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
     * Only supported for friends managed through Drift, i.e. with Type == EDriftFriendType::Drift
     */
