@@ -1922,7 +1922,7 @@ FString FDriftBase::GetFriendName(int32 friendID)
 }
 
 
-bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate)
+bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties TokenProperties, const FDriftIssueFriendTokenDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
@@ -1943,6 +1943,21 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDe
     if (PlayerID > 0)
     {
         JsonArchive::AddMember(Payload, TEXT("player_id"), PlayerID);
+    }
+
+    if (TokenProperties.TokenFormat.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("token_format"), *TokenProperties.TokenFormat.GetValue());
+    }
+
+    if (TokenProperties.WordlistNumberOfWords.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("worldlist_number_of_words"), TokenProperties.WordlistNumberOfWords.GetValue());
+    }
+
+    if (TokenProperties.ExpirationTimeInSeconds.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("expiration_time_seconds"), TokenProperties.ExpirationTimeInSeconds.GetValue());
     }
 
     DRIFT_LOG(Base, Verbose, TEXT("Issuing a friend request token to %s"), PlayerID > 0 ? *FString::Printf(TEXT("player with ID %d"), PlayerID) : TEXT("any player"));
