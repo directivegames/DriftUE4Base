@@ -114,10 +114,11 @@ public:
     void UpdateFriendsList() override;
     bool GetFriendsList(TArray<FDriftFriend>& friends) override;
     FString GetFriendName(int32 friendID) override;
-    bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) override;
+    bool IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties TokenProperties, const FDriftIssueFriendTokenDelegate& delegate) override;
     bool AcceptFriendRequestToken(const FString& token, const FDriftAcceptFriendRequestDelegate& delegate) override;
     bool DeclineFriendRequest(int32 RequestId, FDriftDeclineFriendRequestDelegate& delegate) override;
     bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) override;
+	bool GetSentFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate) override;
 
     bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;

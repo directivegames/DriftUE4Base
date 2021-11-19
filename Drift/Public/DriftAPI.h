@@ -549,6 +549,12 @@ struct FAuthenticationSettings
     bool bAutoCreateAccount;
 };
 
+struct FDriftFriendTokenProperties
+{
+    TOptional<FString> TokenFormat;
+    TOptional<int32> WordlistNumberOfWords;
+    TOptional<int32> ExpirationTimeInSeconds;
+};
 
 class IDriftAPI : public IDriftServerAPI
 {
@@ -729,7 +735,7 @@ public:
      * If 'playerID' is > 0, a message will be sent to that player with the token, otherwise no message is sent and
      * the token will be valid for any player who accepts it. In that case, the token must be sent to a friend via external means
      */
-    virtual bool IssueFriendToken(int32 PlayerID, const FDriftIssueFriendTokenDelegate& delegate) = 0;
+    virtual bool IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties TokenProperties, const FDriftIssueFriendTokenDelegate& delegate) = 0;
 
     /**
      * Accept a friend request via an external token
@@ -745,6 +751,11 @@ public:
      * Get Friend Requests directed at the current player
      */
     virtual bool GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
+
+    /**
+     * Get Friend Requests issued by the current player
+     */
+    virtual bool GetSentFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
 
     /**
     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
