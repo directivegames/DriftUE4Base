@@ -2139,7 +2139,7 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
     return request->Dispatch();
 }
 
-bool FDriftBase::GetFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate)
+bool FDriftBase::GetSentFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {

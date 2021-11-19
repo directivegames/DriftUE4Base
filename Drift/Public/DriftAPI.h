@@ -755,7 +755,7 @@ public:
     /**
      * Get Friend Requests issued by the current player
      */
-    virtual bool GetFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
+    virtual bool GetSentFriendInvites(const FDriftGetFriendRequestsDelegate& Delegate) = 0;
 
     /**
     * Remove a friendship. This will mutually remove the player's from each other's friends lists.
