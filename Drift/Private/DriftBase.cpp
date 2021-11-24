@@ -2009,47 +2009,48 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
 
     DRIFT_LOG(Base, Verbose, TEXT("Accepting a friend request with token %s"), *token);
 
-    JsonValue payload{ rapidjson::kObjectType };
-    JsonArchive::AddMember(payload, TEXT("token"), *token);
-    auto request = GetGameRequestManager()->Post(driftEndpoints.my_friends, payload);
-    request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+    JsonValue Payload{ rapidjson::kObjectType };
+    JsonArchive::AddMember(Payload, TEXT("token"), *token);
+    const auto Request = GetGameRequestManager()->Post(driftEndpoints.my_friends, Payload);
+    Request->OnResponse.BindLambda([this, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
-        int32 friendID{ 0 };
-        const auto member = doc.FindField(TEXT("friend_id"));
-        if (member.IsInt32())
+        int32 FriendID{ 0 };
+        const auto Member = Doc.FindField(TEXT("friend_id"));
+        if (Member.IsInt32())
         {
-            friendID = member.GetInt32();
+            FriendID = Member.GetInt32();
         }
 
-        if (friendID == 0)
+        if (FriendID == 0)
         {
-            context.error = TEXT("Friend ID is not valid");
+            Context.error = TEXT("Friend ID is not valid");
             return;
         }
 
-        LoadFriendsList(FDriftFriendsListLoadedDelegate::CreateLambda([this, friendID](bool success)
+        LoadFriendsList(FDriftFriendsListLoadedDelegate::CreateLambda([this, FriendID](bool bSuccess)
         {
             if (state_ != DriftSessionState::Connected)
             {
                 return;
             }
-            if (const auto f = friendInfos.Find(friendID))
+            if (const auto FriendInfo = friendInfos.Find(FriendID))
             {
-                JsonValue message{ rapidjson::kObjectType };
-                JsonArchive::AddMember(message, TEXT("event"), TEXT("friend_added"));
-                const auto messageUrlTemplate = f->messagequeue_url;
-                messageQueue->SendMessage(messageUrlTemplate, FriendEvent, MoveTemp(message));
+                JsonValue Message{ rapidjson::kObjectType };
+                JsonArchive::AddMember(Message, TEXT("event"), TEXT("friend_added"));
+                const auto MessageUrlTemplate = FriendInfo->messagequeue_url;
+                messageQueue->SendMessage(MessageUrlTemplate, FriendEvent, MoveTemp(Message));
             }
         }));
 
-        delegate.ExecuteIfBound(true, friendID);
+        delegate.ExecuteIfBound(true, FriendID, "");
     });
-    request->OnError.BindLambda([delegate](ResponseContext& context)
+    Request->OnError.BindLambda([delegate](ResponseContext& Context)
     {
-        context.errorHandled = true;
-        delegate.ExecuteIfBound(false, 0);
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        delegate.ExecuteIfBound(false, 0, Error);
     });
-    request->Dispatch();
+    Request->Dispatch();
     return true;
 }
 
@@ -4069,6 +4070,50 @@ bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 	}
 
 	return false;
+}
+
+bool FDriftBase::GetResponseError(const ResponseContext& Context, FString& Error)
+{
+    if (!Context.error.IsEmpty())
+    {
+        Error = Context.error;
+        return true;
+    }
+
+    Error = TEXT("Unknown error");
+
+    if (!Context.response)
+    {
+        return false;
+    }
+
+    JsonDocument Doc;
+    Doc.Parse(*Context.response->GetContentAsString());
+
+    if (Doc.HasParseError())
+    {
+        return false;
+    }
+
+    // Check if there is a specific error message provided
+    if (Doc.HasField(TEXT("error")))
+    {
+        const auto ErrorField = Doc[TEXT("error")].GetObject();
+        if (const auto ErrorValuePtr = ErrorField.Find("description"))
+        {
+            Error = ErrorValuePtr->GetString();
+            return true;
+        }
+    }
+
+    // Fallback to the generic error message if provided
+    if (Doc.HasField(TEXT("message")))
+    {
+        Error = Doc[TEXT("message")].GetString();
+        return true;
+    }
+
+    return false;
 }
 
 
