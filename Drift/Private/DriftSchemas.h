@@ -132,10 +132,10 @@ struct FClientRegistrationPayload
  */
 struct FClientRegistrationResponse
 {
-	int32 client_id;
-	int32 player_id;
-	int32 user_id;
-	int32 next_heartbeat_seconds;
+	int32 client_id = 0;
+	int32 player_id = 0;
+	int32 user_id = 0;
+	int32 next_heartbeat_seconds = 0;
 	FString url;
 	FString jwt;
 	FString jti;
@@ -240,8 +240,8 @@ struct FStaticDataResponse
 
 struct FServerRegistrationPayload
 {
-	int32 port;
-	int32 pid;
+	int32 port = 0;
+	int32 pid = 0;
 	FString instance_name;
 	FString public_ip;
 	FString command_line;
@@ -255,10 +255,10 @@ struct FServerRegistrationPayload
 
 struct FMatchesPayload
 {
-	int32 server_id;
-	int32 num_players;
-	int32 max_players;
-	int32 num_teams;
+	int32 server_id = 0;
+	int32 num_players = 0;
+	int32 max_players = 0;
+	int32 num_teams = 0;
 	FString map_name;
 	FString game_mode;
 	FString status;
@@ -269,7 +269,7 @@ struct FMatchesPayload
 
 struct FJoinMatchQueuePayload
 {
-	int32 player_id;
+	int32 player_id = 0;
 	FString ref;
 	FString placement;
 	FString token;
@@ -286,8 +286,8 @@ extern FName MatchQueueStatusErrorName;
 
 struct FMatchQueueResponse
 {
-	int32 player_id;
-	int32 match_id;
+	int32 player_id = 0;
+	int32 match_id = 0;
 	FString player_url;
 	FString player_name;
 	FString match_url;
@@ -328,7 +328,7 @@ struct FPlayerGameStateResponse
  */
 struct FCounterModification
 {
-	int32 context_id;
+	int32 context_id = 0;
 	float value;
 	FString name;
 	FString counter_type;
@@ -389,7 +389,7 @@ struct FDriftPlayerCounter
  */
 struct FDriftUserIdentity
 {
-	int32 player_id;
+	int32 player_id = 0;
 	FString identity_name;
 	FString player_name;
 	FString player_url;
@@ -415,7 +415,7 @@ struct FDriftCreatePlayerGroupPayload
  */
 struct FDriftCreatePlayerGroupResponse
 {
-	int32 player_id;
+	int32 player_id = 0;
 	FString group_name;
 	FString secret;
 	TArray<FDriftUserIdentity> players;
@@ -429,8 +429,8 @@ struct FDriftCreatePlayerGroupResponse
  */
 struct FDriftLeaderboardResponseItem
 {
-	int32 player_id;
-	int32 position;
+	int32 player_id = 0;
+	int32 position = 0;
 	float total;
 	FString player_name;
 
@@ -443,7 +443,7 @@ struct FDriftLeaderboardResponseItem
  */
 struct FDriftPlayerGameStateInfo
 {
-	int32 gamestate_id;
+	int32 gamestate_id = 0;
 	FString name;
 	FString gamestate_url;
 
@@ -484,9 +484,9 @@ struct FDriftLogMessage
 struct FServerRegistrationResponse
 {
 	FString heartbeat_url;
-	int32 machine_id;
+	int32 machine_id = 0;
 	FString machine_url;
-	int32 server_id;
+	int32 server_id = 0;
 	FString url;
 
 	bool Serialize(class SerializationContext& context);
@@ -495,7 +495,7 @@ struct FServerRegistrationResponse
 
 struct FAddMatchResponse
 {
-	int32 match_id;
+	int32 match_id = 0;
 	FString url;
 	FString stats_url;
 	FString players_url;
@@ -514,17 +514,17 @@ struct FMachineInfo
 {
 	FDateTime create_date;
 	JsonValue details{rapidjson::kObjectType};
-	int32 instance_id;
+	int32 instance_id = 0;
 	FString instance_name;
 	// instance_type;
-	int32 machine_id;
+	int32 machine_id = 0;
 	// machine_info;
 	FDateTime modify_date;
 	FString placement;
 	FString realm;
 	FString private_ip;
 	FString public_ip;
-	int32 server_count;
+	int32 server_count = 0;
 	FDateTime server_date;
 	FString status;
 
@@ -534,8 +534,8 @@ struct FMachineInfo
 
 struct FTeamInfo
 {
-	int32 team_id;
-	int32 match_id;
+	int32 team_id = 0;
+	int32 match_id = 0;
 
 	FDateTime create_date;
 	FDateTime modify_date;
@@ -561,16 +561,16 @@ struct FPlayerInfo
 
 struct FMatchInfo
 {
-	int32 match_id;
-	int32 server_id;
+	int32 match_id = 0;
+	int32 server_id = 0;
 
 	FDateTime create_date;
 	FDateTime start_date;
 	FDateTime end_date;
 	FString status;
 
-	int32 num_players;
-	int32 max_players;
+	int32 num_players = 0;
+	int32 max_players = 0;
 
 	FString game_mode;
 	FString map_name;
@@ -599,7 +599,7 @@ struct FMatchInfo
 
 struct FDriftFriendResponse
 {
-	int32 friend_id;
+	int32 friend_id = 0;
 	FString player_url;
 	FString friendship_url;
 
