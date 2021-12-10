@@ -782,16 +782,43 @@ void FDriftBase::LoadPlayerGameState(const FString& name, const FDriftGameStateL
     });
 }
 
+void FDriftBase::LoadPlayerGameState(int32 playerId, const FString& name, const FDriftGameStateLoadedDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to load player game state without being connected"));
+        delegate.ExecuteIfBound(ELoadPlayerGameStateResult::Error_InvalidState, name, FString());
+        onPlayerGameStateLoaded.Broadcast(ELoadPlayerGameStateResult::Error_InvalidState, name, FString());
+        return;
+    }
+
+    if (driftEndpoints.template_player_gamestate.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to load player game state with no endpoint"));
+
+        delegate.ExecuteIfBound(ELoadPlayerGameStateResult::Error_InvalidState, name, FString());
+        onPlayerGameStateLoaded.Broadcast(ELoadPlayerGameStateResult::Error_InvalidState, name, FString());
+        return;
+    }
+
+    DRIFT_LOG(Base, Log, TEXT("Getting player game state '%s' for player '%d'"), *name, playerId);
+
+    const auto url = driftEndpoints.template_player_gamestate.Replace(TEXT("{player_id}"), *FString::FromInt(playerId)).Replace(TEXT("{namespace}"), *name);
+
+    InternalLoadPlayerGameState(name, url, delegate);
+}
+
 
 void FDriftBase::LoadPlayerGameStateImpl(const FString& name, const FDriftGameStateLoadedDelegate& delegate)
 {
     DRIFT_LOG(Base, Log, TEXT("Getting player game state \"%s\""), *name);
 
-    auto gameStateInfo = playerGameStateInfos.FindByPredicate([name](const FDriftPlayerGameStateInfo& info)
+    const auto GameStateInfo = playerGameStateInfos.FindByPredicate([name](const FDriftPlayerGameStateInfo& info)
     {
         return info.name == name;
     });
-    if (gameStateInfo == nullptr)
+    
+    if (GameStateInfo == nullptr)
     {
         DRIFT_LOG(Base, Warning, TEXT("Failed to find player game state: \"%s\""), *name);
 
@@ -799,32 +826,41 @@ void FDriftBase::LoadPlayerGameStateImpl(const FString& name, const FDriftGameSt
         onPlayerGameStateLoaded.Broadcast(ELoadPlayerGameStateResult::Error_NotFound, name, FString());
         return;
     }
-    auto request = GetGameRequestManager()->Get(gameStateInfo->gamestate_url);
-    request->OnResponse.BindLambda([this, name, delegate](ResponseContext& context, JsonDocument& doc)
+
+    InternalLoadPlayerGameState(name, GameStateInfo->gamestate_url, delegate);
+}
+
+void FDriftBase::InternalLoadPlayerGameState(const FString& name, const FString& url, const FDriftGameStateLoadedDelegate& delegate)
+{
+    const auto Request = GetGameRequestManager()->Get(url);
+    Request->OnResponse.BindLambda([this, name, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
-        FPlayerGameStateResponse response;
-        if (!JsonArchive::LoadObject(doc, response) || response.data.IsNull() || !response.data.HasField(TEXT("data")))
+        FPlayerGameStateResponse Response;
+        if (!JsonArchive::LoadObject(Doc, Response) || Response.data.IsNull() || !Response.data.HasField(TEXT("data")))
         {
-            context.error = TEXT("Failed to parse game state response");
+            Context.error = TEXT("Failed to parse game state response");
             return;
         }
-        const FString data{ response.data[TEXT("data")].GetString() };
-        delegate.ExecuteIfBound(ELoadPlayerGameStateResult::Success, name, data);
-        onPlayerGameStateLoaded.Broadcast(ELoadPlayerGameStateResult::Success, name, data);
+        const FString Data{ Response.data[TEXT("data")].GetString() };
+        delegate.ExecuteIfBound(ELoadPlayerGameStateResult::Success, name, Data);
+        onPlayerGameStateLoaded.Broadcast(ELoadPlayerGameStateResult::Success, name, Data);
 
-        auto event = MakeEvent(TEXT("drift.gamestate_loaded"));
-        event->Add(TEXT("namespace"), *name);
-        event->Add(TEXT("bytes"), context.response->GetContentLength());
-        event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
-        AddAnalyticsEvent(MoveTemp(event));
+        auto Event = MakeEvent(TEXT("drift.gamestate_loaded"));
+        Event->Add(TEXT("namespace"), *name);
+        Event->Add(TEXT("bytes"), Context.response->GetContentLength());
+        Event->Add(TEXT("request_time"), (Context.received - Context.sent).GetTotalSeconds());
+        AddAnalyticsEvent(MoveTemp(Event));
     });
-    request->OnError.BindLambda([this, name, delegate](ResponseContext& context)
+    Request->OnError.BindLambda([this, name, delegate](ResponseContext& Context)
     {
-        context.errorHandled = true;
-        delegate.ExecuteIfBound(ELoadPlayerGameStateResult::Error_Failed, name, FString());
-        onPlayerGameStateLoaded.Broadcast(ELoadPlayerGameStateResult::Error_Failed, name, FString());
+        Context.errorHandled = true;
+
+        const auto Result = Context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) ? ELoadPlayerGameStateResult::Error_NotFound : ELoadPlayerGameStateResult::Error_Failed;
+
+        delegate.ExecuteIfBound(Result, name, FString());
+        onPlayerGameStateLoaded.Broadcast(Result, name, FString());
     });
-    request->Dispatch();
+    Request->Dispatch();
 }
 
 
@@ -853,47 +889,80 @@ void FDriftBase::SavePlayerGameState(const FString& name, const FString& gameSta
     });
 }
 
+void FDriftBase::SavePlayerGameState(int32 playerId, const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to save player game state without being connected"));
+        delegate.ExecuteIfBound(false, name);
+        onPlayerGameStateSaved.Broadcast(false, name);
+        return;
+    }
+
+    if (driftEndpoints.template_player_gamestate.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to save player game state with no endpoint"));
+
+        delegate.ExecuteIfBound(false, name);
+        onPlayerGameStateSaved.Broadcast(false, name);
+        return;
+    }
+
+    DRIFT_LOG(Base, Log, TEXT("Saving player game state '%s' for player '%d'"), *name, playerId);
+
+    const auto url = driftEndpoints.template_player_gamestate.Replace(TEXT("{player_id}"), *FString::FromInt(playerId)).Replace(TEXT("{namespace}"), *name);
+
+    InternalSavePlayerGameState(name, gameState, url, delegate);
+}
+
 
 void FDriftBase::SavePlayerGameStateImpl(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate)
 {
     DRIFT_LOG(Base, Log, TEXT("Saving player game state \"%s\""), *name);
 
-    auto gameStateInfo = playerGameStateInfos.FindByPredicate([name](const FDriftPlayerGameStateInfo& info)
+    const auto GameStateInfo = playerGameStateInfos.FindByPredicate([name](const FDriftPlayerGameStateInfo& info)
     {
         return info.name == name;
     });
-    FString url;
-    if (gameStateInfo != nullptr)
+
+    FString Url;
+    if (GameStateInfo != nullptr)
     {
-        url = gameStateInfo->gamestate_url;
+        Url = GameStateInfo->gamestate_url;
     }
     else
     {
-        url = driftEndpoints.my_gamestate.Replace(TEXT("{namespace}"), *name);
+        Url = driftEndpoints.my_gamestate.Replace(TEXT("{namespace}"), *name);
         playerGameStateInfosLoaded = false;
     }
 
-    FPlayerGameStatePayload payload{};
-    JsonArchive::AddMember(payload.gamestate, TEXT("data"), *gameState);
-    auto request = GetGameRequestManager()->Put(url, payload);
-    request->OnResponse.BindLambda([this, name, delegate](ResponseContext& context, JsonDocument& doc)
+    InternalSavePlayerGameState(name, gameState, Url, delegate);
+}
+
+void FDriftBase::InternalSavePlayerGameState(const FString& name, const FString& state, const FString& url, const FDriftGameStateSavedDelegate& delegate)
+{
+    FPlayerGameStatePayload Payload{};
+    JsonArchive::AddMember(Payload.gamestate, TEXT("data"), *state);
+
+    const auto Request = GetGameRequestManager()->Put(url, Payload);
+    Request->OnResponse.BindLambda([this, name, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
         delegate.ExecuteIfBound(true, name);
         onPlayerGameStateSaved.Broadcast(true, name);
 
-        auto event = MakeEvent(TEXT("drift.gamestate_saved"));
-        event->Add(TEXT("namespace"), *name);
-        event->Add(TEXT("bytes"), context.request->GetContentLength());
-        event->Add(TEXT("request_time"), (context.received - context.sent).GetTotalSeconds());
-        AddAnalyticsEvent(MoveTemp(event));
+        auto Event = MakeEvent(TEXT("drift.gamestate_saved"));
+        Event->Add(TEXT("namespace"), *name);
+        Event->Add(TEXT("bytes"), Context.request->GetContentLength());
+        Event->Add(TEXT("request_time"), (Context.received - Context.sent).GetTotalSeconds());
+        AddAnalyticsEvent(MoveTemp(Event));
     });
-    request->OnError.BindLambda([this, name, delegate](ResponseContext& context)
+    Request->OnError.BindLambda([this, name, delegate](ResponseContext& Context)
     {
-        context.errorHandled = true;
+        Context.errorHandled = true;
         delegate.ExecuteIfBound(false, name);
         onPlayerGameStateSaved.Broadcast(false, name);
     });
-    request->Dispatch();
+    Request->Dispatch();
 }
 
 
