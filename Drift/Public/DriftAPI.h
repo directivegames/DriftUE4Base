@@ -56,6 +56,14 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerAddedToMatchDelegate, bool, int
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerRemovedFromMatchDelegate, bool, int32);
 
 /**
+ * Fired when UpdatePlayerInMatch() finishes. Use this when you're not the
+ * instigator.
+ * bool - success
+ * int32 - player id
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerUpdatedInMatchDelegate, bool, int32);
+
+/**
  * Fired to notify the original caller when AddPlayerToMatch() finishes.
  * bool - success
  */
@@ -66,6 +74,12 @@ DECLARE_DELEGATE_OneParam(FDriftPlayerAddedDelegate, bool);
  * bool - success
  */
 DECLARE_DELEGATE_OneParam(FDriftPlayerRemovedDelegate, bool);
+
+/**
+ * Fired to notify the original caller when UpdatePlayerInMatch() finishes.
+ * bool - success
+ */
+DECLARE_DELEGATE_OneParam(FDriftPlayerUpdatedDelegate, bool);
 
 DECLARE_DELEGATE_OneParam(FDriftServerStatusUpdatedDelegate, bool);
 DECLARE_DELEGATE_OneParam(FDriftMatchStatusUpdatedDelegate, bool);
@@ -91,10 +105,18 @@ struct FDriftUpdateMatchProperties
     TOptional<FString> uniqueKey;
 };
 
+struct FDriftUpdateMatchPlayerProperties
+{
+    TOptional<FString> status;
+    TOptional<int32> team_id;
+    TOptional<JsonValue> details;
+    TOptional<JsonValue> statistics;
+};
+
 struct FDriftMatchTeam
 {
-	FString team_name;
-	int32 team_id;
+    FString team_name;
+    int32 team_id;
 };
 
 
@@ -146,6 +168,11 @@ public:
      * but the match isn't ending. When the match is set to "completed", players are automatically removed.
      */
     virtual void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) = 0;
+
+    /**
+     * Update a player in the current match.
+     */
+     virtual void UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlayerProperties& properties, const FDriftPlayerUpdatedDelegate& delegate) = 0;
 
     /**
      * Modify a player's counter. Counters are automatically loaded for each player

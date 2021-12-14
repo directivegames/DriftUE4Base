@@ -3359,6 +3359,52 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
     request->Dispatch();
 }
 
+void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlayerProperties& properties, const FDriftPlayerUpdatedDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to update player in match without being connected"));
+        delegate.ExecuteIfBound(false);
+        return;
+    }
+
+    DRIFT_LOG(Base, Verbose, TEXT("Updating player '%d' in match '%d'"), playerID, match_info.match_id);
+
+    JsonValue Payload{ rapidjson::kObjectType };
+    if (properties.status.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("status"), properties.status.GetValue());
+    }
+    if (properties.team_id.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("team_id"), properties.team_id.GetValue());
+    }
+    if (properties.statistics.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("statistics"), properties.statistics.GetValue());
+    }
+    if (properties.details.IsSet())
+    {
+        JsonArchive::AddMember(Payload, TEXT("details"), properties.details.GetValue());
+    }
+
+    const FString Url = FString::Printf(TEXT("%s/%i"), *match_info.matchplayers_url, playerID);
+    const auto Request = GetGameRequestManager()->Put(Url, Payload);
+    Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        delegate.ExecuteIfBound(true);
+        onPlayerUpdatedInMatch.Broadcast(true, playerID);
+    });
+    Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
+    {
+        Context.errorHandled = true;
+
+        delegate.ExecuteIfBound(false);
+        onPlayerUpdatedInMatch.Broadcast(false, playerID);
+    });
+    Request->Dispatch();
+}
+
 
 void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers)
 {
