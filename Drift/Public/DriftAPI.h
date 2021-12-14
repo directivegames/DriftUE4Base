@@ -689,10 +689,22 @@ public:
     virtual void LoadPlayerGameState(const FString& name, const FDriftGameStateLoadedDelegate& delegate) = 0;
 
     /**
+     * Loads the player's named game state.
+     * Fires delegate when finished.
+     */
+    virtual void LoadPlayerGameState(int32 playerId, const FString& name, const FDriftGameStateLoadedDelegate& delegate) = 0;
+
+    /**
      * Saves the authenticated player's named game state.
      * Fires delegate when finished.
      */
     virtual void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) = 0;
+
+    /**
+     * Saves the player's named game state.
+     * Fires delegate when finished.
+     */
+    virtual void SavePlayerGameState(int32 playerId, const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) = 0;
 
     /**
      * Get the global top leaderboard for counterName. Requires an authenticated player.

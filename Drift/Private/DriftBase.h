@@ -105,7 +105,9 @@ public:
     void LoadPlayerStats() override;
 
     void LoadPlayerGameState(const FString& name, const FDriftGameStateLoadedDelegate& delegate) override;
+	void LoadPlayerGameState(int32 playerId, const FString& name, const FDriftGameStateLoadedDelegate& delegate) override;
     void SavePlayerGameState(const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) override;
+	void SavePlayerGameState(int32 playerId, const FString& name, const FString& gameState, const FDriftGameStateSavedDelegate& delegate) override;
 
     void GetLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
     void GetFriendsLeaderboard(const FString& counterName, const TSharedRef<FDriftLeaderboard>& leaderboard, const FDriftLeaderboardLoadedDelegate& delegate) override;
@@ -296,7 +298,9 @@ private:
     void GetLeaderboardImpl(const FString& counterName, const TWeakPtr<FDriftLeaderboard>& leaderboard, const FString& playerGroup, const FDriftLeaderboardLoadedDelegate& delegate);
 
     void LoadPlayerGameStateImpl(const FString& name, const FDriftGameStateLoadedDelegate& delegate);
-    void SavePlayerGameStateImpl(const FString& name, const FString& state, const FDriftGameStateSavedDelegate& delegate);
+	void InternalLoadPlayerGameState(const FString& name, const FString& url, const FDriftGameStateLoadedDelegate& delegate);
+	void SavePlayerGameStateImpl(const FString& name, const FString& state, const FDriftGameStateSavedDelegate& delegate);
+	void InternalSavePlayerGameState(const FString& name, const FString& state, const FString& url, const FDriftGameStateSavedDelegate& delegate);
 
     void LoadPlayerGameStateInfos(TFunction<void(bool)> next);
 
