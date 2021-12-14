@@ -503,6 +503,21 @@ struct FAddMatchResponse
 	bool Serialize(class SerializationContext& context);
 };
 
+/**
+ * Response from adding a player to a match
+ */
+
+struct FAddPlayerToMatchResponse
+{
+	int32 match_id = 0;
+	int32 player_id = 0;
+	int32 team_id = 0;
+
+	FString url;
+
+	bool Serialize(SerializationContext& context);
+};
+
 
 struct FServerInfo
 {

@@ -442,6 +442,7 @@ private:
     TArray<FMatchInvite> matchInvites;
 
     FMatchInfo match_info;
+    TMap<int32, FString> match_players_urls;
 
     FString apiKey;
 	FString versionedApiKey;

@@ -3292,38 +3292,47 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
         return;
     }
 
-    FString payload;
+    FString Payload;
 
-	if (int32* TID = PlayerIdToTeamId.Find(playerID))
+	if (const auto TID = PlayerIdToTeamId.Find(playerID))
 	{
 		teamID = *TID;
 	}
 
     if (teamID != 0)
     {
-        payload = FString::Printf(TEXT("{\"player_id\": %i, \"team_id\": %i}"), playerID, teamID);
+        Payload = FString::Printf(TEXT("{\"player_id\": %i, \"team_id\": %i}"), playerID, teamID);
     }
     else
     {
-        payload = FString::Printf(TEXT("{\"player_id\": %i}"), playerID);
+        Payload = FString::Printf(TEXT("{\"player_id\": %i}"), playerID);
     }
 
     DRIFT_LOG(Base, Log, TEXT("Adding player '%i' to match '%i' in team '%i'"), playerID, match_info.match_id, teamID);
 
-    auto request = GetGameRequestManager()->Post(match_info.matchplayers_url, payload);
-    request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& context, JsonDocument& doc)
+    const auto Request = GetGameRequestManager()->Post(match_info.matchplayers_url, Payload);
+    Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
+        FAddPlayerToMatchResponse AddPlayerToMatchResponse;
+        if (!JsonArchive::LoadObject(Doc, AddPlayerToMatchResponse))
+        {
+            Context.error = TEXT("Failed to parse add match player response");
+            return;
+        }
+
+        match_players_urls.Emplace(playerID, AddPlayerToMatchResponse.url);
+        
         delegate.ExecuteIfBound(true);
         onPlayerAddedToMatch.Broadcast(true, playerID);
     });
-    request->OnError.BindLambda([this, playerID, delegate](ResponseContext& context)
+    Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
     {
-        context.errorHandled = true;
+        Context.errorHandled = true;
 
         delegate.ExecuteIfBound(false);
         onPlayerAddedToMatch.Broadcast(false, playerID);
     });
-    request->Dispatch();
+    Request->Dispatch();
 
     CachePlayerInfo(playerID);
 }
@@ -3340,23 +3349,32 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
         return;
     }
 
+    if (!match_players_urls.Contains(playerID))
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove player from the match without the player being added to the match"));
+        delegate.ExecuteIfBound(false);
+        return;
+    }
+
     DRIFT_LOG(Base, Verbose, TEXT("Removing player: %i from match %i"), playerID, match_info.match_id);
 
-    const FString url = FString::Printf(TEXT("%s/%i"), *match_info.matchplayers_url, playerID);
-    auto request = GetGameRequestManager()->Delete(url);
-    request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& context, JsonDocument& doc)
+    const auto Url = match_players_urls.FindChecked(playerID);
+    const auto Request = GetGameRequestManager()->Delete(Url);
+    Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
+        match_players_urls.Remove(playerID);
+
         delegate.ExecuteIfBound(true);
         onPlayerRemovedFromMatch.Broadcast(true, playerID);
     });
-    request->OnError.BindLambda([this, playerID, delegate](ResponseContext& context)
+    Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
     {
-        context.errorHandled = true;
+        Context.errorHandled = true;
 
         delegate.ExecuteIfBound(false);
         onPlayerRemovedFromMatch.Broadcast(false, playerID);
     });
-    request->Dispatch();
+    Request->Dispatch();
 }
 
 void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlayerProperties& properties, const FDriftPlayerUpdatedDelegate& delegate)
@@ -3364,6 +3382,13 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
     if (state_ != DriftSessionState::Connected)
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to update player in match without being connected"));
+        delegate.ExecuteIfBound(false);
+        return;
+    }
+
+    if (!match_players_urls.Contains(playerID))
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to update player in match without the player being added to the match"));
         delegate.ExecuteIfBound(false);
         return;
     }
@@ -3388,8 +3413,8 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
         JsonArchive::AddMember(Payload, TEXT("details"), properties.details.GetValue());
     }
 
-    const FString Url = FString::Printf(TEXT("%s/%i"), *match_info.matchplayers_url, playerID);
-    const auto Request = GetGameRequestManager()->Put(Url, Payload);
+    const auto Url = match_players_urls.FindChecked(playerID);
+    const auto Request = GetGameRequestManager()->Patch(Url, Payload);
     Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
         delegate.ExecuteIfBound(true);
