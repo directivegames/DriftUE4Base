@@ -177,6 +177,7 @@ public:
     int32 GetMatchID() const override;
     void AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlayerAddedDelegate& delegate) override;
     void RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemovedDelegate& delegate) override;
+    void UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlayerProperties& properties, const FDriftPlayerUpdatedDelegate& delegate) override;
     void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
     bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
 	TArray<FDriftMatchTeam> GetMatchTeams() const override;
@@ -276,6 +277,7 @@ private:
     FDriftServerRegisteredDelegate onServerRegistered;
     FDriftPlayerAddedToMatchDelegate onPlayerAddedToMatch;
     FDriftPlayerRemovedFromMatchDelegate onPlayerRemovedFromMatch;
+    FDriftPlayerUpdatedInMatchDelegate onPlayerUpdatedInMatch;
     FDriftMatchAddedDelegate onMatchAdded;
     FDriftMatchUpdatedDelegate onMatchUpdated;
 
@@ -444,6 +446,7 @@ private:
     TArray<FMatchInvite> matchInvites;
 
     FMatchInfo match_info;
+    TMap<int32, FString> match_players_urls;
 
     FString apiKey;
 	FString versionedApiKey;

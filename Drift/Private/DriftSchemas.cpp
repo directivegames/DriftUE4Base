@@ -399,6 +399,13 @@ bool FMachineInfo::Serialize(class SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, status);
 }
 
+bool FAddPlayerToMatchResponse::Serialize(class SerializationContext& context)
+{
+	return SERIALIZE_PROPERTY(context, match_id)
+		&& SERIALIZE_PROPERTY(context, player_id)
+		&& SERIALIZE_PROPERTY(context, team_id)
+		&& SERIALIZE_PROPERTY(context, url);
+}
 
 bool FServerInfo::Serialize(class SerializationContext& context)
 {
