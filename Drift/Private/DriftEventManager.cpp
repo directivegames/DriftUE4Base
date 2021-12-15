@@ -76,37 +76,46 @@ void FDriftEventManager::FlushEvents()
 
     if (pendingEvents.Num() != 0)
     {
-        auto rm = requestManager.Pin();
-        if (rm.IsValid())
+        if (!requestManager.IsValid())
         {
-            UE_LOG(LogDriftEvent, Verbose, TEXT("[%s] Drift flushing %i events..."), *FDateTime::UtcNow().ToString(), pendingEvents.Num());
-
-            AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [rm, eventsUrl = eventsUrl, Events = MoveTemp(pendingEvents)]()
-            {
-                SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
-
-                UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to background thread for payload JSON to string processing"));
-
-                const auto StartTime = FPlatformTime::Seconds();
-
-                FString Payload;
-                JsonArchive::SaveObject(Events, Payload);
-
-                const auto EndTime = FPlatformTime::Seconds();
-
-                UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
-
-                AsyncTask(ENamedThreads::GameThread, [Payload, rm, eventsUrl]()
-                {
-                    SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
-
-                    UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
-
-                    const auto Request = rm->Post(eventsUrl, Payload);
-                    Request->Dispatch();
-                });
-            });
+            UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager is invalid."));
+            return;
         }
+        
+        UE_LOG(LogDriftEvent, Verbose, TEXT("[%s] Drift flushing %i events..."), *FDateTime::UtcNow().ToString(), pendingEvents.Num());
+
+        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, Events = MoveTemp(pendingEvents)]()
+        {
+            SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
+
+            UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to background thread for payload JSON to string processing"));
+
+            const auto StartTime = FPlatformTime::Seconds();
+
+            FString Payload;
+            JsonArchive::SaveObject(Events, Payload);
+
+            const auto EndTime = FPlatformTime::Seconds();
+
+            UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
+
+            AsyncTask(ENamedThreads::GameThread, [this, Payload]()
+            {
+                SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
+
+                UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
+                
+                const auto RequestManager = requestManager.Pin();
+                if (!RequestManager.IsValid())
+                {
+                    UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during processing."));
+                    return;
+                }
+
+                const auto Request = RequestManager->Post(eventsUrl, Payload);
+                Request->Dispatch();
+            });
+        });
     }
 
     flushEventsInSeconds += FLUSH_EVENTS_INTERVAL;
