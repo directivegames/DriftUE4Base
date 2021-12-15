@@ -11,7 +11,7 @@
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDriftEvent, Log, All);
-
+DECLARE_STATS_GROUP(TEXT("Drift Event Manager"), STATGROUP_DriftEventManager, STATCAT_Advanced);
 
 class FDriftEventManager : public FTickableGameObject
 {

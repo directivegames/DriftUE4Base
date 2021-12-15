@@ -11,10 +11,12 @@
 
 
 DEFINE_LOG_CATEGORY(LogDriftEvent);
+DECLARE_CYCLE_STAT(TEXT("FlushDriftEvents"), STAT_FlushDriftEvents, STATGROUP_DriftEventManager);
+DECLARE_CYCLE_STAT(TEXT("ProcessDriftEvents"), STAT_ProcessDriftEvents, STATGROUP_DriftEventManager);
+DECLARE_CYCLE_STAT(TEXT("UploadDriftEvents"), STAT_UploadDriftEvents, STATGROUP_DriftEventManager);
 
-
-static const float FLUSH_EVENTS_INTERVAL = 10.0f;
-
+static constexpr float FLUSH_EVENTS_INTERVAL = 10.0f;
+static constexpr int32 MAX_PENDING_EVENTS = 20;
 
 FDriftEventManager::FDriftEventManager()
 {
@@ -29,6 +31,14 @@ void FDriftEventManager::AddEvent(TUniquePtr<IDriftEvent> event)
     event->Add(TEXT("sequence"), ++eventSequenceIndex);
     AddTags(event);
     pendingEvents.Add(MoveTemp(event));
+
+    if (pendingEvents.Num() >= MAX_PENDING_EVENTS)
+    {
+        UE_LOG(LogDriftEvent, Verbose, TEXT("Maximum number of pending events reached. Flushing."));
+
+        flushEventsInSeconds = 0.0f;
+        FlushEvents();
+    }
 }
 
 
@@ -57,6 +67,8 @@ TStatId FDriftEventManager::GetStatId() const
 
 void FDriftEventManager::FlushEvents()
 {
+    SCOPE_CYCLE_COUNTER(STAT_FlushDriftEvents);
+
     if (eventsUrl.IsEmpty())
     {
         return;
@@ -69,15 +81,34 @@ void FDriftEventManager::FlushEvents()
         {
             UE_LOG(LogDriftEvent, Verbose, TEXT("[%s] Drift flushing %i events..."), *FDateTime::UtcNow().ToString(), pendingEvents.Num());
 
-            FString payload;
-            JsonArchive::SaveObject(pendingEvents, payload);
+            AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [rm, eventsUrl = eventsUrl, Events = MoveTemp(pendingEvents)]()
+            {
+                SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
 
-            pendingEvents.Empty();
-            auto request = rm->Post(eventsUrl, payload);
-            request->Dispatch();
-            
+                UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to background thread for payload JSON to string processing"));
+
+                const auto StartTime = FPlatformTime::Seconds();
+
+                FString Payload;
+                JsonArchive::SaveObject(Events, Payload);
+
+                const auto EndTime = FPlatformTime::Seconds();
+
+                UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
+
+                AsyncTask(ENamedThreads::GameThread, [Payload, rm, eventsUrl]()
+                {
+                    SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
+
+                    UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
+
+                    const auto Request = rm->Post(eventsUrl, Payload);
+                    Request->Dispatch();
+                });
+            });
         }
     }
+
     flushEventsInSeconds += FLUSH_EVENTS_INTERVAL;
 }
 
