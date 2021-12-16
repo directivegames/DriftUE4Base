@@ -84,7 +84,9 @@ void FDriftEventManager::FlushEvents()
         
         UE_LOG(LogDriftEvent, Verbose, TEXT("[%s] Drift flushing %i events..."), *FDateTime::UtcNow().ToString(), pendingEvents.Num());
 
-        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, Events = MoveTemp(pendingEvents)]()
+        TWeakPtr<FDriftEventManager> WeakEventManager = SharedThis(this);
+        
+        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [WeakEventManager, Events = MoveTemp(pendingEvents)]()
         {
             SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
 
@@ -99,20 +101,28 @@ void FDriftEventManager::FlushEvents()
 
             UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
 
-            AsyncTask(ENamedThreads::GameThread, [this, Payload]()
+            AsyncTask(ENamedThreads::GameThread, [WeakEventManager, Payload]()
             {
                 SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
 
                 UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
+
+                const auto PinnedEventManager = WeakEventManager.Pin();
                 
-                const auto RequestManager = requestManager.Pin();
+                if (!PinnedEventManager.IsValid())
+                {
+                    UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. The event manager became invalid during processing."));
+                    return;
+                }
+                
+                const auto RequestManager = PinnedEventManager->requestManager.Pin();
                 if (!RequestManager.IsValid())
                 {
                     UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during processing."));
                     return;
                 }
 
-                const auto Request = RequestManager->Post(eventsUrl, Payload);
+                const auto Request = RequestManager->Post(PinnedEventManager->eventsUrl, Payload);
                 Request->Dispatch();
             });
         });
