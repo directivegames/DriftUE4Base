@@ -410,7 +410,7 @@ private:
     TUniquePtr<FDriftCounterManager> playerCounterManager;
     TMap<int32, TUniquePtr<FDriftCounterManager>> serverCounterManagers;
 
-    TUniquePtr<FDriftEventManager> eventManager;
+    TSharedPtr<FDriftEventManager> eventManager;
 
     TSharedPtr<FDriftMessageQueue> messageQueue;
 

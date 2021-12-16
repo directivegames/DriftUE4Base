@@ -160,7 +160,7 @@ void FDriftBase::CreatePlayerCounterManager()
 
 void FDriftBase::CreateEventManager()
 {
-    eventManager = MakeUnique<FDriftEventManager>();
+    eventManager = MakeShared<FDriftEventManager>();
 }
 
 
