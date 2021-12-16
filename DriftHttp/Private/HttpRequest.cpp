@@ -37,6 +37,11 @@ HttpRequest::HttpRequest()
 }
 
 
+void HttpRequest::SetContent(const TArray<uint8>& ContentPayload)
+{
+	wrappedRequest_->SetContent(ContentPayload);
+}
+
 void HttpRequest::SetCache(TSharedPtr<IHttpCache> cache)
 {
 	cache_ = cache;

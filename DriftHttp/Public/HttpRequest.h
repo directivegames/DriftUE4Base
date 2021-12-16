@@ -151,11 +151,16 @@ public:
 
 	void SetContentType(const FString& contentType) { contentType_ = contentType; }
 
+	void SetContent(const TArray<uint8>& ContentPayload);
+
 	void SetCache(TSharedPtr<IHttpCache> cache);
 
 	void SetShouldRetryDelegate(FShouldRetryDelegate Delegate) { shouldRetryDelegate_ = Delegate; }
 
 	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
+
+	/** Used by the request manager to set the payload */
+	void SetPayload(const FString& content);
 
 	FString GetAsDebugString(bool detailed = false) const;
 
@@ -190,9 +195,6 @@ private:
 
 protected:
 	friend class RequestManager;
-
-	/** Used by the request manager to set the payload */
-	void SetPayload(const FString& content);
 
 	/** Retry this request */
 	void Retry();

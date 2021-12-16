@@ -17,6 +17,7 @@ DECLARE_CYCLE_STAT(TEXT("UploadDriftEvents"), STAT_UploadDriftEvents, STATGROUP_
 
 static constexpr float FLUSH_EVENTS_INTERVAL = 10.0f;
 static constexpr int32 MAX_PENDING_EVENTS = 20;
+static constexpr int32 MIN_SIZE_PAYLOAD_TO_COMPRESS = 200;
 
 FDriftEventManager::FDriftEventManager()
 {
@@ -84,9 +85,9 @@ void FDriftEventManager::FlushEvents()
         
         UE_LOG(LogDriftEvent, Verbose, TEXT("[%s] Drift flushing %i events..."), *FDateTime::UtcNow().ToString(), pendingEvents.Num());
 
-        TWeakPtr<FDriftEventManager> WeakEventManager = SharedThis(this);
+        TWeakPtr<FDriftEventManager> WeakSelf = SharedThis(this);
         
-        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [WeakEventManager, Events = MoveTemp(pendingEvents)]()
+        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [WeakSelf, Events = MoveTemp(pendingEvents)]()
         {
             SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
 
@@ -97,32 +98,64 @@ void FDriftEventManager::FlushEvents()
             FString Payload;
             JsonArchive::SaveObject(Events, Payload);
 
+            TArray<uint8> Compressed;
+            bool bUseCompressed = false;
+            const FTCHARToUTF8 Converter(*Payload);
+            const auto UncompressedSize{ Converter.Length() };
+            if (UncompressedSize >= MIN_SIZE_PAYLOAD_TO_COMPRESS)
+            {
+                UE_LOG(LogDriftEvent, Verbose, TEXT("Attempting to compress payload"));
+                
+                Compressed.SetNumUninitialized(UncompressedSize);
+                const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
+                int32 CompressedSize;
+                const auto CompressionResult = FCompression::CompressMemory(NAME_Gzip, Compressed.GetData(), CompressedSize, Uncompressed, UncompressedSize);
+                if (CompressionResult && CompressedSize < UncompressedSize)
+                {
+                    UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression size is smaller than uncompressed size. Using compressed payload."));
+                    
+                    Compressed.SetNum(CompressedSize);
+                    bUseCompressed = true;
+                }
+            }
+
             const auto EndTime = FPlatformTime::Seconds();
 
             UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
 
-            AsyncTask(ENamedThreads::GameThread, [WeakEventManager, Payload]()
+            AsyncTask(ENamedThreads::GameThread, [WeakSelf, Payload, Compressed, bUseCompressed]()
             {
                 SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
 
                 UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
 
-                const auto PinnedEventManager = WeakEventManager.Pin();
+                const auto PinnedSelf = WeakSelf.Pin();
                 
-                if (!PinnedEventManager.IsValid())
+                if (!PinnedSelf.IsValid())
                 {
                     UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. The event manager became invalid during processing."));
                     return;
                 }
                 
-                const auto RequestManager = PinnedEventManager->requestManager.Pin();
+                const auto RequestManager = PinnedSelf->requestManager.Pin();
                 if (!RequestManager.IsValid())
                 {
                     UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during processing."));
                     return;
                 }
 
-                const auto Request = RequestManager->Post(PinnedEventManager->eventsUrl, Payload);
+                const auto Request = RequestManager->CreateRequest(HttpMethods::XPOST, PinnedSelf->eventsUrl, HttpStatusCodes::Created);
+
+                if (bUseCompressed)
+                {
+                    Request->SetContent(Compressed);
+                    Request->SetHeader(TEXT("Content-Encoding"), TEXT("gzip"));
+                }
+                else
+                {
+                    Request->SetPayload(Payload);
+                }
+                
                 Request->Dispatch();
             });
         });
