@@ -155,7 +155,8 @@ void FDriftEventManager::FlushEvents()
                 {
                     Request->SetPayload(Payload);
                 }
-                
+
+                Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
                 Request->Dispatch();
             });
         });
