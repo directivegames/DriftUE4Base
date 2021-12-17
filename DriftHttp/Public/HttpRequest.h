@@ -159,7 +159,6 @@ public:
 
 	void SetExpectJsonResponse(bool expectJsonResponse) { expectJsonResponse_ = expectJsonResponse; }
 
-	/** Used by the request manager to set the payload */
 	void SetPayload(const FString& content);
 
 	FString GetAsDebugString(bool detailed = false) const;

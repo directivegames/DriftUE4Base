@@ -17,7 +17,6 @@ DECLARE_CYCLE_STAT(TEXT("UploadDriftEvents"), STAT_UploadDriftEvents, STATGROUP_
 
 static constexpr float FLUSH_EVENTS_INTERVAL = 10.0f;
 static constexpr int32 MAX_PENDING_EVENTS = 20;
-static constexpr int32 MIN_SIZE_PAYLOAD_TO_COMPRESS = 200;
 
 FDriftEventManager::FDriftEventManager()
 {
@@ -98,32 +97,11 @@ void FDriftEventManager::FlushEvents()
             FString Payload;
             JsonArchive::SaveObject(Events, Payload);
 
-            TArray<uint8> Compressed;
-            bool bUseCompressed = false;
-            const FTCHARToUTF8 Converter(*Payload);
-            const auto UncompressedSize{ Converter.Length() };
-            if (UncompressedSize >= MIN_SIZE_PAYLOAD_TO_COMPRESS)
-            {
-                UE_LOG(LogDriftEvent, Verbose, TEXT("Attempting to compress payload"));
-                
-                Compressed.SetNumUninitialized(UncompressedSize);
-                const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
-                int32 CompressedSize;
-                const auto CompressionResult = FCompression::CompressMemory(NAME_Gzip, Compressed.GetData(), CompressedSize, Uncompressed, UncompressedSize);
-                if (CompressionResult && CompressedSize < UncompressedSize)
-                {
-                    UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression size is smaller than uncompressed size. Using compressed payload."));
-                    
-                    Compressed.SetNum(CompressedSize);
-                    bUseCompressed = true;
-                }
-            }
-
             const auto EndTime = FPlatformTime::Seconds();
 
             UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
 
-            AsyncTask(ENamedThreads::GameThread, [WeakSelf, Payload, Compressed, bUseCompressed]()
+            AsyncTask(ENamedThreads::GameThread, [WeakSelf, Payload]()
             {
                 SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
 
@@ -133,30 +111,18 @@ void FDriftEventManager::FlushEvents()
                 
                 if (!PinnedSelf.IsValid())
                 {
-                    UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. The event manager became invalid during processing."));
+                    UE_LOG(LogDriftEvent, Warning, TEXT("Failed to flush events. The event manager became invalid during processing."));
                     return;
                 }
                 
                 const auto RequestManager = PinnedSelf->requestManager.Pin();
                 if (!RequestManager.IsValid())
                 {
-                    UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during processing."));
+                    UE_LOG(LogDriftEvent, Warning, TEXT("Failed to flush events. Request manager became invalid during processing."));
                     return;
                 }
 
-                const auto Request = RequestManager->CreateRequest(HttpMethods::XPOST, PinnedSelf->eventsUrl, HttpStatusCodes::Created);
-
-                if (bUseCompressed)
-                {
-                    Request->SetContent(Compressed);
-                    Request->SetHeader(TEXT("Content-Encoding"), TEXT("gzip"));
-                }
-                else
-                {
-                    Request->SetPayload(Payload);
-                }
-
-                Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+                const auto Request = RequestManager->Post(PinnedSelf->eventsUrl, Payload);
                 Request->Dispatch();
             });
         });
