@@ -107,7 +107,7 @@ void FDriftEventManager::FlushEvents()
                 UE_LOG(LogDriftEvent, Verbose, TEXT("Attempting to compress payload"));
 
                 auto CompressedSize = FCompression::CompressMemoryBound(NAME_Gzip, UncompressedSize);
-                Compressed.SetNumUninitialized(UncompressedSize);
+                Compressed.SetNumUninitialized(CompressedSize);
                 
                 const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
                 
