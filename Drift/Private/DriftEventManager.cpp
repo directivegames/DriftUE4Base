@@ -105,17 +105,30 @@ void FDriftEventManager::FlushEvents()
             if (UncompressedSize >= MIN_SIZE_PAYLOAD_TO_COMPRESS)
             {
                 UE_LOG(LogDriftEvent, Verbose, TEXT("Attempting to compress payload"));
-                
+
+                auto CompressedSize = FCompression::CompressMemoryBound(NAME_Gzip, UncompressedSize);
                 Compressed.SetNumUninitialized(UncompressedSize);
+                
                 const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
-                int32 CompressedSize;
+                
                 const auto CompressionResult = FCompression::CompressMemory(NAME_Gzip, Compressed.GetData(), CompressedSize, Uncompressed, UncompressedSize);
-                if (CompressionResult && CompressedSize < UncompressedSize)
+                if (CompressionResult)
                 {
-                    UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression size is smaller than uncompressed size. Using compressed payload."));
+                    if (CompressedSize < UncompressedSize)
+                    {
+                        UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression size is smaller than uncompressed size. Using compressed payload."));
                     
-                    Compressed.SetNum(CompressedSize);
-                    bUseCompressed = true;
+                        Compressed.SetNum(CompressedSize);
+                        bUseCompressed = true;
+                    }
+                    else
+                    {
+                        UE_LOG(LogDriftEvent, Verbose, TEXT("Compression didn't reduce the size of the payload. Using uncompressed payload."));
+                    }
+                }
+                else
+                {
+                    UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression failed. Using uncompressed payload."));
                 }
             }
 
