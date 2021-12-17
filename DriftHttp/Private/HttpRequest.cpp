@@ -24,6 +24,7 @@
 
 #define LOCTEXT_NAMESPACE "Drift"
 
+static constexpr int32 MIN_SIZE_PAYLOAD_TO_COMPRESS = 200;
 
 HttpRequest::HttpRequest()
 	: MaxRetries_{ 0 }
@@ -518,15 +519,54 @@ FString HttpRequest::GetContentAsString() const
 
 void HttpRequest::SetPayload(const FString& content)
 {
-	if (!content.IsEmpty())
+	if (content.IsEmpty())
 	{
-		wrappedRequest_->SetContentAsString(content);
+		return;
+	}
 
-		if (content.Len())
+	// Set Content-Type
+	SetHeader(TEXT("Content-Type"), contentType_);
+
+	// Attempt to compress the payload if above the threshold
+	const FTCHARToUTF8 Converter(*content);
+	const auto UncompressedSize{ Converter.Length() };
+	if (UncompressedSize >= MIN_SIZE_PAYLOAD_TO_COMPRESS)
+	{
+		UE_LOG(LogHttpClient, Verbose, TEXT("Attempting to compress payload of size '%d' bytes since it is above the compression threshold size of '%d' bytes"), UncompressedSize, MIN_SIZE_PAYLOAD_TO_COMPRESS);
+
+		TArray<uint8> Compressed;
+		auto CompressedSize = FCompression::CompressMemoryBound(NAME_Gzip, UncompressedSize);
+		Compressed.SetNumUninitialized(CompressedSize);
+
+		const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
+
+		const auto CompressionResult = FCompression::CompressMemory(NAME_Gzip, Compressed.GetData(), CompressedSize, Uncompressed, UncompressedSize);
+
+		if (CompressionResult)
 		{
-			SetHeader(TEXT("Content-Type"), contentType_);
+			if (CompressedSize < UncompressedSize)
+			{
+				UE_LOG(LogHttpClient, Verbose, TEXT("Compression size is smaller than uncompressed size. Using compressed payload. Compressed size: '%d', Uncompressed size: '%d', Ratio: '%.2f'"),
+				CompressedSize, UncompressedSize, static_cast<float>(CompressedSize) / static_cast<float>(UncompressedSize));
+
+				UE_LOG(LogHttpClient, VeryVerbose, TEXT("Compressed payload:\n'%s'"), *BytesToString(Compressed.GetData(), CompressedSize));
+
+				Compressed.SetNum(CompressedSize);
+				wrappedRequest_->SetContent(Compressed);
+				wrappedRequest_->SetHeader(TEXT("Content-Encoding"), TEXT("gzip"));
+
+				return;
+			}
+
+			UE_LOG(LogHttpClient, Verbose, TEXT("Compression didn't change the size of the payload. Using uncompressed payload."));
+		}
+		else
+		{
+			UE_LOG(LogHttpClient, Verbose, TEXT("Compression failed. Using uncompressed payload."));
 		}
 	}
+
+	wrappedRequest_->SetContentAsString(content);
 }
 
 
