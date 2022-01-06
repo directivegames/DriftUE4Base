@@ -2,6 +2,8 @@
 
 #include "DriftFlexmatch.h"
 
+#include "Icmp.h"
+
 
 DEFINE_LOG_CATEGORY(LogDriftMatchmaking);
 
@@ -63,39 +65,73 @@ void FDriftFlexmatch::MeasureLatencies()
 	bIsPinging = true;
 	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
 	auto LatenciesByRegion{ MakeShared<TMap<FString, int>>() };
-	const auto HttpModule = &FHttpModule::Get();
 	for(auto Region: PingRegions)
 	{
-		const auto Request = HttpModule->CreateRequest();
-		Request->SetVerb("GET");
-		Request->SetURL(FString::Format(*PingUrlTemplate, {Region}));
-		Request->OnProcessRequestComplete().BindLambda(
-		[WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+		static float PingTimeout = 2.0f;
+		const auto RegionUrl = FString::Format(*PingUrlTemplate, {Region});
+		FIcmp::IcmpEcho(RegionUrl, PingTimeout, FIcmpEchoResultDelegate::CreateLambda([WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion, RegionUrl](const FIcmpEchoResult Result)
 		{
-			if (const auto Self = WeakSelf.Pin())
+			// Default to -1 if we fail to ping, success case will override this
+			LatenciesByRegion->Add(Region, -1);
+
+			switch (Result.Status)
 			{
-				if (!bConnectedSuccessfully)
+				case EIcmpResponseStatus::Success:
 				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
-					LatenciesByRegion->Add(Region, -1);
-				}
-				else
-				{
-					LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
-				}
-				// if all regions have been added to the map, report back to drift
-				if (LatenciesByRegion->Num() == Self->PingRegions.Num())
-				{
-					Self->bIsPinging = false;
-					if (Self->PingInterval < Self->MaxPingInterval)
+					const auto ResponseTime = static_cast<int>(Result.Time * 1000);
+
+					UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::MeasureLatencies - Success - Hostname: '%s', Host address: '%s', Reply address: '%s', Time: '%d' ms"), *RegionUrl, *Result.ResolvedAddress, *Result.ReplyFrom, ResponseTime);
+
+					LatenciesByRegion->Add(Region, ResponseTime);
+
+					if (const auto Self = WeakSelf.Pin())
 					{
-						Self->PingInterval += 0.5;
+						// if all regions have been added to the map, report back to drift
+						if (LatenciesByRegion->Num() == Self->PingRegions.Num())
+						{
+							Self->bIsPinging = false;
+							if (Self->PingInterval < Self->MaxPingInterval)
+							{
+								Self->PingInterval += 0.5;
+							}
+							Self->ReportLatencies(LatenciesByRegion);
+						}
 					}
-					Self->ReportLatencies(LatenciesByRegion);
+
+					break;
+				}
+
+				case EIcmpResponseStatus::Timeout:
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Timeout - Ping timeout after '%.2f' seconds"), PingTimeout);
+					break;
+				}
+
+				case EIcmpResponseStatus::Unreachable:
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Unreachable"));
+					break;
+				}
+
+				case EIcmpResponseStatus::Unresolvable:
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Unresolvable - Failed to resolve the target address '%s' to a valid IP address"), *RegionUrl);
+					break;
+				}
+
+				case EIcmpResponseStatus::InternalError:
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - InternalError"));
+					break;
+				}
+
+				case EIcmpResponseStatus::NotImplemented:
+				{
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - NotImplemented - ICMP pinging isn't implemented on this platform"));
+					break;
 				}
 			}
-		});
-		Request->ProcessRequest();
+		}));
 	}
 }
 

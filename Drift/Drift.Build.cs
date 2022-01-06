@@ -71,6 +71,7 @@ public class Drift : ModuleRules
                 "OnlineSubsystemUtils",
                 "DriftHttp",
                 "ErrorReporter",
+                "Icmp",
             }
             );
         
