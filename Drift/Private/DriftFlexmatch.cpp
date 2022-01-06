@@ -68,8 +68,8 @@ void FDriftFlexmatch::MeasureLatencies()
 	for(auto Region: PingRegions)
 	{
 		static float PingTimeout = 2.0f;
-		const auto RegionUrl = FString::Format(*PingUrlTemplate, {Region});
-		FIcmp::IcmpEcho(RegionUrl, PingTimeout, FIcmpEchoResultDelegate::CreateLambda([WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion, RegionUrl](const FIcmpEchoResult Result)
+		const auto RegionHostname = FString::Format(*PingHostnameTemplate, {Region});
+		FIcmp::IcmpEcho(RegionHostname, PingTimeout, FIcmpEchoResultDelegate::CreateLambda([WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion, RegionHostname](const FIcmpEchoResult Result)
 		{
 			// Default to -1 if we fail to ping, success case will override this
 			LatenciesByRegion->Add(Region, -1);
@@ -80,7 +80,7 @@ void FDriftFlexmatch::MeasureLatencies()
 				{
 					const auto ResponseTime = static_cast<int>(Result.Time * 1000);
 
-					UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::MeasureLatencies - Success - Hostname: '%s', Host address: '%s', Reply address: '%s', Time: '%d' ms"), *RegionUrl, *Result.ResolvedAddress, *Result.ReplyFrom, ResponseTime);
+					UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::MeasureLatencies - Success - Hostname: '%s', Host address: '%s', Reply address: '%s', Time: '%d' ms"), *RegionHostname, *Result.ResolvedAddress, *Result.ReplyFrom, ResponseTime);
 
 					LatenciesByRegion->Add(Region, ResponseTime);
 
@@ -115,7 +115,7 @@ void FDriftFlexmatch::MeasureLatencies()
 
 				case EIcmpResponseStatus::Unresolvable:
 				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Unresolvable - Failed to resolve the target address '%s' to a valid IP address"), *RegionUrl);
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Unresolvable - Failed to resolve the target address '%s' to a valid IP address"), *RegionHostname);
 					break;
 				}
 
