@@ -9,6 +9,16 @@ DEFINE_LOG_CATEGORY(LogDriftMatchmaking);
 
 static const FString MatchmakingMessageQueue(TEXT("matchmaking"));
 
+struct FDriftFlexmatchRegionsResponse
+{
+	TArray<FString> regions;
+
+	bool Serialize(SerializationContext& Context)
+	{
+		return SERIALIZE_PROPERTY(Context, regions);
+	}
+};
+
 FDriftFlexmatch::FDriftFlexmatch(TSharedPtr<IDriftMessageQueue> InMessageQueue)
 	: MessageQueue{MoveTemp(InMessageQueue)}
 {
@@ -30,6 +40,7 @@ void FDriftFlexmatch::SetRequestManager(TSharedPtr<JsonRequestManager> RootReque
 void FDriftFlexmatch::ConfigureSession(const FDriftEndpointsResponse& DriftEndpoints, int32 InPlayerId)
 {
 	FlexmatchLatencyURL = DriftEndpoints.my_flexmatch;
+	FlexmatchRegionsURL = DriftEndpoints.flexmatch_regions;
 	FlexmatchTicketsURL = DriftEndpoints.flexmatch_tickets;
 	CurrentTicketUrl = DriftEndpoints.my_flexmatch_ticket;
 	PlayerId = InPlayerId;
@@ -39,7 +50,7 @@ void FDriftFlexmatch::ConfigureSession(const FDriftEndpointsResponse& DriftEndpo
 
 void FDriftFlexmatch::Tick( float DeltaTime )
 {
-	if ( bIsInitialized && bDoPings )
+	if ( PingRegions.Num() && bDoPings )
 	{
 		TimeToPing -= DeltaTime;
 		if (TimeToPing < 0 && !bIsPinging)
@@ -52,7 +63,7 @@ void FDriftFlexmatch::Tick( float DeltaTime )
 
 bool FDriftFlexmatch::IsTickable() const
 {
-	return true;
+	return bIsInitialized && PingRegions.Num() && bDoPings;
 }
 
 TStatId FDriftFlexmatch::GetStatId() const
@@ -466,81 +477,118 @@ void FDriftFlexmatch::InitializeLocalState()
 	{
 		return;
 	}
-	
+
 	if (! RequestManager.IsValid() )
 	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - RequestManager is invalid"));
 		return;
 	}
-	if (CurrentTicketUrl.IsEmpty())
+
+	// Fetch existing ticket
+	if (!CurrentTicketUrl.IsEmpty())
 	{
-		bIsInitialized = true;
-		return;
-	}
-	auto Request = RequestManager->Get(CurrentTicketUrl, HttpStatusCodes::Ok);
-	Request->OnError.BindLambda([this](ResponseContext& context)
-	{
-		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching existing ticket"
-					", Response code %d, error: '%s'"), context.responseCode, *context.error);
-		CurrentTicketUrl.Empty();
-	});
-	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
-	{
-		bIsInitialized = true;
-		
-		auto Response = doc.GetObject();
-		if ( Response.Num() == 0)
+		const auto Request = RequestManager->Get(CurrentTicketUrl, HttpStatusCodes::Ok);
+
+		Request->OnError.BindLambda([this](ResponseContext& Context)
 		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching existing ticket"
+						", Response code '%d', error: '%s'"), Context.responseCode, *Context.error);
 			CurrentTicketUrl.Empty();
-			Status = EMatchmakingTicketStatus::None;
-			return;
-		}
-		auto TicketId = Response["TicketId"].GetString();
-		SetStatusFromString(Response["Status"].GetString());
-		if ( Response.Contains("GameSessionConnectionInfo") )
+		});
+
+		Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
 		{
-			const auto SessionInfo = Response["GameSessionConnectionInfo"];
-			ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
-			ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
-		}
-		switch(Status)
-		{
-			case EMatchmakingTicketStatus::Queued:
-				OnDriftMatchmakingStarted().Broadcast();
-				break;
-			case EMatchmakingTicketStatus::Searching:
-				OnDriftMatchmakingSearching().Broadcast();
-				break;
-			case EMatchmakingTicketStatus::RequiresAcceptance:
-			case EMatchmakingTicketStatus::Placing:
+			auto Response = Doc.GetObject();
+			if ( Response.Num() == 0)
 			{
-				// FIXME: The below is probably buggy as hell but is intended to facilitate recovery from disconnects
-				// while searching.
-				// We're missing the acceptance status per player as that isn't currently stored in the ticket we just fetched.
-				// However, chances are the player will receive a proper event just a tad later which should correct
-				// the situation
-				FString PotentialMatchId = Response["MatchId"].GetString();
-				int32 FakeTimeOut = 10;
-				TArray<FString> FakeTeams = {TEXT("Team 1"), TEXT("Team 2")};
-				FPlayersByTeam FakeTeamAllocation;
-				FakeTeamAllocation.Add(FakeTeams[0], TArray<int32>());
-				FakeTeamAllocation.Add(FakeTeams[1], TArray<int32>());
-				int TeamIndex = 0;
-				for (auto PlayerEntry: Response["Players"].GetArray())
-				{
-					int32 EntryPlayerId = FCString::Atoi(*PlayerEntry.GetObject()["PlayerId"].GetString());
-					FakeTeamAllocation[FakeTeams[TeamIndex++ % 2]].Add(EntryPlayerId);
-				}
-				OnDriftPotentialMatchCreated().Broadcast(FakeTeamAllocation, PotentialMatchId, Status == EMatchmakingTicketStatus::RequiresAcceptance, FakeTimeOut);
-				break;
+				CurrentTicketUrl.Empty();
+				Status = EMatchmakingTicketStatus::None;
+				return;
 			}
-			case EMatchmakingTicketStatus::Completed:
-				OnDriftMatchmakingSuccess().Broadcast({ConnectionString, ConnectionOptions});
-				break;
-			default:
-				break;
-		}
-	});
-	Request->Dispatch();
+			auto TicketId = Response["TicketId"].GetString();
+			SetStatusFromString(Response["Status"].GetString());
+			if ( Response.Contains("GameSessionConnectionInfo") )
+			{
+				const auto SessionInfo = Response["GameSessionConnectionInfo"];
+				ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
+				ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
+			}
+			switch(Status)
+			{
+				case EMatchmakingTicketStatus::Queued:
+					OnDriftMatchmakingStarted().Broadcast();
+					break;
+				case EMatchmakingTicketStatus::Searching:
+					OnDriftMatchmakingSearching().Broadcast();
+					break;
+				case EMatchmakingTicketStatus::RequiresAcceptance:
+				case EMatchmakingTicketStatus::Placing:
+				{
+					// FIXME: The below is probably buggy as hell but is intended to facilitate recovery from disconnects
+					// while searching.
+					// We're missing the acceptance status per player as that isn't currently stored in the ticket we just fetched.
+					// However, chances are the player will receive a proper event just a tad later which should correct
+					// the situation
+					FString PotentialMatchId = Response["MatchId"].GetString();
+					int32 FakeTimeOut = 10;
+					TArray<FString> FakeTeams = {TEXT("Team 1"), TEXT("Team 2")};
+					FPlayersByTeam FakeTeamAllocation;
+					FakeTeamAllocation.Add(FakeTeams[0], TArray<int32>());
+					FakeTeamAllocation.Add(FakeTeams[1], TArray<int32>());
+					int TeamIndex = 0;
+					for (auto PlayerEntry: Response["Players"].GetArray())
+					{
+						int32 EntryPlayerId = FCString::Atoi(*PlayerEntry.GetObject()["PlayerId"].GetString());
+						FakeTeamAllocation[FakeTeams[TeamIndex++ % 2]].Add(EntryPlayerId);
+					}
+					OnDriftPotentialMatchCreated().Broadcast(FakeTeamAllocation, PotentialMatchId, Status == EMatchmakingTicketStatus::RequiresAcceptance, FakeTimeOut);
+					break;
+				}
+				case EMatchmakingTicketStatus::Completed:
+					OnDriftMatchmakingSuccess().Broadcast({ConnectionString, ConnectionOptions});
+					break;
+				default:
+					break;
+			}
+		});
+
+		Request->Dispatch();
+	}
+
+	// Fetch ping regions
+	if (!FlexmatchRegionsURL.IsEmpty())
+	{
+		const auto Request = RequestManager->Get(FlexmatchRegionsURL, HttpStatusCodes::Ok);
+
+		Request->OnError.BindLambda([this](ResponseContext& Context)
+		{
+			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching regions"
+						", Response code '%d', error: '%s'"), Context.responseCode, *Context.error);
+		});
+
+		Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
+		{
+			FDriftFlexmatchRegionsResponse RegionsResponse;
+			if (!JsonArchive::LoadObject(Doc, RegionsResponse))
+			{
+				Context.error = TEXT("Failed to parse Flexmatch regions response");
+				return;
+			}
+
+			PingRegions = MoveTemp(RegionsResponse.regions);
+
+			const auto RegionsString = FString::Join(PingRegions, TEXT(","));
+			UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::InitializeLocalState - Regions: '%s'"), *RegionsString);
+		});
+
+		Request->Dispatch();
+	}
+	else
+	{
+		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - FlexmatchRegionsURL is empty"));
+	}
+
+	bIsInitialized = true;
 }
 
 EDriftMatchmakingEvent FDriftFlexmatch::ParseEvent(const FString& EventName)

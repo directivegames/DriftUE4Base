@@ -71,6 +71,7 @@ private:
 	TSharedPtr<JsonRequestManager> RequestManager;
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 	FString FlexmatchLatencyURL;
+	FString FlexmatchRegionsURL;
 	FString FlexmatchTicketsURL;
 	int32 PlayerId = 0;
 
@@ -90,9 +91,8 @@ private:
 	const float MaxPingInterval = 15.0;
 	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
-	// TODO: Fetch valid region->pingServer mapping from backend.
 	const FString PingHostnameTemplate = TEXT("gamelift.{0}.amazonaws.com");
-	const TArray<FString> PingRegions{"eu-west-1"};
+	TArray<FString> PingRegions;
 
 	// Current state
 	bool bIsInitialized = false;
