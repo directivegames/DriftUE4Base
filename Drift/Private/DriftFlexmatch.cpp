@@ -114,13 +114,13 @@ void FDriftFlexmatch::MeasureLatencies()
 
 				case EIcmpResponseStatus::Timeout:
 				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Timeout - Ping timeout after '%.2f' seconds"), PingTimeout);
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Timeout - Ping timeout after '%.2f' seconds for host '%s'"), PingTimeout, *RegionHostname);
 					break;
 				}
 
 				case EIcmpResponseStatus::Unreachable:
 				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Unreachable"));
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Unreachable - Host '%s' is unreachable"), *RegionHostname);
 					break;
 				}
 
@@ -132,7 +132,7 @@ void FDriftFlexmatch::MeasureLatencies()
 
 				case EIcmpResponseStatus::InternalError:
 				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - InternalError"));
+					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - InternalError - An internal error occurred while attempting to ping the host '%s'"), *RegionHostname);
 					break;
 				}
 
