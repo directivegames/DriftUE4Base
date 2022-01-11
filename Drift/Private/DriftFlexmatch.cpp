@@ -438,6 +438,8 @@ void FDriftFlexmatch::SetStatusFromString(const FString& StatusString)
 		Status = EMatchmakingTicketStatus::Completed;
 	else if (StatusString == TEXT("MATCH_COMPLETE"))
 		Status = EMatchmakingTicketStatus::MatchCompleted;
+	else if (StatusString == TEXT("CANCELLING"))
+		Status = EMatchmakingTicketStatus::Cancelling;
 	else if (StatusString == TEXT("CANCELLED"))
 		Status = EMatchmakingTicketStatus::Cancelled;
 	else if (StatusString == TEXT("FAILED"))

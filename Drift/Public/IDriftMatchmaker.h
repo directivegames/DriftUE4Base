@@ -13,7 +13,8 @@ enum class EMatchmakingTicketStatus : uint8
 	Placing,  // Match found, players all accepted or acceptance wasn't required; waiting on servers to report ready
 	Completed, // Matchmaking success; servers are ready and connection info available
 	MatchCompleted, // Ticket refers to a completed match, i.e. the ticket is 'used'
-	Cancelled, // Ticket was cancelled by player request
+	Cancelling, // A request to cancel the ticket has been issued and we're waiting for confirmation
+	Cancelled, // Ticket was successfully cancelled by player request
 	TimedOut, // No match found in acceptable time
 	Failed // Error in processing or potential match was rejected.
 };
