@@ -13,7 +13,6 @@ public:
 
     using DetailsAppender = TFunction<void(const FString&, const FString&)>;
 
-public:
     virtual FString GetProviderName() const = 0;
     virtual void InitCredentials(InitCredentialsCallback callback) = 0;
     virtual void GetFriends(GetFriendsCallback callback) = 0;

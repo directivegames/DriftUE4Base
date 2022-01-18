@@ -359,7 +359,7 @@ private:
 
     void BroadcastConnectionStateChange(DriftSessionState internalState) const;
 
-    static TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType);
+    TUniquePtr<IDriftAuthProvider> MakeAuthProvider(const FString& credentialType) const;
 
     bool IsRunningAsServer() const;
 

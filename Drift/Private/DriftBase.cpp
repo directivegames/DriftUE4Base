@@ -1115,14 +1115,35 @@ void FDriftBase::BroadcastConnectionStateChange(const DriftSessionState internal
 }
 
 
-TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& credentialType)
+TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& credentialType) const
 {
     auto factories = IModularFeatures::Get().GetModularFeatureImplementations<IDriftAuthProviderFactory>(TEXT("DriftAuthProviderFactory"));
-    for (const auto factory : factories)
+
+#if WITH_EDITOR
+	const auto bIsPIE = GIsEditor && !IsRunningGame();
+	bool bEnableExternalAuthInPIE = false;
+	GConfig->GetBool(*settingsSection_, TEXT("bEnableExternalAuthInPIE"), bEnableExternalAuthInPIE, GGameIni);
+	if (!bEnableExternalAuthInPIE)
+	{
+		DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
+        		
+		return nullptr;
+	}
+#endif // WITH_EDITOR
+
+	for (const auto factory : factories)
     {
         if (credentialType.Compare(factory->GetAuthProviderName().ToString(), ESearchCase::IgnoreCase) == 0)
         {
-            return factory->GetAuthProvider();
+#if WITH_EDITOR
+        	if (bIsPIE && !factory->IsSupportedInPIE())
+        	{
+	            DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
+        		
+        		return nullptr;
+        	}
+#endif // WITH_EDITOR
+        	return factory->GetAuthProvider();
         }
     }
 
@@ -2396,22 +2417,12 @@ void FDriftBase::InitAuthentication(const FAuthenticationSettings& Authenticatio
 {
     authProvider.Reset();
 
-    if (GIsEditor && !IsRunningGame())
-    {
-        if (AuthenticationSettings.CredentialsType.Compare(TEXT("uuid"), ESearchCase::IgnoreCase) != 0)
-        {
-            DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
-        }
-    }
-    else
-    {
-        /**
-         * Note that the "uuid" and "user+pass" auth provider factories are not registered anywhere, they're always
-         * created as a fallback, so this is expected to fail for "uuid" and "user+pass" and will be dealt with below.
-         * TODO: Make this not so confusing?
-         */
-        authProvider = MakeShareable(MakeAuthProvider(AuthenticationSettings.CredentialsType).Release());
-    }
+    /**
+     * Note that the "uuid" and "user+pass" auth provider factories are not registered anywhere, they're always
+     * created as a fallback, so this is expected to fail for "uuid" and "user+pass" and will be dealt with below.
+     * TODO: Make this not so confusing?
+     */
+    authProvider = MakeShareable(MakeAuthProvider(AuthenticationSettings.CredentialsType).Release());
 
     if (!authProvider.IsValid())
     {
