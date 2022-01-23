@@ -11,13 +11,13 @@ struct FDriftResponseInfo2
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(VisibleAnywhere, BluePrintReadOnly, Category = "Drift|Session")
-	bool successfull;
+	bool successfull = false;
 
 	UPROPERTY(VisibleAnywhere, BluePrintReadOnly, Category = "Drift|Session")
 	FString origin;  // The origin of the request i.e. BP function, tick function, etc.
 
 	UPROPERTY(VisibleAnywhere, BluePrintReadOnly, Category = "Drift|Session")
-	int32 http_code;
+	int32 http_code = 0;
 
 	UPROPERTY(VisibleAnywhere, BluePrintReadOnly, Category = "Drift|Session")
 	FString verb;

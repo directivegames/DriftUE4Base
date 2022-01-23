@@ -21,13 +21,13 @@ struct FDriftAuthenticatePlayerResult
 
 public:
     UPROPERTY(BluePrintReadOnly, Category="Drift")
-    int32 playerId;
+    int32 playerId = 0;
 
     UPROPERTY(BluePrintReadOnly, Category="Drift")
     FString playerName;
 
     UPROPERTY(BluePrintReadOnly, Category="Drift")
-    EAuthenticationResult result;
+    EAuthenticationResult result = EAuthenticationResult::Error_Failed;
     
     UPROPERTY(BluePrintReadOnly, Category="Drift")
     FString error;

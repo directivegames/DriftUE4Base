@@ -20,7 +20,7 @@ struct FKaleoSetPlayerNameResult
     GENERATED_BODY()
 
     UPROPERTY(BluePrintReadOnly, Category="Drift")
-    int32 player_id;
+    int32 player_id = 0;
 };
 
 
