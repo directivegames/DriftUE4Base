@@ -46,7 +46,6 @@
 
 #define LOCTEXT_NAMESPACE "Drift"
 
-DEFINE_ENUM_TO_STRING(DriftSessionState);
 
 DEFINE_LOG_CATEGORY(LogDriftBase);
 DEFINE_LOG_CATEGORY(LogDriftCounterEngine);
@@ -3520,7 +3519,7 @@ void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32
          * TODO: Is this the best approach? This should only ever happen in the editor,
          * as in the real game no client can connect before the match has been initialized.
          */
-    	DRIFT_LOG(Base, Warning, TEXT("Attempted to add match while not connected. Internal state is %s"), *EnumToString(state_));
+    	DRIFT_LOG(Base, Warning, TEXT("Attempted to add match while not connected. Internal state is %d"), static_cast<uint8>(state_));
     	onMatchAdded.Broadcast(false);
         return;
     }

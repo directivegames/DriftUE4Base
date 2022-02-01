@@ -56,7 +56,6 @@ enum class DriftSessionState
     Usurped,
     Timedout,
 };
-DECLARE_ENUM_TO_STRING(DriftSessionState);
 
 class IDriftAuthProviderFactory;
 class IDriftAuthProvider;
