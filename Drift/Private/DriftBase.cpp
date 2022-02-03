@@ -3513,64 +3513,12 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
 
 void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers)
 {
-    if (state_ != DriftSessionState::Connected)
-    {
-        /**
-         * TODO: Is this the best approach? This should only ever happen in the editor,
-         * as in the real game no client can connect before the match has been initialized.
-         */
-    	DRIFT_LOG(Base, Warning, TEXT("Attempted to add match while not connected. Internal state is %d"), static_cast<uint8>(state_));
-    	onMatchAdded.Broadcast(false);
-        return;
-    }
+    InternalAddMatch(mapName, gameMode, maxPlayers, {}, numTeams);
+}
 
-    FMatchesPayload payload;
-    payload.server_id = drift_server.server_id;
-    payload.num_players = 0;
-    payload.max_players = maxPlayers;
-    payload.map_name = mapName;
-    payload.game_mode = gameMode;
-    payload.status = TEXT("idle");
-    payload.num_teams = numTeams;
-
-    DRIFT_LOG(Base, Log, TEXT("Adding match to server: '%i' map: '%s' mode: '%s' players: '%i' teams: '%i'"), drift_server.server_id, *mapName, *gameMode, maxPlayers, numTeams);
-
-    const auto request = GetGameRequestManager()->Post(driftEndpoints.matches, payload);
-    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
-    {
-        FAddMatchResponse match;
-        if (!JsonArchive::LoadObject(doc, match))
-        {
-            context.error = TEXT("Failed to parse add match response.");
-        	onMatchAdded.Broadcast(false);
-            return;
-        }
-
-        DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(doc));
-
-        const auto match_request = GetGameRequestManager()->Get(match.url);
-        match_request->OnResponse.BindLambda([this](ResponseContext& matchContext, JsonDocument& matchDoc)
-        {
-            if (!JsonArchive::LoadObject(matchDoc, match_info))
-            {
-                matchContext.error = TEXT("Failed to parse match info response.");
-            	onMatchAdded.Broadcast(false);
-                return;
-            }
-
-            DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(matchDoc));
-
-        	DRIFT_LOG(Base, Log, TEXT("Match '%i' added to server '%i'"), match_info.match_id, match_info.server_id);
-            onMatchAdded.Broadcast(true);
-        });
-        match_request->Dispatch();
-    });
-    request->OnError.BindLambda([this](ResponseContext& context)
-    {
-        context.errorHandled = true;
-        onMatchAdded.Broadcast(false);
-    });
-    request->Dispatch();
+void FDriftBase::AddMatch(const FString& mapName, const FString& gameMode, TArray<FString> teamNames, int32 maxPlayers)
+{
+    InternalAddMatch(mapName, gameMode, maxPlayers, teamNames, {});
 }
 
 
@@ -4000,6 +3948,82 @@ void FDriftBase::UpdateFriendOnlineInfos()
 const FDriftPlayerResponse* FDriftBase::GetFriendInfo(int32 playerID) const
 {
     return friendInfos.Find(playerID);
+}
+
+void FDriftBase::InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        /**
+         * TODO: Is this the best approach? This should only ever happen in the editor,
+         * as in the real game no client can connect before the match has been initialized.
+         */
+        DRIFT_LOG(Base, Warning, TEXT("Attempted to add match while not connected. Internal state is %d"), static_cast<uint8>(state_));
+        onMatchAdded.Broadcast(false);
+        return;
+    }
+
+    FMatchesPayload payload;
+    payload.server_id = drift_server.server_id;
+    payload.num_players = 0;
+    payload.max_players = maxPlayers;
+    payload.map_name = mapName;
+    payload.game_mode = gameMode;
+    payload.status = TEXT("idle");
+
+    if (numTeams.IsSet())
+    {
+        payload.num_teams = numTeams.GetValue();
+    }
+
+    if (teamNames.IsSet())
+    {
+        payload.team_names = teamNames.GetValue();
+    }
+
+    DRIFT_LOG(Base, Log,
+        TEXT("Adding match to server: '%d' map: '%s' mode: '%s' players: '%d' %s %s"),
+        drift_server.server_id, *mapName, *gameMode, maxPlayers,
+        numTeams.IsSet() ? *FString::Printf(TEXT("num_teams: '%d'"), numTeams.GetValue()) : TEXT(""),
+        teamNames.IsSet() ? *FString::Printf(TEXT("teams: '%s'"), *FString::Join(teamNames.GetValue(), TEXT(", "))) : TEXT("")
+    );
+
+    const auto request = GetGameRequestManager()->Post(driftEndpoints.matches, payload);
+    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    {
+        FAddMatchResponse match;
+        if (!JsonArchive::LoadObject(doc, match))
+        {
+            context.error = TEXT("Failed to parse add match response.");
+            onMatchAdded.Broadcast(false);
+            return;
+        }
+
+        DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(doc));
+
+        const auto match_request = GetGameRequestManager()->Get(match.url);
+        match_request->OnResponse.BindLambda([this](ResponseContext& matchContext, JsonDocument& matchDoc)
+        {
+            if (!JsonArchive::LoadObject(matchDoc, match_info))
+            {
+                matchContext.error = TEXT("Failed to parse match info response.");
+                onMatchAdded.Broadcast(false);
+                return;
+            }
+
+            DRIFT_LOG(Base, VeryVerbose, TEXT("%s"), *JsonArchive::ToString(matchDoc));
+
+            DRIFT_LOG(Base, Log, TEXT("Match '%i' added to server '%i'"), match_info.match_id, match_info.server_id);
+            onMatchAdded.Broadcast(true);
+        });
+        match_request->Dispatch();
+    });
+    request->OnError.BindLambda([this](ResponseContext& context)
+    {
+        context.errorHandled = true;
+        onMatchAdded.Broadcast(false);
+    });
+    request->Dispatch();
 }
 
 
