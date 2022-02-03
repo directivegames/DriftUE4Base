@@ -182,14 +182,18 @@ bool FServerRegistrationPayload::Serialize(SerializationContext& context)
 
 bool FMatchesPayload::Serialize(SerializationContext& context)
 {
-	return SERIALIZE_PROPERTY(context, server_id)
+	const auto Result = SERIALIZE_PROPERTY(context, server_id)
 		&& SERIALIZE_PROPERTY(context, num_players)
 		&& SERIALIZE_PROPERTY(context, num_players)
 		&& SERIALIZE_PROPERTY(context, max_players)
 		&& SERIALIZE_PROPERTY(context, map_name)
 		&& SERIALIZE_PROPERTY(context, game_mode)
-		&& SERIALIZE_PROPERTY(context, status)
-		&& SERIALIZE_PROPERTY(context, num_teams);
+		&& SERIALIZE_PROPERTY(context, status);
+
+	SERIALIZE_OPTIONAL_PROPERTY(context, num_teams);
+	SERIALIZE_OPTIONAL_PROPERTY(context, team_names);
+
+	return Result;
 }
 
 

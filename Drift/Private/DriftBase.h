@@ -170,6 +170,7 @@ public:
     bool RegisterServer() override;
 
     void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) override;
+	void AddMatch(const FString& mapName, const FString& gameMode, TArray<FString> teamNames, int32 maxPlayers) override;
     void UpdateServer(const FString& status, const FString& reason, const FDriftServerStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FString& reason, const FDriftMatchStatusUpdatedDelegate& delegate) override;
     void UpdateMatch(const FString& status, const FDriftMatchStatusUpdatedDelegate& delegate) override;
@@ -331,6 +332,8 @@ private:
     void UpdateFriendOnlineInfos();
 
     const FDriftPlayerResponse* GetFriendInfo(int32 playerID) const;
+
+	void InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams);
 
     /**
      * Return the instance name to use for the server process

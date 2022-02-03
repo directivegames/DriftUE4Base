@@ -261,6 +261,7 @@ struct FMatchesPayload
 	int32 num_players = 0;
 	int32 max_players = 0;
 	int32 num_teams = 0;
+	TArray<FString> team_names;
 	FString map_name;
 	FString game_mode;
 	FString status;

@@ -139,6 +139,7 @@ public:
      * For a match to show up in Drift match making, it needs to be registered.
      */
     virtual void AddMatch(const FString& mapName, const FString& gameMode, int32 numTeams, int32 maxPlayers) = 0;
+    virtual void AddMatch(const FString& mapName, const FString& gameMode, TArray<FString> teamNames, int32 maxPlayers) = 0;
 
     /**
     * Update a server to set it's status for the match maker.
