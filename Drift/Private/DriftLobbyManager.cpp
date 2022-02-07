@@ -492,7 +492,7 @@ bool FDriftLobbyManager::UpdateLobby(FDriftLobbyProperties LobbyProperties, FUpd
 	ApplyLobbyProperties(CurrentLocalLobbyProperties);
 	OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 
-	const auto Request = RequestManager->Patch(CurrentLobbyURL, Payload);
+	const auto Request = RequestManager->Patch(CurrentLobbyURL, Payload, HttpStatusCodes::NoContent);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{
 		UE_LOG(LogDriftLobby, Log, TEXT("Lobby updated"));
@@ -560,7 +560,7 @@ bool FDriftLobbyManager::UpdatePlayer(FDriftLobbyMemberProperties PlayerProperti
 	ApplyPlayerProperties(CurrentLocalPlayerProperties);
 	OnLobbyUpdatedDelegate.Broadcast(CurrentLobbyId);
 
-	const auto Request = RequestManager->Put(CurrentLobbyMemberURL, Payload);
+	const auto Request = RequestManager->Put(CurrentLobbyMemberURL, Payload, HttpStatusCodes::NoContent);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{
 		UE_LOG(LogDriftLobby, Log, TEXT("Lobby player updated"));
