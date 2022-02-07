@@ -350,7 +350,9 @@ void FDriftBase::TickHeartbeat(float deltaTime)
                     return;
                 }
                 // Some other reason
-                context.errorHandled = true;
+                FString Error;
+                context.errorHandled = GetResponseError(context, Error);
+                DRIFT_LOG(Base, Error, TEXT("Failed to heartbeat\n%s"), *Error);
                 Disconnect();
             }
         }
@@ -546,9 +548,11 @@ void FDriftBase::Disconnect()
             {
                 finalizeDisconnect();
             });
-            request->OnError.BindLambda([finalizeDisconnect](ResponseContext& context)
+            request->OnError.BindLambda([this, finalizeDisconnect](ResponseContext& context)
             {
-                context.errorHandled = true;
+                FString Error;
+                context.errorHandled = GetResponseError(context, Error);
+                DRIFT_LOG(Base, Error, TEXT("Error while disconnecting: %s"), *Error);
 
                 finalizeDisconnect();
             });
@@ -712,8 +716,10 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
                 sync->remaining -= 1;
                 if (!sync->succeeded && sync->remaining <= 0)
                 {
+                    FString Error;
+                    data_context.errorHandled = GetResponseError(data_context, Error);
+                    DRIFT_LOG(Base, Error, TEXT("Failed to download static data file: '%s'. Error: %s"), *data_name, *Error);
                     onStaticDataLoaded.Broadcast(false, TEXT(""));
-                    data_context.errorHandled = true;
                 }
 
                 auto event = MakeEvent(TEXT("drift.static_data_download_failed"));
@@ -742,8 +748,10 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get static data endpoints. Error: %s"), *Error);
         onStaticDataLoaded.Broadcast(false, TEXT(""));
-        context.errorHandled = true;
     });
     request->Dispatch();
 }
@@ -853,12 +861,14 @@ void FDriftBase::InternalLoadPlayerGameState(const FString& name, const FString&
     });
     Request->OnError.BindLambda([this, name, delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to load game state: %s. Error: '%s'"), *name, *Error);
 
         const auto Result = Context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) ? ELoadPlayerGameStateResult::Error_NotFound : ELoadPlayerGameStateResult::Error_Failed;
 
-        delegate.ExecuteIfBound(Result, name, FString());
-        onPlayerGameStateLoaded.Broadcast(Result, name, FString());
+        delegate.ExecuteIfBound(Result, name, {});
+        onPlayerGameStateLoaded.Broadcast(Result, name, {});
     });
     Request->Dispatch();
 }
@@ -958,7 +968,10 @@ void FDriftBase::InternalSavePlayerGameState(const FString& name, const FString&
     });
     Request->OnError.BindLambda([this, name, delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to save player game state '%s': %s"), *name, *Error);
+
         delegate.ExecuteIfBound(false, name);
         onPlayerGameStateSaved.Broadcast(false, name);
     });
@@ -985,9 +998,11 @@ void FDriftBase::LoadPlayerGameStateInfos(TFunction<void(bool)> next)
         playerGameStateInfosLoaded = true;
         next(true);
     });
-    request->OnError.BindLambda([next](ResponseContext& context)
+    request->OnError.BindLambda([this, next](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to load player game state infos: %s"), *Error);
         next(false);
     });
     request->Dispatch();
@@ -2071,9 +2086,11 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
 
         delegate.ExecuteIfBound(true, Token);
     });
-    Request->OnError.BindLambda([delegate](ResponseContext& context)
+    Request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to issue friend request token. Error: %s"), *Error);
         delegate.ExecuteIfBound(false, {});
     });
     Request->Dispatch();
@@ -2166,9 +2183,11 @@ bool FDriftBase::DeclineFriendRequest(int32 RequestId, FDriftDeclineFriendReques
     {
         delegate.ExecuteIfBound(true);
     });
-    request->OnError.BindLambda([delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to decline friend request. Error: %s"), *Error);
         delegate.ExecuteIfBound(false);
     });
     request->Dispatch();
@@ -2223,7 +2242,9 @@ bool FDriftBase::GetFriendRequests(const FDriftGetFriendRequestsDelegate& Delega
     });
     request->OnError.BindLambda([this, Delegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get friend requests. Error: %s"), *Error);
         Delegate.ExecuteIfBound(false, {});
     });
 
@@ -2277,7 +2298,9 @@ bool FDriftBase::GetSentFriendInvites(const FDriftGetFriendRequestsDelegate& Del
     });
     Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get sent friend invites. Error: %s"), *Error);
         Delegate.ExecuteIfBound(false, {});
     });
 
@@ -2322,9 +2345,11 @@ bool FDriftBase::RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& 
 
         delegate.ExecuteIfBound(true, friendID);
     });
-    request->OnError.BindLambda([friendID, delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, friendID, delegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to remove friend '%d'. Error: %s"), friendID, *Error);
         delegate.ExecuteIfBound(false, friendID);
     });
     request->Dispatch();
@@ -2405,7 +2430,10 @@ void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
     });
 	request->OnError.BindLambda([this](ResponseContext& context)
 	{
-		context.errorHandled = true;
+	    FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+	    DRIFT_LOG(Base, Error, TEXT("Failed to get root endpoints. Error: %s"), *Error);
+
 		Reset();
 		onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
 	});
@@ -2529,16 +2557,11 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Authentication failed: %s"), *Error);
+
         Reset();
-        if (context.error.IsEmpty() && context.response.IsValid())
-        {
-            GenericRequestErrorResponse response;
-            if (JsonUtils::ParseResponse(context.response, response))
-            {
-                context.error = response.GetErrorDescription();
-            }
-        }
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
     });
     request->Dispatch();
@@ -2574,7 +2597,10 @@ void FDriftBase::GetUserInfo()
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get user info. Error: %s"), *Error);
+
         Reset();
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
     });
@@ -2652,7 +2678,10 @@ void FDriftBase::RegisterClient()
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to register client: %s"), *Error);
+
         Reset();
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
     });
@@ -2684,7 +2713,10 @@ void FDriftBase::GetPlayerEndpoints()
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to fetch drift endpoints: %s"), *Error);
+
         Disconnect();
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
     });
@@ -2723,7 +2755,10 @@ void FDriftBase::GetPlayerInfo()
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to load player info: %s"), *Error);
+
         Disconnect();
         onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_Failed, context.error });
     });
@@ -2762,7 +2797,10 @@ void FDriftBase::SetPlayerName(const FString& name)
     });
     request->OnError.BindLambda([this, OldName](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to set player name: %s"), *Error);
+
         auto FailedName = myPlayer.player_name;
         myPlayer.player_name = OldName;
         onPlayerNameSet.Broadcast(false, FailedName);
@@ -2965,7 +3003,10 @@ void FDriftBase::GetMatches(const FGetDriftMatchesParameters& Parameters, const 
     });
     Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get matches: %s"), *Error);
+
         Delegate.ExecuteIfBound(false, {});
     });
     Request->Dispatch();
@@ -3009,15 +3050,10 @@ void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provide
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
-        context.errorHandled = true;
-        if (context.error.IsEmpty() && context.response.IsValid())
-        {
-            GenericRequestErrorResponse response;
-            if (JsonUtils::ParseResponse(context.response, response))
-            {
-                context.error = response.GetErrorDescription();
-            }
-        }
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to add player identity: %s"), *Error);
+
         progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate });
         secondaryIdentityRequestManager_.Reset();
     });
@@ -3112,7 +3148,10 @@ void FDriftBase::BindUserIdentity(const FString& newIdentityName, const FDriftAd
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get current_user details from root using secondary identity. Error: %s"), *Error);
+
         progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToAuthenticate });
         secondaryIdentityRequestManager_.Reset();
     });
@@ -3164,7 +3203,11 @@ void FDriftBase::ConnectNewIdentityToCurrentUser(const FString& newIdentityName,
                 request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
                 {
                     // Could happen if the user already has an association with a different id from the same provider
-                    context.errorHandled = true;
+
+                    FString Error;
+                    context.errorHandled = GetResponseError(context, Error);
+                    DRIFT_LOG(Base, Error, TEXT("Failed to link identity with current user. Error: %s"), *Error);
+
                     // TODO: Check if this is broken or if there's a previous association
                     FDriftAddPlayerIdentityProgress error{ EAddPlayerIdentityStatus::Error_UserAlreadyBoundToSameIdentityType };
                     error.localUserPlayerName = myPlayer.player_name;
@@ -3197,7 +3240,10 @@ void FDriftBase::MoveCurrentIdentityToUserOfNewIdentity(const FDriftUserInfoResp
     });
     request->OnError.BindLambda([this, progressDelegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to move identity to new user. Error: %s"), *Error);
+
         progressDelegate.ExecuteIfBound(FDriftAddPlayerIdentityProgress{ EAddPlayerIdentityStatus::Error_FailedToReAssignOldIdentity });
         secondaryIdentityRequestManager_.Reset();
     });
@@ -3237,9 +3283,10 @@ void FDriftBase::InitServerRootInfo()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-    	DRIFT_LOG(Base, Error, TEXT("Failed to fetch Drift endpoints"));
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to fetch Drift endpoints. Error: %s"), *Error);
 
-        Context.errorHandled = true;
     	Reset();
     });
 
@@ -3327,9 +3374,10 @@ void FDriftBase::InitServerAuthentication()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-    	DRIFT_LOG(Base, Error, TEXT("Failed to authenticate server"));
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to authenticate server. Error: %s"), *Error);
 
-    	Context.errorHandled = true;
     	Reset();
     });
 
@@ -3395,9 +3443,10 @@ void FDriftBase::InitServerRegistration()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-    	DRIFT_LOG(Base, Error, TEXT("Failed to register server"));
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to register server. Error: %s"), *Error);
 
-    	Context.errorHandled = true;
     	Reset();
     });
 
@@ -3422,9 +3471,10 @@ void FDriftBase::InitServerInfo()
     });
     Request->OnError.BindLambda([this](ResponseContext& Context)
     {
-    	DRIFT_LOG(Base, Error, TEXT("Failed to initialize server info"));
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to initialize server info. Error: %s"), *Error);
 
-    	Context.errorHandled = true;
     	Reset();
     });
 
@@ -3451,10 +3501,11 @@ void FDriftBase::FinalizeRegisteringServer()
 	});
 	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
-		DRIFT_LOG(Base, Error, TEXT("Failed to finalize registering server"));
+	    FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to finalize registering server. Error: %s"), *Error);
 
-		Context.errorHandled = true;
-		Reset();
+        Reset();
 	});
 
 	Request->SetRetryConfig(FRetryOnServerError{});
@@ -3546,9 +3597,11 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
         delegate.ExecuteIfBound(true);
         onPlayerAddedToMatch.Broadcast(true, playerID);
     });
-    Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
+    Request->OnError.BindLambda([this, playerID, teamID, delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to add player '%d' to match '%d' in team '%d'. Error: %s"), playerID, match_info.match_id, teamID, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerAddedToMatch.Broadcast(false, playerID);
@@ -3590,7 +3643,9 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
     });
     Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to remove player '%d' from match '%d'. Error: %s"), playerID, match_info.match_id, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerRemovedFromMatch.Broadcast(false, playerID);
@@ -3643,7 +3698,9 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
     });
     Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
     {
-        Context.errorHandled = true;
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to update player '%d' in match '%d'. Error: %s"), playerID, match_info.match_id, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerUpdatedInMatch.Broadcast(false, playerID);
@@ -3691,10 +3748,13 @@ void FDriftBase::UpdateServer(const FString& status, const FString& reason, cons
     {
         delegate.ExecuteIfBound(true);
     });
-    request->OnError.BindLambda([delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, delegate](ResponseContext& context)
     {
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to update server status. Error: %s"), *Error);
+
         delegate.ExecuteIfBound(false);
-        context.errorHandled = true;
     });
     request->Dispatch();
 }
@@ -3775,9 +3835,12 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 	});
 	request->OnError.BindLambda([this, delegate](ResponseContext& context)
 	{
+	    FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+	    DRIFT_LOG(Base, Error, TEXT("Failed to update match. Error: %s"), *Error);
+
 		(void)delegate.ExecuteIfBound(false);
 		onMatchUpdated.Broadcast(false);
-		context.errorHandled = true;
 	});
 	request->Dispatch();
 }
@@ -3831,9 +3894,9 @@ void FDriftBase::CachePlayerInfo(int32 playerID)
     });
     request->OnError.BindLambda([this, playerID](ResponseContext& context)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Failed to cache player info for player id: %d"), playerID);
-
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to cache player info for player id: %d. Error: %s"), playerID, *Error);
     });
     request->Dispatch();
 }
@@ -3884,9 +3947,12 @@ void FDriftBase::LoadDriftFriends(const FDriftFriendsListLoadedDelegate& delegat
         AddAnalyticsEvent(MoveTemp(event));
         MakeFriendsGroup(delegate);
     });
-    request->OnError.BindLambda([delegate = delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, delegate = delegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to load Drift friends. Error: %s"), *Error);
+
         delegate.ExecuteIfBound(false);
     });
     request->Dispatch();
@@ -3998,9 +4064,12 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
             delegate.ExecuteIfBound(success);
         });
     });
-    request->OnError.BindLambda([delegate = delegate](ResponseContext& context)
+    request->OnError.BindLambda([this, delegate = delegate](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Warning, TEXT("Failed to create player group 'friends': %s"), *Error);
+
         delegate.ExecuteIfBound(false);
     });
     request->Dispatch();
@@ -4029,9 +4098,10 @@ void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
     });
     request->OnError.BindLambda([this, delegate = delegate](ResponseContext& context)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Failed to cache friend infos"));
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to cache friend infos: %s"), *Error);
 
-        context.errorHandled = true;
         delegate(false);
     });
     request->Dispatch();
@@ -4078,9 +4148,9 @@ void FDriftBase::UpdateFriendOnlineInfos()
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Failed to update friend infos"));
-
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to update friend online infos: %s"), *Error);
     });
     request->Dispatch();
 }
@@ -4161,7 +4231,10 @@ void FDriftBase::InternalAddMatch(const FString& mapName, const FString& gameMod
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
-        context.errorHandled = true;
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to add match: %s"), *Error);
+
         onMatchAdded.Broadcast(false);
     });
     request->Dispatch();
