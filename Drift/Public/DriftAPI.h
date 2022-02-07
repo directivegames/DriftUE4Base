@@ -115,8 +115,8 @@ struct FDriftUpdateMatchPlayerProperties
 
 struct FDriftMatchTeam
 {
-    int32 TeamId;
-    int32 MatchId;
+    int32 TeamId = 0;
+    int32 MatchId = 0;
 
     FDateTime CreateDate;
 
@@ -453,10 +453,10 @@ struct FDriftAddPlayerIdentityProgress
 
 struct FDriftMatchPlayer
 {
-    int32 Id;
-    int32 MatchId;
-    int32 PlayerId;
-    int32 TeamId;
+    int32 Id = 0;
+    int32 MatchId = 0;
+    int32 PlayerId = 0;
+    int32 TeamId = 0;
 
     FDateTime CreateDate;
     FDateTime JoinDate;
@@ -464,8 +464,8 @@ struct FDriftMatchPlayer
 
     FString PlayerName;
     FString Status;
-    int32 NumJoins;
-    int32 Seconds;
+    int32 NumJoins = 0;
+    int32 Seconds = 0;
 
     JsonValue Details;
     JsonValue Statistics;
@@ -476,8 +476,8 @@ struct FDriftMatchPlayer
 
 struct FDriftMatch
 {
-    int32 MatchId;
-    int32 ServerId;
+    int32 MatchId = 0;
+    int32 ServerId = 0;
 
     FDateTime CreateDate;
     FDateTime StartDate;
@@ -486,8 +486,8 @@ struct FDriftMatch
     FString GameMode;
     FString MapName;
     FString Status;
-    int32 NumPlayers;
-    int32 MaxPlayers;
+    int32 NumPlayers = 0;
+    int32 MaxPlayers = 0;
 
     JsonValue Details;
     JsonValue Statistics;
@@ -503,10 +503,10 @@ struct FDriftMatch
 struct FDriftMatchesResult
 {
     TArray<FDriftMatch> Matches;
-    int32 TotalMatches;
-    int32 CurrentPage;
-    int32 Pages;
-    int32 MatchesPerPage;
+    int32 TotalMatches = 0;
+    int32 CurrentPage = 0;
+    int32 Pages = 0;
+    int32 MatchesPerPage = 0;
 };
 
 struct FGetDriftMatchesParameters
