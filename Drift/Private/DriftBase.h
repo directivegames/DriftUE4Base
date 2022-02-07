@@ -84,6 +84,7 @@ public:
     FString GetAuthProviderName() const override;
     void AddPlayerIdentity(const FString& authProvider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate) override;
 
+    void GetMatches(const FGetDriftMatchesParameters& Parameters, const FDriftGetMatchesDelegate& Delegate) override;
     void GetActiveMatches(const TSharedRef<FMatchesSearch>& search) override;
     void JoinMatchQueue(const FDriftJoinedMatchQueueDelegate& delegate) override;
     void LeaveMatchQueue(const FDriftLeftMatchQueueDelegate& delegate) override;
