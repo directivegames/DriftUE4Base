@@ -570,10 +570,10 @@ struct FDriftMatchTeamInfo
 
 struct FDriftMatchPlayerInfo
 {
-    int32 id;
-    int32 match_id;
-    int32 player_id;
-    int32 team_id;
+    int32 id = 0;
+    int32 match_id = 0;
+    int32 player_id = 0;
+    int32 team_id = 0;
 
     FDateTime create_date;
     FDateTime join_date;
@@ -582,8 +582,8 @@ struct FDriftMatchPlayerInfo
 
     FString player_name;
     FString status;
-    int32 num_joins;
-    int32 seconds;
+    int32 num_joins = 0;
+    int32 seconds = 0;
 
     JsonValue details{rapidjson::kObjectType};
     JsonValue statistics{rapidjson::kObjectType};
