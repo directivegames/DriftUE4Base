@@ -222,7 +222,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration, 
 	{
 		JsonArchive::AddMember(Payload, TEXT("extras"), ExtraData);
 	}
-	auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Ok);
+	auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Created);
 	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
