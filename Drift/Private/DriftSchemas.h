@@ -550,7 +550,7 @@ struct FMachineInfo
 };
 
 
-struct FTeamInfo
+struct FDriftMatchTeamInfo
 {
 	int32 team_id = 0;
 	int32 match_id = 0;
@@ -568,10 +568,28 @@ struct FTeamInfo
 };
 
 
-struct FPlayerInfo
+struct FDriftMatchPlayerInfo
 {
-	FString matchplayer_url;
-	FString player_url;
+    int32 id = 0;
+    int32 match_id = 0;
+    int32 player_id = 0;
+    int32 team_id = 0;
+
+    FDateTime create_date;
+    FDateTime join_date;
+    FDateTime leave_date;
+    FDateTime modify_date;
+
+    FString player_name;
+    FString status;
+    int32 num_joins = 0;
+    int32 seconds = 0;
+
+    JsonValue details{rapidjson::kObjectType};
+    JsonValue statistics{rapidjson::kObjectType};
+
+    FString matchplayer_url;
+    FString player_url;
 
 	bool Serialize(class SerializationContext& context);
 };
@@ -602,16 +620,27 @@ struct FMatchInfo
 	FMachineInfo machine;
 	FString machine_url;
 
-	TArray<FTeamInfo> teams;
+	TArray<FDriftMatchTeamInfo> teams;
 
 	FString matchplayers_url;
 	FString teams_url;
 
-	TArray<FPlayerInfo> players;
+	TArray<FDriftMatchPlayerInfo> players;
 
 	FString url;
 
 	bool Serialize(class SerializationContext& context);
+};
+
+struct FDriftGetMatchesResponse
+{
+    TArray<FMatchInfo> items;
+    int32 total;
+    int32 page;
+    int32 pages;
+    int32 per_page;
+
+    bool Serialize(class SerializationContext& context);
 };
 
 

@@ -817,7 +817,7 @@ void FDriftBase::LoadPlayerGameStateImpl(const FString& name, const FDriftGameSt
     {
         return info.name == name;
     });
-    
+
     if (GameStateInfo == nullptr)
     {
         DRIFT_LOG(Base, Warning, TEXT("Failed to find player game state: \"%s\""), *name);
@@ -1126,7 +1126,7 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
 	if (!bEnableExternalAuthInPIE)
 	{
 		DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
-        		
+
 		return nullptr;
 	}
 #endif // WITH_EDITOR
@@ -1139,7 +1139,7 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
         	if (bIsPIE && !factory->IsSupportedInPIE())
         	{
 	            DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
-        		
+
         		return nullptr;
         	}
 #endif // WITH_EDITOR
@@ -2029,7 +2029,7 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
     }
 
     JsonValue Payload{ rapidjson::kObjectType };
-    
+
     if (PlayerID > 0)
     {
         JsonArchive::AddMember(Payload, TEXT("player_id"), PlayerID);
@@ -2830,6 +2830,147 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
     });
 }
 
+void FDriftBase::GetMatches(const FGetDriftMatchesParameters& Parameters, const FDriftGetMatchesDelegate& Delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Error, TEXT("Attempting to get matches without being connected"));
+        return;
+    }
+
+    FString QueryParams = FString::Printf(TEXT("?use_pagination=true&page=%d&per_page=%d"), Parameters.PageNumber, Parameters.MatchesPerPage);
+    if (Parameters.bIncludePlayers)
+    {
+        QueryParams.Append(TEXT("&include_match_players=true"));
+    }
+    if (Parameters.PlayerId.IsSet())
+    {
+        QueryParams.Append(FString::Printf(TEXT("&player_id=%d"), Parameters.PlayerId.GetValue()));
+    }
+    if (Parameters.GameMode.IsSet())
+    {
+        QueryParams.Append(FString::Printf(TEXT("&game_mode=%s"), *Parameters.GameMode.GetValue()));
+    }
+    if (Parameters.MapName.IsSet())
+    {
+        QueryParams.Append(FString::Printf(TEXT("&map_name=%s"), *Parameters.MapName.GetValue()));
+    }
+    if (Parameters.DetailsFilter.IsSet())
+    {
+        JsonValue DetailsFilter{ rapidjson::kObjectType };
+
+        for (const auto& Elem : Parameters.DetailsFilter.GetValue())
+        {
+            JsonArchive::AddMember(DetailsFilter, Elem.Key, Elem.Value);
+        }
+
+        QueryParams.Append(FString::Printf(TEXT("&details_filter=%s"), *DetailsFilter.ToString()));
+    }
+    if (Parameters.StatisticsFilter.IsSet())
+    {
+        JsonValue StatisticsFilter{ rapidjson::kObjectType };
+
+        for (const auto& Elem : Parameters.StatisticsFilter.GetValue())
+        {
+            JsonArchive::AddMember(StatisticsFilter, Elem.Key, Elem.Value);
+        }
+
+        QueryParams.Append(FString::Printf(TEXT("&details_filter=%s"), *StatisticsFilter.ToString()));
+    }
+
+    const auto Request = GetGameRequestManager()->Get(driftEndpoints.matches + QueryParams);
+    Request->OnResponse.BindLambda([this, bIncludePlayers = Parameters.bIncludePlayers, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        FDriftGetMatchesResponse MatchesResponse;
+        if (!JsonArchive::LoadObject(Doc, MatchesResponse))
+        {
+            DRIFT_LOG(Base, Error, TEXT("Failed to parse matches response"));
+            Delegate.ExecuteIfBound(false, {});
+            return;
+        }
+
+        FDriftMatchesResult MatchesResult;
+        MatchesResult.TotalMatches = MatchesResponse.total;
+        MatchesResult.Pages = MatchesResponse.pages;
+        MatchesResult.CurrentPage = MatchesResponse.page;
+        MatchesResult.MatchesPerPage = MatchesResponse.per_page;
+
+        for (const auto& ResponseMatch : MatchesResponse.items)
+        {
+            FDriftMatch Match;
+            Match.MatchId = ResponseMatch.match_id;
+            Match.ServerId = ResponseMatch.server_id;
+            Match.CreateDate = ResponseMatch.create_date;
+            Match.StartDate = ResponseMatch.start_date;
+            Match.EndDate = ResponseMatch.end_date;
+            Match.GameMode = ResponseMatch.game_mode;
+            Match.MapName = ResponseMatch.map_name;
+            Match.Status = ResponseMatch.status;
+            Match.NumPlayers = ResponseMatch.num_players;
+            Match.MaxPlayers = ResponseMatch.max_players;
+            Match.Details = ResponseMatch.details;
+            Match.Statistics = ResponseMatch.match_statistics;
+            Match.Url = ResponseMatch.url;
+            Match.MatchPlayersUrl = ResponseMatch.matchplayers_url;
+            Match.TeamsUrl = ResponseMatch.teams_url;
+
+            if (bIncludePlayers)
+            {
+                TArray<FDriftMatchPlayer> Players;
+                for (const auto& ResponsePlayer : ResponseMatch.players)
+                {
+                    FDriftMatchPlayer Player;
+                    Player.Id = ResponsePlayer.id;
+                    Player.MatchId = ResponsePlayer.match_id;
+                    Player.PlayerId = ResponsePlayer.player_id;
+                    Player.TeamId = ResponsePlayer.team_id;
+                    Player.CreateDate = ResponsePlayer.create_date;
+                    Player.JoinDate = ResponsePlayer.join_date;
+                    Player.LeaveDate = ResponsePlayer.leave_date;
+                    Player.PlayerName = ResponsePlayer.player_name;
+                    Player.Status = ResponsePlayer.status;
+                    Player.NumJoins = ResponsePlayer.num_joins;
+                    Player.Seconds = ResponsePlayer.seconds;
+                    Player.Details = ResponsePlayer.details;
+                    Player.Statistics = ResponsePlayer.statistics;
+                    Player.MatchPlayerUrl = ResponsePlayer.matchplayer_url;
+                    Player.PlayerUrl = ResponsePlayer.player_url;
+
+                    Players.Emplace(MoveTemp(Player));
+                }
+
+                TArray<FDriftMatchTeam> Teams;
+                for (const auto& ResponseTeam : ResponseMatch.teams)
+                {
+                    FDriftMatchTeam Team;
+                    Team.MatchId = ResponseTeam.match_id;
+                    Team.TeamId = ResponseTeam.team_id;
+                    Team.CreateDate = ResponseTeam.create_date;
+                    Team.TeamName = ResponseTeam.name;
+                    Team.Details = ResponseTeam.details;
+                    Team.Statistics = ResponseTeam.statistics;
+                    Team.Url = ResponseTeam.url;
+
+                    Teams.Emplace(MoveTemp(Team));
+                }
+
+                Match.Players = Players;
+                Match.Teams = Teams;
+            }
+
+            MatchesResult.Matches.Emplace(MoveTemp(Match));
+        }
+
+        Delegate.ExecuteIfBound(true, MatchesResult);
+    });
+    Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
+    {
+        Context.errorHandled = true;
+        Delegate.ExecuteIfBound(false, {});
+    });
+    Request->Dispatch();
+}
+
 
 void FDriftBase::AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate)
 {
@@ -3401,7 +3542,7 @@ void FDriftBase::AddPlayerToMatch(int32 playerID, int32 teamID, const FDriftPlay
         }
 
         match_players_urls.Emplace(playerID, AddPlayerToMatchResponse.url);
-        
+
         delegate.ExecuteIfBound(true);
         onPlayerAddedToMatch.Broadcast(true, playerID);
     });
@@ -4063,7 +4204,16 @@ TArray<FDriftMatchTeam> FDriftBase::GetMatchTeams() const
 
 	for (const auto& Team : match_info.teams)
 	{
-		Teams.Emplace(FDriftMatchTeam{ Team.name, Team.team_id });
+		Teams.Emplace(FDriftMatchTeam
+		{
+		    Team.team_id,
+		    Team.match_id,
+		    Team.create_date,
+		    Team.name,
+		    Team.details,
+		    Team.statistics,
+		    Team.url,
+		});
 	}
 
 	return Teams;

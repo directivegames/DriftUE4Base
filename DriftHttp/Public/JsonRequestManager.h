@@ -44,20 +44,20 @@ public:
     {
         return CreateRequest(method, url, payload, HttpStatusCodes::Undefined);
     }
-    
+
     template<class TPayload>
     TSharedRef<HttpRequest> CreateRequest(HttpMethods method, const FString& url, const TPayload& payload, HttpStatusCodes expectedCode)
     {
         FString payloadString;
         JsonArchive::SaveObject(payload, payloadString);
-        return RequestManager::CreateRequest(method, url, FString(payloadString));
+        return RequestManager::CreateRequest(method, url, FString(payloadString), expectedCode);
     }
 
     void SetApiKey(const FString& apiKey);
 
 protected:
     virtual void AddCustomHeaders(TSharedRef<HttpRequest> request) const override;
-    
+
 private:
     FString apiKey_;
 };

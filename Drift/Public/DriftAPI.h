@@ -115,10 +115,18 @@ struct FDriftUpdateMatchPlayerProperties
 
 struct FDriftMatchTeam
 {
-    FString team_name;
-    int32 team_id;
-};
+    int32 TeamId = 0;
+    int32 MatchId = 0;
 
+    FDateTime CreateDate;
+
+    FString TeamName;
+
+    JsonValue Details;
+    JsonValue Statistics;
+
+    FString Url;
+};
 
 class IDriftServerAPI
 {
@@ -443,6 +451,77 @@ struct FDriftAddPlayerIdentityProgress
     FDriftPlayerIdentityOverrideContinuationDelegate overrideDelegate;
 };
 
+struct FDriftMatchPlayer
+{
+    int32 Id = 0;
+    int32 MatchId = 0;
+    int32 PlayerId = 0;
+    int32 TeamId = 0;
+
+    FDateTime CreateDate;
+    FDateTime JoinDate;
+    FDateTime LeaveDate;
+
+    FString PlayerName;
+    FString Status;
+    int32 NumJoins = 0;
+    int32 Seconds = 0;
+
+    JsonValue Details;
+    JsonValue Statistics;
+
+    FString MatchPlayerUrl;
+    FString PlayerUrl;
+};
+
+struct FDriftMatch
+{
+    int32 MatchId = 0;
+    int32 ServerId = 0;
+
+    FDateTime CreateDate;
+    FDateTime StartDate;
+    FDateTime EndDate;
+
+    FString GameMode;
+    FString MapName;
+    FString Status;
+    int32 NumPlayers = 0;
+    int32 MaxPlayers = 0;
+
+    JsonValue Details;
+    JsonValue Statistics;
+
+    TOptional<TArray<FDriftMatchPlayer>> Players;
+    TOptional<TArray<FDriftMatchTeam>> Teams;
+
+    FString Url;
+    FString MatchPlayersUrl;
+    FString TeamsUrl;
+};
+
+struct FDriftMatchesResult
+{
+    TArray<FDriftMatch> Matches;
+    int32 TotalMatches = 0;
+    int32 CurrentPage = 0;
+    int32 Pages = 0;
+    int32 MatchesPerPage = 0;
+};
+
+struct FGetDriftMatchesParameters
+{
+    int32 PageNumber = 1;
+    int32 MatchesPerPage = 20;
+    bool bIncludePlayers = false;
+
+    TOptional<int32> PlayerId;
+    TOptional<FString> GameMode;
+    TOptional<FString> MapName;
+    TOptional<TMap<FString, FString>> StatisticsFilter;
+    TOptional<TMap<FString, FString>> DetailsFilter;
+};
+
 class JsonValue;
 struct FDriftPlayerResponse;
 
@@ -518,6 +597,8 @@ DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FD
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
 DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&);
+
+DECLARE_DELEGATE_TwoParams(FDriftGetMatchesDelegate, bool /* bSuccess */, const FDriftMatchesResult& /* Matches */);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftGameVersionMismatchDelegate, const FString&);
 
@@ -629,6 +710,11 @@ public:
      * Bind the identity from a secondary auth provider to the currently logged in user.
      */
     virtual void AddPlayerIdentity(const FString& authProvider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate) = 0;
+
+    /**
+     * Return a paginated result of matches
+     */
+    virtual void GetMatches(const FGetDriftMatchesParameters& Parameters, const FDriftGetMatchesDelegate& Delegate) = 0;
 
     /**
      * Return a list of active matches, available for joining
