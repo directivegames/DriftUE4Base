@@ -2086,10 +2086,10 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
 
         delegate.ExecuteIfBound(true, Token);
     });
-    Request->OnError.BindLambda([this, delegate](ResponseContext& context)
+    Request->OnError.BindLambda([this, delegate](ResponseContext& Context)
     {
         FString Error;
-        context.errorHandled = GetResponseError(context, Error);
+        Context.errorHandled = GetResponseError(Context, Error);
         DRIFT_LOG(Base, Error, TEXT("Failed to issue friend request token. Error: %s"), *Error);
         delegate.ExecuteIfBound(false, {});
     });
@@ -2118,6 +2118,8 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
 
     JsonValue Payload{ rapidjson::kObjectType };
     JsonArchive::AddMember(Payload, TEXT("token"), *token);
+
+    // Returns 201 friendship established and 200 if friendship exists. 200 response has an empty body
     const auto Request = GetGameRequestManager()->Post(driftEndpoints.my_friends, Payload);
     Request->OnResponse.BindLambda([this, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
@@ -2153,6 +2155,12 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     });
     Request->OnError.BindLambda([delegate](ResponseContext& Context)
     {
+        if (Context.responseCode == static_cast<int32>(HttpStatusCodes::Ok))
+        {
+            delegate.ExecuteIfBound(false, 0, TEXT("Already friends"));
+            return;
+        }
+
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
         delegate.ExecuteIfBound(false, 0, Error);
