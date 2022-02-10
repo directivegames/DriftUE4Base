@@ -2903,25 +2903,45 @@ void FDriftBase::GetMatches(const FGetDriftMatchesParameters& Parameters, const 
     }
     if (Parameters.DetailsFilter.IsSet())
     {
-        JsonValue DetailsFilter{ rapidjson::kObjectType };
+        FString DetailsFilter = TEXT("{");
 
+        int32 i = 0;
         for (const auto& Elem : Parameters.DetailsFilter.GetValue())
         {
-            JsonArchive::AddMember(DetailsFilter, Elem.Key, Elem.Value);
+            if (i > 0)
+            {
+                DetailsFilter.Append(TEXT(","));
+            }
+
+            DetailsFilter.Append(FString::Printf(TEXT("\"%s\":\"%s\""), *Elem.Key, *Elem.Value));
+
+            i++;
         }
 
-        QueryParams.Append(FString::Printf(TEXT("&details_filter=%s"), *DetailsFilter.ToString()));
+        DetailsFilter.Append(TEXT("}"));
+
+        QueryParams.Append(FString::Printf(TEXT("&details_filter=%s"), *DetailsFilter));
     }
     if (Parameters.StatisticsFilter.IsSet())
     {
-        JsonValue StatisticsFilter{ rapidjson::kObjectType };
+        FString StatisticsFilter = TEXT("{");
 
+        int32 i = 0;
         for (const auto& Elem : Parameters.StatisticsFilter.GetValue())
         {
-            JsonArchive::AddMember(StatisticsFilter, Elem.Key, Elem.Value);
+            if (i > 0)
+            {
+                StatisticsFilter.Append(TEXT(","));
+            }
+
+            StatisticsFilter.Append(FString::Printf(TEXT("\"%s\":\"%s\""), *Elem.Key, *Elem.Value));
+
+            i++;
         }
 
-        QueryParams.Append(FString::Printf(TEXT("&details_filter=%s"), *StatisticsFilter.ToString()));
+        StatisticsFilter.Append(TEXT("}"));
+
+        QueryParams.Append(FString::Printf(TEXT("&statistics_filter=%s"), *StatisticsFilter));
     }
 
     const auto Request = GetGameRequestManager()->Get(driftEndpoints.matches + QueryParams);
