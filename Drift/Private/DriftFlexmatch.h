@@ -91,6 +91,7 @@ private:
 	const float MaxPingInterval = 15.0;
 	float TimeToPing = 0.0;
 	FLatencyMap AverageLatencyMap;
+    const FString PingUrlTemplate = TEXT("https://gamelift.{0}.amazonaws.com");
 	const FString PingHostnameTemplate = TEXT("gamelift.{0}.amazonaws.com");
 	TArray<FString> PingRegions;
 

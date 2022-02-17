@@ -138,7 +138,42 @@ void FDriftFlexmatch::MeasureLatencies()
 
 				case EIcmpResponseStatus::NotImplemented:
 				{
-					UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - NotImplemented - ICMP pinging isn't implemented on this platform"));
+					UE_LOG(LogDriftMatchmaking, Warning, TEXT("FDriftFlexmatch::MeasureLatencies - NotImplemented - ICMP pinging isn't implemented on this platform. Using HTTP as a fallback"));
+
+				    if (const auto Self = WeakSelf.Pin())
+				    {
+				        const auto HttpModule = &FHttpModule::Get();
+                        const auto Request = HttpModule->CreateRequest();
+                        Request->SetVerb("GET");
+                        Request->SetURL(FString::Format(*Self->PingUrlTemplate, {Region}));
+                        Request->OnProcessRequestComplete().BindLambda(
+                        [WeakSelf, Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+                        {
+                            if (const auto Self = WeakSelf.Pin())
+                            {
+                                if (!bConnectedSuccessfully)
+                                {
+                                    UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
+                                    LatenciesByRegion->Add(Region, -1);
+                                }
+                                else
+                                {
+                                    LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
+                                }
+                                // if all regions have been added to the map, report back to drift
+                                if (LatenciesByRegion->Num() == Self->PingRegions.Num())
+                                {
+                                    Self->bIsPinging = false;
+                                    if (Self->PingInterval < Self->MaxPingInterval)
+                                    {
+                                        Self->PingInterval += 0.5;
+                                    }
+                                    Self->ReportLatencies(LatenciesByRegion);
+                                }
+                            }
+                        });
+                        Request->ProcessRequest();
+				    }
 					break;
 				}
 			}
