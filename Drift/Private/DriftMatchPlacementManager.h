@@ -33,8 +33,14 @@ struct FDriftMatchPlacement : IDriftMatchPlacement
     int32 GetPlayerId() const override { return PlayerId; }
     EDriftMatchPlacementStatus GetMatchPlacementStatus() const override { return MatchPlacementStatus; }
     FString GetCustomData() const override { return CustomData; }
-    FString GetConnectionString() const override { return ConnectionString; };
-    FString GetConnectionOptions() const override { return ConnectionOptions; };
+    FString GetConnectionString() const override { return ConnectionString; }
+    FString GetConnectionOptions() const override { return ConnectionOptions; }
+
+    FString ToString() const override
+	{
+	    return FString::Printf(TEXT("MatchPlacementId: %s, MapName: %s, PlayerId: %d, MaxPlayers: %d, MatchPlacementStatus: %d, CustomData: %s, ConnectionString: %s, ConnectionOptions: %s"),
+	        *MatchPlacementId, *MapName, PlayerId, MaxPlayers, MatchPlacementStatus, *CustomData, *ConnectionString, *ConnectionOptions);
+	}
 
 	FString MatchPlacementId;
 	FString MapName;
@@ -74,6 +80,12 @@ struct FDriftMatchPlacementResponse : FJsonSerializable
     FString ConnectionString;
     FString ConnectionOptions;
     FString MatchPlacementURL;
+
+    FString ToString() const
+    {
+        return FString::Printf(TEXT("PlacementId: %s, PlayerId: %d, MatchProvider: %s, Status: %s, CustomData: %s, MapName: %s, MaxPlayers: %d, ConnectionString: %s, ConnectionOptions: %s, MatchPlacementURL: %s"),
+            *PlacementId, PlayerId, *MatchProvider, *Status, *CustomData, *MapName, MaxPlayers, *ConnectionString, *ConnectionOptions, *MatchPlacementURL);
+    }
 };
 
 class FDriftMatchPlacementManager : public IDriftMatchPlacementManager

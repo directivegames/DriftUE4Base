@@ -337,6 +337,8 @@ void FDriftMatchPlacementManager::CacheMatchPlacement(const FDriftMatchPlacement
 		CurrentMatchPlacement->ConnectionOptions = MatchPlacementResponse.ConnectionOptions.IsEmpty() ? "SpectatorOnly=1" : MatchPlacementResponse.ConnectionOptions;
 	}
 
+    UE_LOG(LogDriftMatchPlacement, Verbose, TEXT("Cached match placement '%s' from response '%s'"), *CurrentMatchPlacement->ToString(), *MatchPlacementResponse.ToString());
+
 	UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement cached: '%s'"), *CurrentMatchPlacementId);
 	OnMatchPlacementStatusChangedDelegate.Broadcast(CurrentMatchPlacementId, CurrentMatchPlacement->MatchPlacementStatus);
 }

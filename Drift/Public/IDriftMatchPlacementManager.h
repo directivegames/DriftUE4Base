@@ -24,6 +24,8 @@ public:
     virtual FString GetConnectionString() const = 0;
     virtual FString GetConnectionOptions() const = 0;
 
+    virtual FString ToString() const = 0;
+
     virtual ~IDriftMatchPlacement() = default;
 };
 
