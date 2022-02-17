@@ -97,12 +97,14 @@ private:
 
 	void HandleMatchPlacementEvent(const FMessageQueueEntry& Message);
 
-	static EDriftMatchPlacementStatus ParseEvent(const FString& EventName);
+    static EDriftMatchPlacementStatus ParseEvent(const FString& EventName);
+    static EDriftMatchPlacementStatus ParseStatus(const FString& Status);
 
 	bool HasSession() const;
 
+    void CacheMatchPlacement(const JsonValue& MatchPlacementJsonValue);
 	void CacheMatchPlacement(const FDriftMatchPlacementResponse& MatchPlacementResponse);
-	void ResetCurrenMatchPlacement();
+	void ResetCurrentMatchPlacement();
 
 	static bool GetResponseError(const ResponseContext& Context, FString& Error);
 

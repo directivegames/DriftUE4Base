@@ -12,7 +12,7 @@ FDriftMatchPlacementManager::FDriftMatchPlacementManager(TSharedPtr<IDriftMessag
 {
 	MessageQueue->OnMessageQueueMessage(MatchPlacementMessageQueue).AddRaw(this, &FDriftMatchPlacementManager::HandleMatchPlacementEvent);
 
-	ResetCurrenMatchPlacement();
+	ResetCurrentMatchPlacement();
 }
 
 FDriftMatchPlacementManager::~FDriftMatchPlacementManager()
@@ -46,22 +46,31 @@ void FDriftMatchPlacementManager::InitializeLocalState()
 	{
 		UE_LOG(LogDriftMatchPlacement, Verbose, TEXT("InitializeLocalState response:'n'%s'"), *Doc.ToString());
 
+	    ResetCurrentMatchPlacement();
+
 		const auto Response = Doc.GetObject();
 		if (Response.Num() == 0)
 		{
 			UE_LOG(LogDriftMatchPlacement, Warning, TEXT("No match placement found when querying for initial state. Should return 404, not '%d'"), Context.response->GetResponseCode());
-			ResetCurrenMatchPlacement();
 			return;
 		}
 
 		FDriftMatchPlacementResponse MatchPlacementResponse{};
 		if (!MatchPlacementResponse.FromJson(Doc.GetInternalValue()->AsObject()))
 		{
-			UE_LOG(LogDriftMatchPlacement, Error, TEXT("Failed to serialize get match placement response"));
+			UE_LOG(LogDriftMatchPlacement, Error, TEXT("Failed to serialize initial get match placement response"));
 			return;
 		}
 
-		CacheMatchPlacement(MatchPlacementResponse);
+	    // Only react to pending/issued match placements for now
+	    const auto Status = ParseStatus(MatchPlacementResponse.Status);
+	    if (Status == EDriftMatchPlacementStatus::Issued)
+	    {
+	        CacheMatchPlacement(MatchPlacementResponse);
+	        return;
+	    }
+
+	    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
 	});
 	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
@@ -77,7 +86,7 @@ void FDriftMatchPlacementManager::InitializeLocalState()
 			UE_LOG(LogDriftMatchPlacement, Error, TEXT("InitializeLocalState - Error fetching existing match placement, Response code %d, error: '%s'"), Context.responseCode, *Error);
 		}
 
-		ResetCurrenMatchPlacement();
+		ResetCurrentMatchPlacement();
 	});
 
 	Request->Dispatch();
@@ -99,12 +108,12 @@ bool FDriftMatchPlacementManager::QueryMatchPlacement(FQueryMatchPlacementComple
 	{
 		UE_LOG(LogDriftMatchPlacement, Verbose, TEXT("QueryMatchPlacement response:'n'%s'"), *Doc.ToString());
 
+	    ResetCurrentMatchPlacement();
+
 		const auto Response = Doc.GetObject();
 		if (Response.Num() == 0)
 		{
 			UE_LOG(LogDriftMatchPlacement, Log, TEXT("No match placement found"));
-
-			ResetCurrenMatchPlacement();
 
 			(void)Delegate.ExecuteIfBound(true, "", "");
 			return;
@@ -117,11 +126,19 @@ bool FDriftMatchPlacementManager::QueryMatchPlacement(FQueryMatchPlacementComple
 			return;
 		}
 
-		ResetCurrenMatchPlacement();
+	    // Only react to pending/issued match placements for now
+        const auto Status = ParseStatus(MatchPlacementResponse.Status);
+        if (Status == EDriftMatchPlacementStatus::Issued)
+        {
+            CacheMatchPlacement(MatchPlacementResponse);
+            (void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
+            return;
+        }
 
-	    CacheMatchPlacement(MatchPlacementResponse);
+	    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
 
-	    (void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
+	    (void)Delegate.ExecuteIfBound(true, "", "");
+
 	});
 	Request->OnError.BindLambda([Delegate](ResponseContext& Context)
 	{
@@ -177,7 +194,7 @@ bool FDriftMatchPlacementManager::CreateMatchPlacement(FDriftMatchPlacementPrope
 			return;
 		}
 
-		ResetCurrenMatchPlacement();
+		ResetCurrentMatchPlacement();
 		CacheMatchPlacement(MatchPlacementResponse);
 		(void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
 	});
@@ -224,7 +241,7 @@ void FDriftMatchPlacementManager::HandleMatchPlacementEvent(const FMessageQueueE
 
 	switch (CurrentMatchPlacement->MatchPlacementStatus)
 	{
-		case EDriftMatchPlacementStatus::Issued:
+		case EDriftMatchPlacementStatus::Fulfilled:
 		{
 			if (!EventData.HasField("connection_string"))
 			{
@@ -240,24 +257,22 @@ void FDriftMatchPlacementManager::HandleMatchPlacementEvent(const FMessageQueueE
 				return;
 			}
 
-			CurrentMatchPlacement->ConnectionString = EventData.FindField("connection_string").GetString();
-			CurrentMatchPlacement->ConnectionOptions = EventData.FindField("connection_options").GetString();
-
-			OnMatchPlacementStatusChangedDelegate.Broadcast(CurrentMatchPlacementId, CurrentMatchPlacement->MatchPlacementStatus);
-			break;
+		    CacheMatchPlacement(EventData);
+		    break;
 		}
 
+		case EDriftMatchPlacementStatus::Issued:
 		case EDriftMatchPlacementStatus::Cancelled:
 		case EDriftMatchPlacementStatus::TimedOut:
 		case EDriftMatchPlacementStatus::Failed:
 		{
-		    OnMatchPlacementStatusChangedDelegate.Broadcast(CurrentMatchPlacementId, CurrentMatchPlacement->MatchPlacementStatus);
-			break;
+		    CacheMatchPlacement(EventData);
+		    break;
 		}
 
 		case EDriftMatchPlacementStatus::Unknown:
 		default:
-			UE_LOG(LogDriftMatchPlacement, Error, TEXT("HandleMatchPlacementEvent - Unknown event '%s'. Syncing up the lobby state just in case."), *Event);
+			UE_LOG(LogDriftMatchPlacement, Error, TEXT("HandleMatchPlacementEvent - Unknown event '%s'. Syncing up the match placement state just in case."), *Event);
 			QueryMatchPlacement({});
 	}
 }
@@ -273,9 +288,32 @@ EDriftMatchPlacementStatus FDriftMatchPlacementManager::ParseEvent(const FString
 	return EDriftMatchPlacementStatus::Unknown;
 }
 
+EDriftMatchPlacementStatus FDriftMatchPlacementManager::ParseStatus(const FString& Status)
+{
+    if (Status == TEXT("pending")) { return EDriftMatchPlacementStatus::Issued; }
+    if (Status == TEXT("completed")) { return EDriftMatchPlacementStatus::Fulfilled; }
+    if (Status == TEXT("cancelled")) { return EDriftMatchPlacementStatus::Cancelled; }
+    if (Status == TEXT("timed_out")) { return EDriftMatchPlacementStatus::TimedOut; }
+    if (Status == TEXT("failed")) { return EDriftMatchPlacementStatus::Failed; }
+
+    return EDriftMatchPlacementStatus::Unknown;
+}
+
 bool FDriftMatchPlacementManager::HasSession() const
 {
 	return !MatchPlacementsURL.IsEmpty() && RequestManager.IsValid();
+}
+
+void FDriftMatchPlacementManager::CacheMatchPlacement(const JsonValue& MatchPlacementJsonValue)
+{
+    FDriftMatchPlacementResponse MatchPlacementResponse{};
+    if (!MatchPlacementResponse.FromJson(MatchPlacementJsonValue.GetInternalValue()->AsObject()))
+    {
+        UE_LOG(LogDriftMatchPlacement, Error, TEXT("Failed to cache match placement. Failed to serialize match placement."));
+        return;
+    }
+
+    CacheMatchPlacement(MatchPlacementResponse);
 }
 
 void FDriftMatchPlacementManager::CacheMatchPlacement(const FDriftMatchPlacementResponse& MatchPlacementResponse)
@@ -288,7 +326,7 @@ void FDriftMatchPlacementManager::CacheMatchPlacement(const FDriftMatchPlacement
 		MatchPlacementResponse.MapName,
 		MatchPlacementResponse.PlayerId,
 		MatchPlacementResponse.MaxPlayers,
-		ParseEvent(MatchPlacementResponse.Status),
+		ParseStatus(MatchPlacementResponse.Status),
 		MatchPlacementResponse.CustomData,
 		CurrentMatchPlacementURL
 	);
@@ -299,11 +337,11 @@ void FDriftMatchPlacementManager::CacheMatchPlacement(const FDriftMatchPlacement
 		CurrentMatchPlacement->ConnectionOptions = MatchPlacementResponse.ConnectionOptions.IsEmpty() ? "SpectatorOnly=1" : MatchPlacementResponse.ConnectionOptions;
 	}
 
-	UE_LOG(LogDriftMatchPlacement, Log, TEXT("Mtch placement cached: '%s'"), *CurrentMatchPlacementId);
+	UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement cached: '%s'"), *CurrentMatchPlacementId);
 	OnMatchPlacementStatusChangedDelegate.Broadcast(CurrentMatchPlacementId, CurrentMatchPlacement->MatchPlacementStatus);
 }
 
-void FDriftMatchPlacementManager::ResetCurrenMatchPlacement()
+void FDriftMatchPlacementManager::ResetCurrentMatchPlacement()
 {
 	CurrentMatchPlacement.Reset();
 	CurrentMatchPlacementId.Empty();
