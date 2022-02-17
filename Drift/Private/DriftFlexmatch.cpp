@@ -257,6 +257,7 @@ void FDriftFlexmatch::StopMatchmaking()
 	if ( CurrentTicketUrl.IsEmpty() )
 	{
 		UE_LOG(LogDriftMatchmaking, Warning, TEXT("FDriftFlexmatch::StopMatchmaking - Cancelling without a known ticket"));
+		OnDriftMatchmakingCancelled().Broadcast();
 		return;
 	}
 	auto Request = RequestManager->Delete(CurrentTicketUrl);
