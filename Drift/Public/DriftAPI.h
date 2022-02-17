@@ -16,6 +16,7 @@
 #include "IDriftMatchmaker.h"
 #include "CoreUObject.h"
 #include "IDriftLobbyManager.h"
+#include "IDriftMatchPlacementManager.h"
 #include "JsonValueWrapper.h"
 
 #include "DriftAPI.generated.h"
@@ -1055,6 +1056,9 @@ public:
 
     /** Get the player lobby manager */
     virtual TSharedPtr<IDriftLobbyManager> GetLobbyManager() = 0;
+
+    /** Get the match placement manager */
+    virtual TSharedPtr<IDriftMatchPlacementManager> GetMatchPlacementManager() = 0;
 
     /** Return the index of this drift instance */
     virtual int32 GetInstanceIndex() const = 0;
