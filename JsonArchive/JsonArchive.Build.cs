@@ -23,7 +23,7 @@ public class JsonArchive : ModuleRules
 #endif
 
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
+        CppStandard = CppStandardVersion.Cpp17;
         
         PublicIncludePaths.AddRange(new string[] 
         {

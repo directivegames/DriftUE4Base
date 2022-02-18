@@ -24,6 +24,7 @@ public class Drift : ModuleRules
 #endif
 
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        CppStandard = CppStandardVersion.Cpp17;
 
         PublicIncludePaths.AddRange(
             new string[] {
