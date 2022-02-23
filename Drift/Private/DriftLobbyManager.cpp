@@ -7,7 +7,7 @@ DEFINE_LOG_CATEGORY(LogDriftLobby);
 
 static const FString LobbyMessageQueue(TEXT("lobby"));
 
-struct FDriftMatchPlacementResponse : FJsonSerializable
+struct FDriftLobbyMatchPlacementResponse : FJsonSerializable
 {
 	BEGIN_JSON_SERIALIZER;
 	JSON_SERIALIZE("placement_id", PlacementId);
@@ -18,12 +18,12 @@ struct FDriftMatchPlacementResponse : FJsonSerializable
 	JSON_SERIALIZE("match_placement_url", MatchPlacementURL);
 	END_JSON_SERIALIZER;
 
-	FString PlacementId = "";
+	FString PlacementId;
 	int32 PlayerId = 0;
-	FString MatchProvider = "";
-	FString Status = "";
-	FString LobbyId = "";
-	FString MatchPlacementURL = "";
+	FString MatchProvider;
+	FString Status;
+	FString LobbyId;
+	FString MatchPlacementURL;
 };
 
 FDriftLobbyManager::FDriftLobbyManager(TSharedPtr<IDriftMessageQueue> InMessageQueue)
@@ -688,14 +688,14 @@ bool FDriftLobbyManager::StartLobbyMatch(FString Queue, FStartLobbyMatchComplete
 	JsonArchive::AddMember(Payload, TEXT("queue"), Queue);
 	JsonArchive::AddMember(Payload, TEXT("lobby_id"), CurrentLobbyId);
 
-	const auto Request = RequestManager->Post(MatchPlacementsURL, Payload, HttpStatusCodes::NoContent);
+	const auto Request = RequestManager->Post(MatchPlacementsURL, Payload);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{
 		UE_LOG(LogDriftLobby, Log, TEXT("Lobby match start request accepted"));
 
 		UE_LOG(LogDriftLobby, Verbose, TEXT("StartLobbyMatch response:'n'%s'"), *Doc.ToString());
 
-		FDriftMatchPlacementResponse MatchPlacementResponse{};
+		FDriftLobbyMatchPlacementResponse MatchPlacementResponse{};
 		if (!MatchPlacementResponse.FromJson(Doc.GetInternalValue()->AsObject()))
 		{
 			UE_LOG(LogDriftLobby, Error, TEXT("Failed to serialize start lobby match response"));
