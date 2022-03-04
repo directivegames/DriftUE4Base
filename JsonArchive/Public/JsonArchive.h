@@ -455,7 +455,7 @@ bool SerializationContext::SerializeOptionalProperty(const TCHAR* propertyName, 
 	if (archive.IsLoading())
 	{
 	    const auto Field = value.FindField(propertyName);
-		if (Field.IsNull())
+		if (!Field.IsNull())
 		{
 		    return archive.SerializeProperty(value, propertyName, property);
 		}
