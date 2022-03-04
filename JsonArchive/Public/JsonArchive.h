@@ -39,12 +39,6 @@ public:
 	template<typename T>
 	bool SerializeProperty(const TCHAR* propertyName, T& property);
 
-	template<typename T>
-	bool SerializePropertyOptional(const TCHAR* propertyName, T& property, const T& defaultValue);
-
-	template<typename T>
-	bool SerializePropertyOptional(const TCHAR* propertyName, T& property);
-
 	void SetVersion(int version);
 	int GetVersion();
 
@@ -61,11 +55,6 @@ private:
  * Serialize a named C++ property with the corresponding json value
  */
 #define SERIALIZE_PROPERTY(context, propertyName) context.SerializeProperty(TEXT(#propertyName), propertyName)
-
-// TODO: Legacy name, replace with SERIALIZE_OPTIONAL_PROPERTY below
-#define SERIALIZE_PROPERTY_OPTIONAL(context, propertyName, defaultValue) context.SerializePropertyOptional(TEXT(#propertyName), propertyName, defaultValue)
-#define SERIALIZE_PROPERTY_OPTIONAL_NODEFAULT(context, propertyName) context.SerializePropertyOptional(TEXT(#propertyName), propertyName)
-
 #define SERIALIZE_OPTIONAL_PROPERTY(context, propertyName) context.SerializeOptionalProperty(TEXT(#propertyName), propertyName)
 
 
@@ -458,54 +447,6 @@ template<typename T>
 bool SerializationContext::SerializeProperty(const TCHAR* propertyName, T& property)
 {
 	return archive.SerializeProperty(value, propertyName, property);
-}
-
-template<typename T>
-bool SerializationContext::SerializePropertyOptional(const TCHAR* propertyName, T& property, const T& defaultValue)
-{
-	if (archive.IsLoading())
-	{
-		if (value.HasField(propertyName))
-		{
-			return archive.SerializeProperty(value, propertyName, property);
-		}
-		else
-		{
-			property = defaultValue;
-			return true;
-		}
-	}
-	else
-	{
-		if (property != defaultValue)
-		{
-			return archive.SerializeProperty(value, propertyName, property);
-		}
-		else
-		{
-			return true;
-		}
-	}
-}
-
-template<typename T>
-bool SerializationContext::SerializePropertyOptional(const TCHAR* propertyName, T& property)
-{
-	if (archive.IsLoading())
-	{
-		if (value.HasField(propertyName))
-		{
-			return archive.SerializeProperty(value, propertyName, property);
-		}
-		else
-		{
-			return true;
-		}
-	}
-	else
-	{
-		return archive.SerializeProperty(value, propertyName, property);
-	}
 }
 
 template<typename T>
