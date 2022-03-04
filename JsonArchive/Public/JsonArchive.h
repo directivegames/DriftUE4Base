@@ -32,25 +32,25 @@ public:
 	, value{ v }
 	{
 	}
-	
+
 	bool IsLoading() const;
 	JsonValue& GetValue() const { return value; }
-	
+
 	template<typename T>
 	bool SerializeProperty(const TCHAR* propertyName, T& property);
-	
+
 	template<typename T>
 	bool SerializePropertyOptional(const TCHAR* propertyName, T& property, const T& defaultValue);
-	
+
 	template<typename T>
 	bool SerializePropertyOptional(const TCHAR* propertyName, T& property);
-	
+
 	void SetVersion(int version);
 	int GetVersion();
-	
+
 	template<typename T>
 	bool SerializeOptionalProperty(const TCHAR* propertyName, T& property);
-	
+
 private:
 	JsonArchive& archive;
 	JsonValue& value;
@@ -80,7 +80,7 @@ public:
 		document.Parse(jsonString);
 		return !document.HasParseError();
 	}
-	
+
 	/**
 	 * Load a json string into a C++ object, return if the parsing succeeds
 	 */
@@ -89,21 +89,21 @@ public:
 	{
 		return LoadObject(jsonString, object, true);
 	}
-	
+
 	template<class T>
 	static bool LoadObject(const TCHAR* jsonString, T& object, bool logErrors)
 	{
 		JsonDocument doc;
-		
+
 		if (LoadDocument(jsonString, doc))
 		{
 			JsonArchive reader(true, logErrors);
 			return reader.SerializeObject(doc, object);
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Load a json value into a C++ object, return if the parsing succeeds
 	 */
@@ -113,12 +113,12 @@ public:
 		JsonArchive reader(true);
 		return reader.SerializeObject(const_cast<JsonValue&>(value), object);
 	}
-	
+
 	static FString ToString(const JsonValue& jValue)
 	{
 		return jValue.ToString();
 	}
-	
+
 	/**
 	 * Serialize a C++ object into a json string, return if the operation succeeds
 	 */
@@ -131,17 +131,17 @@ public:
 			jsonString = ToString(jValue);
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	template<class T>
 	static bool SaveObject(const T& object, JsonValue& jValue)
 	{
 		JsonArchive writer(false);
 		return writer.SerializeObject(jValue, const_cast<T&>(object));
 	}
-	
+
 	/**
 	 * Serialize between a Json and C++ object
 	 */
@@ -150,7 +150,7 @@ public:
 	SerializeObject(JsonValue& jValue, T& cValue)
 	{
 		auto context = SerializationContext(*this, jValue);
-		
+
 		if (isLoading_)
 		{
 			if (!jValue.IsObject())
@@ -162,10 +162,10 @@ public:
 		{
 			jValue.SetObject();
 		}
-		
+
 		return cValue.Serialize(context);
 	}
-	
+
 	template<class T>
 	typename std::enable_if<std::is_enum<T>::value, bool>::type
 	SerializeObject(JsonValue& jValue, T& cEnum)
@@ -184,15 +184,15 @@ public:
 			jValue.SetInt32((int)cEnum);
 			success = true;
 		}
-		
+
 		return success;
 	}
-	
+
 	template<class T>
 	bool SerializeObject(JsonValue& jArray, TArray<T>& cValue)
 	{
 		bool success = false;
-		
+
 		if (isLoading_)
 		{
 			if (jArray.IsArray())
@@ -221,7 +221,7 @@ public:
 		{
 			// todo: fix this up:
 			jArray.SetArray();
-			
+
 			for (auto& elem : cValue)
 			{
 				JsonValue jValue;
@@ -230,13 +230,13 @@ public:
 					jArray.PushBack(jValue);
 				}
 			}
-			
+
 			success = true;
 		}
-		
+
 		return success;
 	}
-	
+
 	/**
 	 * Serialize between a Json and a TUniquePtr managed C++ object
 	 */
@@ -244,7 +244,7 @@ public:
 	bool SerializeObject(JsonValue& jValue, TUniquePtr<T>& cValue)
 	{
 		auto context = SerializationContext(*this, jValue);
-		
+
 		if (isLoading_)
 		{
 			// Loading is not supported
@@ -259,10 +259,10 @@ public:
 			check(cValue.Get());
 			jValue.SetObject();
 		}
-		
+
 		return (*cValue).Serialize(context);
 	}
-	
+
 	/**
 	 * Serialize between a Json and a TMap<> object
 	 */
@@ -270,14 +270,14 @@ public:
 	bool SerializeObject(JsonValue& jValue, TMap<TKey, TValue>& cValue)
 	{
 		auto context = SerializationContext(*this, jValue);
-		
+
 		if (isLoading_)
 		{
 			if (!jValue.IsObject())
 			{
 				return false;
 			}
-			
+
 			for (auto& member : jValue.GetObject())
 			{
 				TKey key;
@@ -300,10 +300,10 @@ public:
 				}
 			}
 		}
-		
+
 		return true;
 	}
-	
+
 	/**
 	 * Serialize between a json and C++ value
 	 * The json value is assumed to be named propName under the parent value
@@ -312,7 +312,7 @@ public:
 	bool SerializeProperty(JsonValue& parent, const TCHAR* propName, T& cValue)
 	{
 		bool success = false;
-		
+
 		if (isLoading_)
 		{
 			JsonValue v = parent[propName];
@@ -326,18 +326,18 @@ public:
 		{
 			JsonValue value;
 			success = SerializeObject(value, cValue);
-			
+
 			if (success)
 			{
 				parent.SetField(propName, value);
 			}
 		}
-		
+
 		return success;
 	}
-	
+
 	bool IsLoading() const { return isLoading_; }
-	
+
 	template<typename TValue>
 	static void AddMember(JsonValue& parent, const FString& name, const TValue& value)
 	{
@@ -347,63 +347,63 @@ public:
 			AddMember(parent, name, MoveTemp(temp));
 		}
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, float value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, double value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, int32 value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, uint32 value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, int64 value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, uint64 value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, JsonValue&& value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const FString& name, const FString& value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	static void AddMember(JsonValue& parent, const TCHAR* name, const TCHAR* value)
 	{
 		parent.SetField(name, value);
 	}
-	
+
 	//private:
 	JsonArchive(bool loading)
 	: isLoading_{ loading }
 	, logErrors_{ true }
 	{}
-	
+
 	JsonArchive(bool loading, bool logErrors)
 	: isLoading_{ loading }
 	, logErrors_{ logErrors }
 	{}
-	
+
 private:
 	bool isLoading_;
 	bool logErrors_;
@@ -513,9 +513,10 @@ bool SerializationContext::SerializeOptionalProperty(const TCHAR* propertyName, 
 {
 	if (archive.IsLoading())
 	{
-		if (value.HasField(propertyName))
+	    const auto Field = value.FindField(propertyName);
+		if (Field.IsNull())
 		{
-			return archive.SerializeProperty(value, propertyName, property);
+		    return archive.SerializeProperty(value, propertyName, property);
 		}
 		return true;
 	}
