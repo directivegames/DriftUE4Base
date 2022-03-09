@@ -55,7 +55,7 @@ void FDriftEventManager::Tick(float DeltaTime)
     {
         return;
     }
-    
+
     FlushEvents();
 }
 
@@ -66,12 +66,13 @@ TStatId FDriftEventManager::GetStatId() const
 }
 
 
-void FDriftEventManager::FlushEvents()
+void FDriftEventManager::FlushEvents(bool bSynchronous)
 {
     SCOPE_CYCLE_COUNTER(STAT_FlushDriftEvents);
 
     if (eventsUrl.IsEmpty())
     {
+        UE_LOG(LogDriftEvent, Error, TEXT("Events URL is empty. Events will not be uploaded."));
         return;
     }
 
@@ -82,97 +83,17 @@ void FDriftEventManager::FlushEvents()
             UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager is invalid."));
             return;
         }
-        
+
         UE_LOG(LogDriftEvent, Verbose, TEXT("[%s] Drift flushing %i events..."), *FDateTime::UtcNow().ToString(), pendingEvents.Num());
 
-        TWeakPtr<FDriftEventManager> WeakSelf = SharedThis(this);
-        
-        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [WeakSelf, Events = MoveTemp(pendingEvents)]()
+        if (bSynchronous)
         {
-            SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
-
-            UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to background thread for payload JSON to string processing"));
-
-            const auto StartTime = FPlatformTime::Seconds();
-
-            FString Payload;
-            JsonArchive::SaveObject(Events, Payload);
-
-            TArray<uint8> Compressed;
-            bool bUseCompressed = false;
-            const FTCHARToUTF8 Converter(*Payload);
-            const auto UncompressedSize{ Converter.Length() };
-            if (UncompressedSize >= MIN_SIZE_PAYLOAD_TO_COMPRESS)
-            {
-                UE_LOG(LogDriftEvent, Verbose, TEXT("Attempting to compress payload"));
-
-                auto CompressedSize = FCompression::CompressMemoryBound(NAME_Gzip, UncompressedSize);
-                Compressed.SetNumUninitialized(CompressedSize);
-                
-                const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
-                
-                const auto CompressionResult = FCompression::CompressMemory(NAME_Gzip, Compressed.GetData(), CompressedSize, Uncompressed, UncompressedSize);
-                if (CompressionResult)
-                {
-                    if (CompressedSize < UncompressedSize)
-                    {
-                        UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression size is smaller than uncompressed size. Using compressed payload."));
-                    
-                        Compressed.SetNum(CompressedSize);
-                        bUseCompressed = true;
-                    }
-                    else
-                    {
-                        UE_LOG(LogDriftEvent, Verbose, TEXT("Compression didn't reduce the size of the payload. Using uncompressed payload."));
-                    }
-                }
-                else
-                {
-                    UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression failed. Using uncompressed payload."));
-                }
-            }
-
-            const auto EndTime = FPlatformTime::Seconds();
-
-            UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
-
-            AsyncTask(ENamedThreads::GameThread, [WeakSelf, Payload, Compressed, bUseCompressed]()
-            {
-                SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
-
-                UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
-
-                const auto PinnedSelf = WeakSelf.Pin();
-                
-                if (!PinnedSelf.IsValid())
-                {
-                    UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. The event manager became invalid during processing."));
-                    return;
-                }
-                
-                const auto RequestManager = PinnedSelf->requestManager.Pin();
-                if (!RequestManager.IsValid())
-                {
-                    UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during processing."));
-                    return;
-                }
-
-                const auto Request = RequestManager->CreateRequest(HttpMethods::XPOST, PinnedSelf->eventsUrl, HttpStatusCodes::Created);
-
-                if (bUseCompressed)
-                {
-                    Request->SetContent(Compressed);
-                    Request->SetHeader(TEXT("Content-Encoding"), TEXT("gzip"));
-                }
-                else
-                {
-                    Request->SetPayload(Payload);
-                }
-
-                Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-                Request->Dispatch();
-            });
-        });
+            FlushEventsInternal();
+        }
+        else
+        {
+            FlushEventsInternalAsync();
+        }
     }
 
     flushEventsInSeconds += FLUSH_EVENTS_INTERVAL;
@@ -217,4 +138,127 @@ void FDriftEventManager::AddTags(const TUniquePtr<IDriftEvent>& event)
     {
         event->Add(tag.Key, tag.Value);
     }
+}
+
+void FDriftEventManager::FlushEventsInternal()
+{
+    TArray<uint8> Compressed;
+    bool bUseCompressed;
+    FString Payload;
+    ProcessEvents(MoveTemp(pendingEvents), Payload, Compressed, bUseCompressed);
+
+    const auto RequestManager = requestManager.Pin();
+    if (!RequestManager.IsValid())
+    {
+        UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during synchronous processing."));
+        return;
+    }
+
+    ProcessRequest(RequestManager, eventsUrl, Payload, Compressed, bUseCompressed);
+}
+
+void FDriftEventManager::FlushEventsInternalAsync()
+{
+    TWeakPtr<FDriftEventManager> WeakSelf = SharedThis(this);
+
+    AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [WeakSelf, Events = MoveTemp(pendingEvents)]()
+    {
+        UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to background thread for payload JSON to string processing"));
+
+        TArray<uint8> Compressed;
+        bool bUseCompressed;
+        FString Payload;
+        ProcessEvents(Events, Payload, Compressed, bUseCompressed);
+
+        AsyncTask(ENamedThreads::GameThread, [WeakSelf, Payload, Compressed, bUseCompressed]()
+        {
+            SCOPE_CYCLE_COUNTER(STAT_UploadDriftEvents);
+
+            UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to game thread for http request"));
+
+            const auto PinnedSelf = WeakSelf.Pin();
+
+            if (!PinnedSelf.IsValid())
+            {
+                UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. The event manager became invalid during asynchronous processing."));
+                return;
+            }
+
+            const auto RequestManager = PinnedSelf->requestManager.Pin();
+            if (!RequestManager.IsValid())
+            {
+                UE_LOG(LogDriftEvent, Error, TEXT("Failed to flush events. Request manager became invalid during asynchronous processing."));
+                return;
+            }
+
+            ProcessRequest(RequestManager, PinnedSelf->eventsUrl, Payload, Compressed, bUseCompressed);
+        });
+    });
+}
+
+void FDriftEventManager::ProcessEvents(const TArray<TUniquePtr<IDriftEvent>>& Events, FString& Payload, TArray<uint8>& Compressed, bool& bUseCompressed)
+{
+    SCOPE_CYCLE_COUNTER(STAT_ProcessDriftEvents);
+
+    UE_LOG(LogDriftEvent, Verbose, TEXT("Switched to background thread for payload JSON to string processing"));
+
+    const auto StartTime = FPlatformTime::Seconds();
+
+    JsonArchive::SaveObject(Events, Payload);
+
+    Compressed.Empty();
+    bUseCompressed = false;
+    const FTCHARToUTF8 Converter(*Payload);
+    const auto UncompressedSize{ Converter.Length() };
+    if (UncompressedSize >= MIN_SIZE_PAYLOAD_TO_COMPRESS)
+    {
+        UE_LOG(LogDriftEvent, Verbose, TEXT("Attempting to compress payload"));
+
+        auto CompressedSize = FCompression::CompressMemoryBound(NAME_Gzip, UncompressedSize);
+        Compressed.SetNumUninitialized(CompressedSize);
+
+        const auto Uncompressed = reinterpret_cast<const uint8*>(Converter.Get());
+
+        const auto CompressionResult = FCompression::CompressMemory(NAME_Gzip, Compressed.GetData(), CompressedSize, Uncompressed, UncompressedSize);
+        if (CompressionResult)
+        {
+            if (CompressedSize < UncompressedSize)
+            {
+                UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression size is smaller than uncompressed size. Using compressed payload."));
+
+                Compressed.SetNum(CompressedSize);
+                bUseCompressed = true;
+            }
+            else
+            {
+                UE_LOG(LogDriftEvent, Verbose, TEXT("Compression didn't reduce the size of the payload. Using uncompressed payload."));
+            }
+        }
+        else
+        {
+            UE_LOG(LogDriftEvent, Verbose, TEXT("Payload compression failed. Using uncompressed payload."));
+        }
+    }
+
+    const auto EndTime = FPlatformTime::Seconds();
+
+    UE_LOG(LogDriftEvent, Verbose, TEXT("Processed '%d' events in '%.3f' seconds"), Events.Num(), EndTime - StartTime);
+}
+
+void FDriftEventManager::ProcessRequest(const TSharedPtr<JsonRequestManager> RequestManager, const FString& URL, const FString& Payload, const TArray<uint8>& Compressed, bool bUseCompressed)
+{
+    const auto Request = RequestManager->CreateRequest(HttpMethods::XPOST, URL, HttpStatusCodes::Created);
+
+    if (bUseCompressed)
+    {
+        Request->SetContent(Compressed);
+        Request->SetHeader(TEXT("Content-Encoding"), TEXT("gzip"));
+    }
+    else
+    {
+        Request->SetPayload(Payload);
+    }
+
+    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    Request->Dispatch();
 }

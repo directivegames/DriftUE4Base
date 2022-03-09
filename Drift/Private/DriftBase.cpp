@@ -412,7 +412,7 @@ void FDriftBase::FlushEvents()
 {
     check(eventManager);
 
-    eventManager->FlushEvents();
+    eventManager->FlushEvents(true);
 }
 
 

@@ -33,7 +33,7 @@ public:
 
     void LoadCounters();
 
-    void FlushEvents();
+    void FlushEvents(bool bSynchronous = false);
 
     void SetRequestManager(TSharedPtr<JsonRequestManager> newRequestManager);
     void SetEventsUrl(const FString& newEventsUrl);
@@ -41,6 +41,12 @@ public:
 private:
     void InitDefaultTags();
     void AddTags(const TUniquePtr<IDriftEvent>& event);
+
+    void FlushEventsInternal();
+    void FlushEventsInternalAsync();
+
+    static void ProcessEvents(const TArray<TUniquePtr<IDriftEvent>>& Events, FString& Payload, TArray<uint8>& Compressed, bool& bUseCompressed);
+    static void ProcessRequest(const TSharedPtr<JsonRequestManager> RequestManager, const FString& URL, const FString& Payload, const TArray<uint8>& Compressed, bool bUseCompressed);
 
 private:
     TWeakPtr<JsonRequestManager> requestManager;
