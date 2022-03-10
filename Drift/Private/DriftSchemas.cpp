@@ -80,7 +80,8 @@ bool FDriftUserInfoResponse::Serialize(SerializationContext& context)
 
 bool ClientUpgradeResponse::Serialize(SerializationContext& context)
 {
-	bool res = SERIALIZE_PROPERTY(context, action);
+	bool res = SERIALIZE_PROPERTY(context, action)
+	        && SERIALIZE_PROPERTY(context, message);
 	SERIALIZE_OPTIONAL_PROPERTY(context, upgrade_url);
 	return res;
 }

@@ -106,6 +106,7 @@ struct FDriftUserInfoResponse
 struct ClientUpgradeResponse
 {
 	FString action;
+	FString message;
 	FString upgrade_url;
 
 	bool Serialize(SerializationContext& context);

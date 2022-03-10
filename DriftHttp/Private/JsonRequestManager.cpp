@@ -18,9 +18,14 @@ void JsonRequestManager::AddCustomHeaders(TSharedRef<HttpRequest> request) const
 {
     RequestManager::AddCustomHeaders(request);
     request->SetHeader(TEXT("Accept"), TEXT("application/json"));
-    //request->SetHeader(TEXT("Drift-Api-Key"), apiKey_);
-    // don't set the header directly because we don't know if the request is going to carry any content
-    request->SetContentType(TEXT("application/json"));
+    if (!apiKey_.IsEmpty())
+    {
+        request->SetHeader(TEXT("Drift-Api-Key"), apiKey_);
+    }
+    if (!request->GetContentAsString().IsEmpty())
+    {
+        request->SetContentType(TEXT("application/json"));
+    }
 }
 
 

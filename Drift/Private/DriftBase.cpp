@@ -4354,7 +4354,8 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
                 context.errorHandled = true;
                 // Reset instead of disconnect as we know all future calls will fail
                 Reset();
-                onGameVersionMismatch.Broadcast(message.upgrade_url);
+                DRIFT_LOG(Base, Warning, TEXT("Client needs updating. Message '%s', upgrade_url '%s'"), *message.message, *message.upgrade_url);
+                onGameVersionMismatch.Broadcast(message.message, message.upgrade_url);
                 return;
             }
 

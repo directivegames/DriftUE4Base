@@ -601,7 +601,7 @@ DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftA
 
 DECLARE_DELEGATE_TwoParams(FDriftGetMatchesDelegate, bool /* bSuccess */, const FDriftMatchesResult& /* Matches */);
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FDriftGameVersionMismatchDelegate, const FString&);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftGameVersionMismatchDelegate, const FString& /* message */, const FString& /* upgrade_url */);
 
 DECLARE_DELEGATE_ThreeParams(FDriftGameStateLoadedDelegate, ELoadPlayerGameStateResult, const FString&, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftGameStateSavedDelegate, bool, const FString&);
