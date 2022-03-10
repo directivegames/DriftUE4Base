@@ -22,10 +22,7 @@ void JsonRequestManager::AddCustomHeaders(TSharedRef<HttpRequest> request) const
     {
         request->SetHeader(TEXT("Drift-Api-Key"), apiKey_);
     }
-    if (!request->GetContentAsString().IsEmpty())
-    {
-        request->SetContentType(TEXT("application/json"));
-    }
+    request->SetContentType(TEXT("application/json"));
 }
 
 
