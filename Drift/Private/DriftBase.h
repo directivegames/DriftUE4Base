@@ -198,13 +198,14 @@ public:
     bool SendFriendMessage(int32 FriendId, class JsonValue&& Message) override;
 
     TSharedPtr<IDriftPartyManager> GetPartyManager() override;
-	TSharedPtr<IDriftMatchmaker> GetMatchmaker() override;
+    TSharedPtr<IDriftMatchmaker> GetMatchmaker() override;
     TSharedPtr<IDriftLobbyManager> GetLobbyManager() override;
     TSharedPtr<IDriftMatchPlacementManager> GetMatchPlacementManager() override;
+    TSharedPtr<IDriftMessageQueue> GetMessageQueue() const override;
 
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
-	void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
+    void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
 
 private:
     void ConfigureSettingsSection(const FString& config);

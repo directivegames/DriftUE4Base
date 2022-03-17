@@ -4604,6 +4604,10 @@ TSharedPtr<IDriftMatchPlacementManager> FDriftBase::GetMatchPlacementManager()
     return matchPlacementManager;
 }
 
+TSharedPtr<IDriftMessageQueue> FDriftBase::GetMessageQueue() const
+{
+    return messageQueue;
+}
 
 TSharedPtr<IDriftPartyManager> FDriftBase::GetPartyManager()
 {

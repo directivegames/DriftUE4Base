@@ -14,13 +14,13 @@
 
 #include "IDriftPartyManager.h"
 #include "IDriftMatchmaker.h"
-#include "CoreUObject.h"
 #include "IDriftLobbyManager.h"
 #include "IDriftMatchPlacementManager.h"
 #include "JsonValueWrapper.h"
 
 #include "DriftAPI.generated.h"
 
+class IDriftMessageQueue;
 
 /**
  * Fired when server registration has completed.
@@ -1059,6 +1059,9 @@ public:
 
     /** Get the match placement manager */
     virtual TSharedPtr<IDriftMatchPlacementManager> GetMatchPlacementManager() = 0;
+
+    /** Get a handle to the message queue */
+    virtual TSharedPtr<IDriftMessageQueue> GetMessageQueue() const = 0;
 
     /** Return the index of this drift instance */
     virtual int32 GetInstanceIndex() const = 0;
