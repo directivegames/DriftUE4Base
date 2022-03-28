@@ -147,28 +147,28 @@ void FDriftFlexmatch::MeasureLatencies()
                         Request->SetVerb("GET");
                         Request->SetURL(FString::Format(*Self->PingUrlTemplate, {Region}));
                         Request->OnProcessRequestComplete().BindLambda(
-                        [WeakSelf, Region, LatenciesByRegion](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully)
+                        [WeakSelf, Region, LatenciesByRegion](FHttpRequestPtr RequestPtr, FHttpResponsePtr Response, bool bConnectedSuccessfully)
                         {
-                            if (const auto Self = WeakSelf.Pin())
+                            if (const auto InnerSelf = WeakSelf.Pin())
                             {
                                 if (!bConnectedSuccessfully)
                                 {
-                                    UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *Request->GetURL());
+                                    UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::MeasureLatencies - Failed to connect to '%s'"), *RequestPtr->GetURL());
                                     LatenciesByRegion->Add(Region, -1);
                                 }
                                 else
                                 {
-                                    LatenciesByRegion->Add(Region, static_cast<int>(Request->GetElapsedTime() * 1000));
+                                    LatenciesByRegion->Add(Region, static_cast<int>(RequestPtr->GetElapsedTime() * 1000));
                                 }
                                 // if all regions have been added to the map, report back to drift
-                                if (LatenciesByRegion->Num() == Self->PingRegions.Num())
+                                if (LatenciesByRegion->Num() == InnerSelf->PingRegions.Num())
                                 {
-                                    Self->bIsPinging = false;
-                                    if (Self->PingInterval < Self->MaxPingInterval)
+                                    InnerSelf->bIsPinging = false;
+                                    if (InnerSelf->PingInterval < InnerSelf->MaxPingInterval)
                                     {
-                                        Self->PingInterval += 0.5;
+                                        InnerSelf->PingInterval += 0.5;
                                     }
-                                    Self->ReportLatencies(LatenciesByRegion);
+                                    InnerSelf->ReportLatencies(LatenciesByRegion);
                                 }
                             }
                         });
