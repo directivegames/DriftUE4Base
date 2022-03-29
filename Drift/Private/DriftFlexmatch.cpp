@@ -205,18 +205,18 @@ void FDriftFlexmatch::ReportLatencies(const TSharedRef<TMap<FString, int>> Laten
 	JsonValue PatchPayload{rapidjson::kObjectType};
 	JsonArchive::AddMember(PatchPayload, TEXT("latencies"), LatenciesPayload);
 	const auto PatchRequest = RequestManager->Patch(FlexmatchLatencyURL, PatchPayload, HttpStatusCodes::Ok);
-	PatchRequest->OnError.BindLambda([this](ResponseContext& context)
+	PatchRequest->OnError.BindLambda([this](const ResponseContext& Context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
-			", Response code %d, error: '%s'"), *FlexmatchLatencyURL, context.responseCode, *context.error);
+			", Response code %d, error: '%s'"), *FlexmatchLatencyURL, Context.responseCode, *Context.error);
 	});
-	PatchRequest->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	PatchRequest->OnResponse.BindLambda([this](const ResponseContext& Context, const JsonDocument& Doc)
 	{
 		FDriftFlexmatchLatencySchema LatencyAverages;
-		if (!JsonArchive::LoadObject(doc, LatencyAverages))
+		if (!JsonArchive::LoadObject(Doc, LatencyAverages))
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Error parsing reponse from PATCHing latencies"
-				", Response code %d, error: '%s'"), context.responseCode, *context.error);
+				", Response code %d, error: '%s'"), Context.responseCode, *Context.error);
 			return;
 		}
 		for( auto Entry: LatencyAverages.latencies.GetObject() )
@@ -257,20 +257,20 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration, 
 	{
 		JsonArchive::AddMember(Payload, TEXT("extras"), ExtraData);
 	}
-	auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Created);
-	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& context)
+	const auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Created);
+	Request->OnError.BindLambda([this, MatchmakingConfiguration](const ResponseContext& Context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
-					", Response code %d, error: '%s'"), *MatchmakingConfiguration, context.responseCode, *context.error);
+					", Response code %d, error: '%s'"), *MatchmakingConfiguration, Context.responseCode, *Context.error);
 		OnDriftMatchmakingFailed().Broadcast(TEXT("Server Error"));
 	});
-	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](ResponseContext& context, JsonDocument& doc)
+	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](const ResponseContext& Context, const JsonDocument& Doc)
 	{
 		FDriftFlexmatchTicketPostResponse Response;
-		if (!JsonArchive::LoadObject(doc, Response))
+		if (!JsonArchive::LoadObject(Doc, Response))
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to parse response from POST to %s"
-						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, context.responseCode, *context.error);
+						", Response code %d, error: '%s'"), *FlexmatchTicketsURL, Context.responseCode, *Context.error);
 			OnDriftMatchmakingFailed().Broadcast(TEXT("Server Response Error"));
 			return;
 		}
@@ -295,19 +295,19 @@ void FDriftFlexmatch::StopMatchmaking()
 		OnDriftMatchmakingCancelled().Broadcast();
 		return;
 	}
-	auto Request = RequestManager->Delete(CurrentTicketUrl);
-	Request->OnError.BindLambda([this](ResponseContext& context)
+	const auto Request = RequestManager->Delete(CurrentTicketUrl);
+	Request->OnError.BindLambda([this](const ResponseContext& Context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
-					", Response code %d, error: '%s'"), context.responseCode, *context.error);
+					", Response code %d, error: '%s'"), Context.responseCode, *Context.error);
 	});
-	Request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+	Request->OnResponse.BindLambda([this](const ResponseContext& Context, const JsonDocument& Doc)
 	{
 		FDriftFlexmatchTicketDeleteResponse Response;
-		if (!JsonArchive::LoadObject(doc, Response))
+		if (!JsonArchive::LoadObject(Doc, Response))
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to parse response from DELETE to %s"
-						", Response code %d, error: '%s'"), *CurrentTicketUrl, context.responseCode, *context.error);
+						", Response code %d, error: '%s'"), *CurrentTicketUrl, Context.responseCode, *Context.error);
 			return;
 		}
 		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
@@ -346,13 +346,13 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	JsonValue Payload{rapidjson::kObjectType};
 	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
 	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
-	auto Request = RequestManager->Patch(CurrentTicketUrl, Payload, HttpStatusCodes::Ok);
-	Request->OnError.BindLambda([this, MatchId](ResponseContext& context)
+	const auto Request = RequestManager->Patch(CurrentTicketUrl, Payload, HttpStatusCodes::Ok);
+	Request->OnError.BindLambda([this, MatchId](const ResponseContext& Context)
 	{
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - Failed to update acceptance for match %s"
-					", Response code %d, error: '%s'"), *MatchId, context.responseCode, *context.error);
+					", Response code %d, error: '%s'"), *MatchId, Context.responseCode, *Context.error);
 	});
-	Request->OnResponse.BindLambda([this, MatchId, Accepted](ResponseContext& context, JsonDocument& doc)
+	Request->OnResponse.BindLambda([this, MatchId, Accepted](const ResponseContext& Context, const JsonDocument& Doc)
 	{
 		UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::SetAcceptance - Updated acceptance for match %s to %b"), *MatchId, Accepted);
 	});
@@ -527,14 +527,14 @@ void FDriftFlexmatch::InitializeLocalState()
 	{
 		const auto Request = RequestManager->Get(CurrentTicketUrl, HttpStatusCodes::Ok);
 
-		Request->OnError.BindLambda([this](ResponseContext& Context)
+		Request->OnError.BindLambda([this](const ResponseContext& Context)
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching existing ticket"
 						", Response code '%d', error: '%s'"), Context.responseCode, *Context.error);
 			CurrentTicketUrl.Empty();
 		});
 
-		Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
+		Request->OnResponse.BindLambda([this](const ResponseContext& Context, const JsonDocument& Doc)
 		{
 			auto Response = Doc.GetObject();
 			if ( Response.Num() == 0)
@@ -567,8 +567,8 @@ void FDriftFlexmatch::InitializeLocalState()
 					// We're missing the acceptance status per player as that isn't currently stored in the ticket we just fetched.
 					// However, chances are the player will receive a proper event just a tad later which should correct
 					// the situation
-					FString PotentialMatchId = Response["MatchId"].GetString();
-					int32 FakeTimeOut = 10;
+					const FString PotentialMatchId = Response["MatchId"].GetString();
+					constexpr int32 FakeTimeOut = 10;
 					TArray<FString> FakeTeams = {TEXT("Team 1"), TEXT("Team 2")};
 					FPlayersByTeam FakeTeamAllocation;
 					FakeTeamAllocation.Add(FakeTeams[0], TArray<int32>());
@@ -598,13 +598,13 @@ void FDriftFlexmatch::InitializeLocalState()
 	{
 		const auto Request = RequestManager->Get(FlexmatchRegionsURL, HttpStatusCodes::Ok);
 
-		Request->OnError.BindLambda([this](ResponseContext& Context)
+		Request->OnError.BindLambda([this](const ResponseContext& Context)
 		{
 			UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Error fetching regions"
 						", Response code '%d', error: '%s'"), Context.responseCode, *Context.error);
 		});
 
-		Request->OnResponse.BindLambda([this](ResponseContext& Context, JsonDocument& Doc)
+		Request->OnResponse.BindLambda([this](ResponseContext& Context, const JsonDocument& Doc)
 		{
 			FDriftFlexmatchRegionsResponse RegionsResponse;
 			if (!JsonArchive::LoadObject(Doc, RegionsResponse))
