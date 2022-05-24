@@ -2038,14 +2038,14 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
     if (state_ != DriftSessionState::Connected)
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to get a friend request token without being connected"));
-
+        delegate.ExecuteIfBound(false, {});
         return false;
     }
 
     if (driftEndpoints.my_friends.IsEmpty())
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to get a friends request token before the player session has been initialized"));
-
+        delegate.ExecuteIfBound(false, {});
         return false;
     }
 
@@ -2085,6 +2085,7 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
         if (Token.IsEmpty())
         {
             Context.error = TEXT("Response 'token' missing.");
+            delegate.ExecuteIfBound(false, {});
             return;
         }
 
