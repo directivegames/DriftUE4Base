@@ -263,12 +263,12 @@ bool FDriftPartyManager::QueryParty(FQueryPartyCompletedDelegate Callback)
             {
                 UE_LOG(LogDriftParties, Verbose, TEXT("Checking if party members have changed"));
 
-                for (const auto Member : Members)
+                for (const auto& Member : Members)
                 {
                     UE_LOG(LogDriftParties, Verbose, TEXT("Checking for member: %d / %s"), Member->GetPlayerID(), *Member->GetPlayerName());
 
                     bool bMemberFound = false;
-                    for (const auto PartyMember : CurrentParty_->Members)
+                    for (const auto& PartyMember : CurrentParty_->Members)
                     {
                         UE_LOG(LogDriftParties, Verbose, TEXT("Comparing cached member: %d / %s"), PartyMember->GetPlayerID(), *PartyMember->GetPlayerName());
 
