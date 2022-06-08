@@ -247,19 +247,68 @@ bool FDriftPartyManager::QueryParty(FQueryPartyCompletedDelegate Callback)
             });
         if (Membership)
         {
-            CurrentMembershipUrl_ = *Membership->Url;
-            CurrentPartyId_ = PartyResponse.Id;
-            CurrentPartyUrl_ = PartyResponse.Url;
+            UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
+
+            // Update party if metadata changed
+            bool bUpdateParty = CurrentMembershipUrl_ != Membership->Url || CurrentPartyId_ != PartyResponse.Id || CurrentPartyUrl_ != PartyResponse.Url;
+
         	TArray<TSharedPtr<IDriftPartyMember>> Members;
         	for (const auto& Member : PartyResponse.Members)
         	{
         		Members.Add(MakeShared<FDriftPartyMember>(Member.PlayerName, Member.Id));
         	}
-        	CurrentParty_ = MakeShared<FDriftParty>(CurrentPartyId_, MoveTemp(Members));
 
-        	UE_LOG(LogDriftParties, Display, TEXT("Found existing party: %s"), *CurrentPartyUrl_);
+            // Check if the members have changed if metadata hasn't changed
+            if (!bUpdateParty)
+            {
+                UE_LOG(LogDriftParties, Verbose, TEXT("Checking if party members have changed"));
 
-        	RaisePartyUpdated(CurrentPartyId_);
+                for (const auto Member : Members)
+                {
+                    UE_LOG(LogDriftParties, Verbose, TEXT("Checking for member: %d / %s"), Member->GetPlayerID(), *Member->GetPlayerName());
+
+                    bool bMemberFound = false;
+                    for (const auto PartyMember : CurrentParty_->Members)
+                    {
+                        UE_LOG(LogDriftParties, Verbose, TEXT("Comparing cached member: %d / %s"), PartyMember->GetPlayerID(), *PartyMember->GetPlayerName());
+
+                        if (PartyMember.IsValid() && Member->GetPlayerID() == PartyMember->GetPlayerID() && Member->GetPlayerName() == PartyMember->GetPlayerName())
+                        {
+                            bMemberFound = true;
+                            break;
+                        }
+                    }
+
+                    if (!bMemberFound)
+                    {
+                        UE_LOG(LogDriftParties, Verbose, TEXT("Member not in cached found: %d / %s"), Member->GetPlayerID(), *Member->GetPlayerName());
+
+                        bUpdateParty = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                UE_LOG(LogDriftParties, Verbose, TEXT("Party metadata changed, updating party"));
+            }
+
+            // Update party if needed
+            if (bUpdateParty)
+            {
+                UE_LOG(LogDriftParties, Display, TEXT("Party changed, updating"));
+
+                CurrentMembershipUrl_ = Membership->Url;
+                CurrentPartyId_ = PartyResponse.Id;
+                CurrentPartyUrl_ = PartyResponse.Url;
+                CurrentParty_ = MakeShared<FDriftParty>(PartyResponse.Id, MoveTemp(Members));
+
+                RaisePartyUpdated(CurrentPartyId_);
+            }
+            else
+            {
+                UE_LOG(LogDriftParties, Display, TEXT("Party unchanged, not updating"));
+            }
         }
         else
         {
