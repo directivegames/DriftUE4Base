@@ -588,7 +588,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, c
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
 
-DECLARE_DELEGATE_TwoParams(FDriftIssueFriendTokenDelegate, bool, const FString&);
+DECLARE_DELEGATE_ThreeParams(FDriftIssueFriendTokenDelegate, bool /* bSuccess */, const FString& /* Token */, const FString& /* Error */);
 DECLARE_DELEGATE_ThreeParams(FDriftAcceptFriendRequestDelegate, bool /* bSuccess */, int32 /* Friend Id */, const FString& /* Error */);
 DECLARE_DELEGATE_OneParam(FDriftDeclineFriendRequestDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<FDriftFriendRequest>&);

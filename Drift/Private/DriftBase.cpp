@@ -2037,15 +2037,17 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
 {
     if (state_ != DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to get a friend request token without being connected"));
-        delegate.ExecuteIfBound(false, {});
+        const FString Error = TEXT("Attempting to get a friend request token without being connected");
+        DRIFT_LOG(Base, Warning, TEXT("%s"), *Error);
+        delegate.ExecuteIfBound(false, {}, Error);
         return false;
     }
 
     if (driftEndpoints.my_friends.IsEmpty())
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to get a friends request token before the player session has been initialized"));
-        delegate.ExecuteIfBound(false, {});
+        const FString Error = TEXT("Attempting to get a friends request token before the player session has been initialized");
+        DRIFT_LOG(Base, Warning, TEXT("%s"), *Error);
+        delegate.ExecuteIfBound(false, {}, Error);
         return false;
     }
 
@@ -2085,20 +2087,20 @@ bool FDriftBase::IssueFriendToken(int32 PlayerID, FDriftFriendTokenProperties To
         if (Token.IsEmpty())
         {
             Context.error = TEXT("Response 'token' missing.");
-            delegate.ExecuteIfBound(false, {});
+            delegate.ExecuteIfBound(false, {}, Context.error);
             return;
         }
 
         DRIFT_LOG(Base, Verbose, TEXT("Got friend request token: %s"), *Token);
 
-        delegate.ExecuteIfBound(true, Token);
+        delegate.ExecuteIfBound(true, Token, {});
     });
     Request->OnError.BindLambda([this, delegate](ResponseContext& Context)
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
         DRIFT_LOG(Base, Error, TEXT("Failed to issue friend request token. Error: %s"), *Error);
-        delegate.ExecuteIfBound(false, {});
+        delegate.ExecuteIfBound(false, {}, Error);
     });
     Request->Dispatch();
     return true;
