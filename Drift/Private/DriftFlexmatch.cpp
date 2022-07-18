@@ -2,6 +2,7 @@
 
 #include "DriftFlexmatch.h"
 
+#include "DriftBase.h"
 #include "Icmp.h"
 
 
@@ -258,11 +259,13 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration, 
 		JsonArchive::AddMember(Payload, TEXT("extras"), ExtraData);
 	}
 	const auto Request = RequestManager->Post(FlexmatchTicketsURL, Payload, HttpStatusCodes::Created);
-	Request->OnError.BindLambda([this, MatchmakingConfiguration](const ResponseContext& Context)
+	Request->OnError.BindLambda([this, MatchmakingConfiguration](ResponseContext& Context)
 	{
+	    FString Error;
+        Context.errorHandled = FDriftBase::GetResponseError(Context, Error);
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StartMatchmaking - Failed to initiate matchmaking with configuration %s"
-					", Response code %d, error: '%s'"), *MatchmakingConfiguration, Context.responseCode, *Context.error);
-		OnDriftMatchmakingFailed().Broadcast(TEXT("Server Error"));
+					", Response code %d, error: '%s'"), *MatchmakingConfiguration, Context.responseCode, *Error);
+		OnDriftMatchmakingFailed().Broadcast(Error);
 	});
 	Request->OnResponse.BindLambda([this, MatchmakingConfiguration](const ResponseContext& Context, const JsonDocument& Doc)
 	{
@@ -296,10 +299,12 @@ void FDriftFlexmatch::StopMatchmaking()
 		return;
 	}
 	const auto Request = RequestManager->Delete(CurrentTicketUrl);
-	Request->OnError.BindLambda([this](const ResponseContext& Context)
+	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
+	    FString Error;
+        Context.errorHandled = FDriftBase::GetResponseError(Context, Error);
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::StopMatchmaking - Failed to cancel matchmaking"
-					", Response code %d, error: '%s'"), Context.responseCode, *Context.error);
+					", Response code %d, error: '%s'"), Context.responseCode, *Error);
 	});
 	Request->OnResponse.BindLambda([this](const ResponseContext& Context, const JsonDocument& Doc)
 	{
@@ -347,14 +352,16 @@ void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
 	JsonArchive::AddMember(Payload, TEXT("match_id"), *MatchId);
 	JsonArchive::AddMember(Payload, TEXT("acceptance"), Accepted);
 	const auto Request = RequestManager->Patch(CurrentTicketUrl, Payload, HttpStatusCodes::Ok);
-	Request->OnError.BindLambda([this, MatchId](const ResponseContext& Context)
+	Request->OnError.BindLambda([this, MatchId](ResponseContext& Context)
 	{
+	    FString Error;
+        Context.errorHandled = FDriftBase::GetResponseError(Context, Error);
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::SetAcceptance - Failed to update acceptance for match %s"
-					", Response code %d, error: '%s'"), *MatchId, Context.responseCode, *Context.error);
+					", Response code %d, error: '%s'"), *MatchId, Context.responseCode, *Error);
 	});
 	Request->OnResponse.BindLambda([this, MatchId, Accepted](const ResponseContext& Context, const JsonDocument& Doc)
 	{
-		UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::SetAcceptance - Updated acceptance for match %s to %b"), *MatchId, Accepted);
+		UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::SetAcceptance - Updated acceptance for match %s to %s"), *MatchId, Accepted ? TEXT("true") : TEXT("false"));
 	});
 	Request->Dispatch();
 }

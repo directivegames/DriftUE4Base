@@ -207,6 +207,8 @@ public:
 
     void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
 
+    static bool GetResponseError(const ResponseContext& Context, FString& Error);
+
 private:
     void ConfigureSettingsSection(const FString& config);
 
@@ -377,8 +379,6 @@ private:
 	IDriftAuthProviderFactory* GetUserPassAuthProviderFactory(const FString& Username, const FString& Password, bool bAllowAutomaticAccountCreation);
 
 	bool DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload);
-
-	static bool GetResponseError(const ResponseContext& Context, FString& Error);
 private:
     FString settingsSection_;
 
