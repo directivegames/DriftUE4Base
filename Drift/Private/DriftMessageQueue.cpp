@@ -72,7 +72,7 @@ struct FMessageQueueMessage
 {
     JsonValue message;
     int expire;
-    
+
     bool Serialize(SerializationContext& context)
     {
         return SERIALIZE_PROPERTY(context, message)
@@ -104,7 +104,7 @@ void FDriftMessageQueue::SendMessage(const FString& urlTemplate, const FString& 
     if (rm.IsValid())
     {
         FMessageQueueMessage payload{ Forward<JsonValue>(message), timeoutSeconds };
-        auto request = rm->Post(url, payload);
+        auto request = rm->Post(url, payload, HttpStatusCodes::Ok); // Backend currently returns 200 OK on success, not 201 Created
         request->OnError.BindLambda([this](ResponseContext& context)
         {
             context.errorHandled = true;
@@ -117,7 +117,7 @@ void FDriftMessageQueue::SendMessage(const FString& urlTemplate, const FString& 
 struct FMessageQueue
 {
     TMap<FString, TArray<FMessageQueueEntry>> queues;
-    
+
     bool Serialize(SerializationContext& context)
     {
         if (context.IsLoading())
