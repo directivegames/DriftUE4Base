@@ -2166,6 +2166,7 @@ bool FDriftBase::AcceptFriendRequestToken(const FString& token, const FDriftAcce
     {
         if (Context.responseCode == static_cast<int32>(HttpStatusCodes::Ok))
         {
+            Context.errorHandled = true;
             delegate.ExecuteIfBound(false, 0, TEXT("Already friends"));
             return;
         }
