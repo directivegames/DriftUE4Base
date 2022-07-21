@@ -543,7 +543,8 @@ bool FDriftFlexmatchTicketPostResponse::Serialize(SerializationContext& context)
 {
 	return SERIALIZE_PROPERTY(context, ticket_url)
 		&& SERIALIZE_PROPERTY(context, ticket_id)
-		&& SERIALIZE_PROPERTY(context, ticket_status);
+		&& SERIALIZE_PROPERTY(context, ticket_status)
+		&& SERIALIZE_PROPERTY(context, matchmaker);
 }
 
 bool FDriftFlexmatchTicketDeleteResponse::Serialize(SerializationContext& context)

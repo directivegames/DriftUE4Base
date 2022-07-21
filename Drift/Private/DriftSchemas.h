@@ -684,7 +684,8 @@ struct FDriftFlexmatchTicketPostResponse
 {
 	FString ticket_url;
 	FString ticket_id;
-	FString ticket_status;
+    FString ticket_status;
+    FString matchmaker;
 
 	bool Serialize(class SerializationContext& context);
 };

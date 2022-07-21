@@ -278,6 +278,7 @@ void FDriftFlexmatch::StartMatchmaking(const FString& MatchmakingConfiguration, 
 			return;
 		}
 		CurrentTicketUrl = Response.ticket_url;
+		CurrentTicketMatchmakingConfiguration = Response.matchmaker;
 		UE_LOG(LogDriftMatchmaking, Log, TEXT("FDriftFlexmatch::StartMatchmaking - Matchmaking started with configuration %s"
 					", TicketId %s, status %s"), *MatchmakingConfiguration, *Response.ticket_id, *Response.ticket_status);
 		SetStatusFromString(Response.ticket_status);
@@ -318,6 +319,7 @@ void FDriftFlexmatch::StopMatchmaking()
 		if (Response.status == TEXT("Deleted") || Response.status == TEXT("NoTicketFound"))
 		{
 			CurrentTicketUrl.Empty();
+		    CurrentTicketMatchmakingConfiguration.Empty();
 			Status = EMatchmakingTicketStatus::None;
 			if (Response.status == TEXT("Deleted"))
 			{
@@ -330,11 +332,6 @@ void FDriftFlexmatch::StopMatchmaking()
 		}
 	});
 	Request->Dispatch();
-}
-
-EMatchmakingTicketStatus FDriftFlexmatch::GetMatchmakingStatus()
-{
-	return Status;
 }
 
 void FDriftFlexmatch::SetAcceptance(const FString& MatchId, bool Accepted)
@@ -394,6 +391,7 @@ void FDriftFlexmatch::HandleMatchmakingEvent(const FMessageQueueEntry& Message)
 		case EDriftMatchmakingEvent::MatchmakingStarted:
 			Status = EMatchmakingTicketStatus::Queued;
 			CurrentTicketUrl = EventData.FindField("ticket_url").GetString();
+			CurrentTicketMatchmakingConfiguration = EventData.FindField("matchmaker").GetString();
 			OnDriftMatchmakingStarted().Broadcast();
 			break;
 		case EDriftMatchmakingEvent::MatchmakingSearching:
@@ -547,10 +545,12 @@ void FDriftFlexmatch::InitializeLocalState()
 			if ( Response.Num() == 0)
 			{
 				CurrentTicketUrl.Empty();
+			    CurrentTicketMatchmakingConfiguration.Empty();
 				Status = EMatchmakingTicketStatus::None;
 				return;
 			}
 			auto TicketId = Response["TicketId"].GetString();
+		    CurrentTicketMatchmakingConfiguration = Response["ConfigurationName"].GetString();
 			SetStatusFromString(Response["Status"].GetString());
 			if ( Response.Contains("GameSessionConnectionInfo") )
 			{

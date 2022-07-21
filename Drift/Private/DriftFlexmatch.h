@@ -42,7 +42,8 @@ public:
 
 	void StartMatchmaking(const FString& MatchmakingConfiguration, const JsonValue& ExtraData = rapidjson::kObjectType) override;
 	void StopMatchmaking() override;
-	EMatchmakingTicketStatus GetMatchmakingStatus() override;
+    EMatchmakingTicketStatus GetMatchmakingStatus() override { return Status; }
+    FString GetMatchmakingConfiguration() override { return CurrentTicketMatchmakingConfiguration; }
 
 	void SetAcceptance(const FString& MatchId, bool Accepted) override;
 
@@ -98,6 +99,7 @@ private:
 	// Current state
 	bool bIsInitialized = false;
 	EMatchmakingTicketStatus Status = EMatchmakingTicketStatus::None;
+	FString CurrentTicketMatchmakingConfiguration;
 	FString CurrentTicketUrl;
 	FString ConnectionString;
 	FString ConnectionOptions;

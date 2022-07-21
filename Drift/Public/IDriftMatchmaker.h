@@ -62,6 +62,9 @@ public:
 	/* Get the matchmaking status from the backend */
 	virtual EMatchmakingTicketStatus GetMatchmakingStatus() = 0;
 
+    /* Get the matchmaking configuration from the backend */
+    virtual FString GetMatchmakingConfiguration() = 0;
+
 	/* Update acceptance for player */
 	virtual void SetAcceptance(const FString& MatchId, bool Accepted) = 0;
 
