@@ -77,12 +77,14 @@ void FDriftFlexmatch::MeasureLatencies()
 	bIsPinging = true;
 	// Accumulate a mapping of regions->ping and once all results are in, PATCH drift-flexmatch
 	auto LatenciesByRegion{ MakeShared<TMap<FString, int>>() };
-	for(auto Region: PingRegions)
+	for (auto Region: PingRegions)
 	{
 		static float PingTimeout = 2.0f;
 		const auto RegionHostname = FString::Format(*PingHostnameTemplate, {Region});
 		FIcmp::IcmpEcho(RegionHostname, PingTimeout, FIcmpEchoResultDelegate::CreateLambda([WeakSelf = TWeakPtr<FDriftFlexmatch>(this->AsShared()), Region, LatenciesByRegion, RegionHostname](const FIcmpEchoResult Result)
 		{
+		    const auto Self = WeakSelf.Pin();
+
 			// Default to -1 if we fail to ping, success case will override this
 			LatenciesByRegion->Add(Region, -1);
 
@@ -95,21 +97,6 @@ void FDriftFlexmatch::MeasureLatencies()
 					UE_LOG(LogDriftMatchmaking, Verbose, TEXT("FDriftFlexmatch::MeasureLatencies - Success - Hostname: '%s', Host address: '%s', Reply address: '%s', Time: '%d' ms"), *RegionHostname, *Result.ResolvedAddress, *Result.ReplyFrom, ResponseTime);
 
 					LatenciesByRegion->Add(Region, ResponseTime);
-
-					if (const auto Self = WeakSelf.Pin())
-					{
-						// if all regions have been added to the map, report back to drift
-						if (LatenciesByRegion->Num() == Self->PingRegions.Num())
-						{
-							Self->bIsPinging = false;
-							if (Self->PingInterval < Self->MaxPingInterval)
-							{
-								Self->PingInterval += 0.5;
-							}
-							Self->ReportLatencies(LatenciesByRegion);
-						}
-					}
-
 					break;
 				}
 
@@ -141,7 +128,7 @@ void FDriftFlexmatch::MeasureLatencies()
 				{
 					UE_LOG(LogDriftMatchmaking, Warning, TEXT("FDriftFlexmatch::MeasureLatencies - NotImplemented - ICMP pinging isn't implemented on this platform. Using HTTP as a fallback"));
 
-				    if (const auto Self = WeakSelf.Pin())
+				    if (Self)
 				    {
 				        const auto HttpModule = &FHttpModule::Get();
                         const auto Request = HttpModule->CreateRequest();
@@ -161,7 +148,8 @@ void FDriftFlexmatch::MeasureLatencies()
                                 {
                                     LatenciesByRegion->Add(Region, static_cast<int>(RequestPtr->GetElapsedTime() * 1000));
                                 }
-                                // if all regions have been added to the map, report back to drift
+
+                                // If all regions have been added to the map, report back to drift
                                 if (LatenciesByRegion->Num() == InnerSelf->PingRegions.Num())
                                 {
                                     InnerSelf->bIsPinging = false;
@@ -175,9 +163,25 @@ void FDriftFlexmatch::MeasureLatencies()
                         });
                         Request->ProcessRequest();
 				    }
-					break;
+
+				    // Return here instead of break since we want the request complete handler to handle reporting the latencies when ICMP is not implemented
+					return;
 				}
 			}
+
+		    if (Self)
+		    {
+                // If all regions have been added to the map, report back to drift
+                if (LatenciesByRegion->Num() == Self->PingRegions.Num())
+                {
+                    Self->bIsPinging = false;
+                    if (Self->PingInterval < Self->MaxPingInterval)
+                    {
+                        Self->PingInterval += 0.5;
+                    }
+                    Self->ReportLatencies(LatenciesByRegion);
+                }
+            }
 		}));
 	}
 }
