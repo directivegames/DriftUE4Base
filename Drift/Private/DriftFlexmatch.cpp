@@ -553,11 +553,30 @@ void FDriftFlexmatch::InitializeLocalState()
 				Status = EMatchmakingTicketStatus::None;
 				return;
 			}
-			auto TicketId = Response["TicketId"].GetString();
-		    CurrentTicketMatchmakingConfiguration = Response["ConfigurationName"].GetString();
-			SetStatusFromString(Response["Status"].GetString());
-			if ( Response.Contains("GameSessionConnectionInfo") )
+		    auto TicketId = Response["ticket_id"].GetString();
+			if (TicketId.IsEmpty())
+			{   // Fall back to old ticket response. Remove once drift-base has been updated on all tiers
+				TicketId = Response["TicketId"].GetString();
+			}
+			CurrentTicketMatchmakingConfiguration = Response["configuration_name"].GetString();
+			if (CurrentTicketMatchmakingConfiguration.IsEmpty())
+			{   // Fall back to old ticket response. Remove once drift-base has been updated on all tiers
+				CurrentTicketMatchmakingConfiguration = Response["ConfigurationName"].GetString();
+			}
+			auto TicketStatus = Response["ticket_status"].GetString();
+			if (TicketStatus.IsEmpty())
+			{   // Fall back to old ticket response. Remove once drift-base has been updated on all tiers
+				TicketStatus = Response["Status"].GetString();
+			}
+			SetStatusFromString(TicketStatus);
+			if ( Response.Contains("connection_info") )
 			{
+				const auto SessionInfo = Response["connection_info"];
+				ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
+				ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
+			}
+			else if ( Response.Contains("GameSessionConnectionInfo") )
+			{   // Fall back to old ticket response. Remove once drift-base has been updated on all tiers
 				const auto SessionInfo = Response["GameSessionConnectionInfo"];
 				ConnectionString = SessionInfo.FindField("ConnectionString").GetString();
 				ConnectionOptions = SessionInfo.FindField("ConnectionOptions").GetString();
