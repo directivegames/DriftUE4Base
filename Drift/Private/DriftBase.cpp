@@ -270,6 +270,8 @@ void FDriftBase::TickHeartbeat(float deltaTime)
 	const auto bHeartbeatTimedOut = FDateTime::UtcNow() >= heartbeatTimeout_ - FTimespan::FromSeconds(5.0);
     if (bHeartbeatInitialized && bHeartbeatTimedOut)
     {
+        DRIFT_LOG(Base, Error, TEXT("Heartbeat timed out"));
+
         state_ = DriftSessionState::Timedout;
         BroadcastConnectionStateChange(state_);
         Reset();
@@ -347,12 +349,12 @@ void FDriftBase::TickHeartbeat(float deltaTime)
                 if (context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) && response.GetErrorCode() == TEXT("user_error"))
                 {
                     // Heartbeat timed out
-                    DRIFT_LOG(Base, Warning, TEXT("Failed to heartbeat\n%s"), *GetDebugText(context.response));
+                    DRIFT_LOG(Base, Error, TEXT("Failed to heartbeat\n%s"), *GetDebugText(context.response));
 
                     state_ = DriftSessionState::Timedout;
                     BroadcastConnectionStateChange(state_);
                     context.errorHandled = true;
-                    Disconnect();
+                    Reset();
                     return;
                 }
                 // Some other reason
@@ -367,14 +369,14 @@ void FDriftBase::TickHeartbeat(float deltaTime)
             context.errorHandled = true;
         	const auto now = FDateTime::UtcNow();
 
-        	// It'd be pointless to retry outside of the timout
+        	// It'd be pointless to retry outside of the timeout
         	if (now > heartbeatTimeout_)
         	{
-        		DRIFT_LOG(Base, Warning, TEXT("Failed to heartbeat\n%s"), *GetDebugText(context.response));
+        		DRIFT_LOG(Base, Error, TEXT("Failed to heartbeat\n%s"), *GetDebugText(context.response));
 
                 state_ = DriftSessionState::Timedout;
                 BroadcastConnectionStateChange(state_);
-	            Disconnect();
+	            Reset();
         		return;
         	}
 
@@ -387,7 +389,7 @@ void FDriftBase::TickHeartbeat(float deltaTime)
         		maxRetryDelay
         		);
 
-            DRIFT_LOG(Base, Verbose, TEXT("[%s] Drift heartbeat failed. Retrying in %.1f secs. Timeout at: %s")
+            DRIFT_LOG(Base, Warning, TEXT("[%s] Drift heartbeat failed. Retrying in %.1f secs. Timeout at: %s")
                       , *FDateTime::UtcNow().ToIso8601(), heartbeatDueInSeconds_, *heartbeatTimeout_.ToIso8601());
         }
     });
@@ -505,7 +507,6 @@ FString FDriftBase::GetVersionedAPIKey() const
 
 void FDriftBase::Disconnect()
 {
-    const auto oldState = state_;
     if (state_ != DriftSessionState::Connected && state_ != DriftSessionState::Usurped && state_ != DriftSessionState::Timedout)
     {
         DRIFT_LOG(Base, Warning, TEXT("Ignoring attempt to disconnect while not connected."));
@@ -518,23 +519,22 @@ void FDriftBase::Disconnect()
         UpdateServer(TEXT("quit"), TEXT(""), FDriftServerStatusUpdatedDelegate{});
     }
 
-    state_ = DriftSessionState::Disconnecting;
-    BroadcastConnectionStateChange(state_);
-
     auto finalizeDisconnect = [this]()
     {
         Reset();
         onPlayerDisconnected.Broadcast();
-        BroadcastConnectionStateChange(state_);
     };
 
     /**
      * If we were connected, then this is most likely the user himself disconnecting,
      * and we should attempt to clear the client session from the backend.
      */
-    if (oldState == DriftSessionState::Connected)
+    if (state_ == DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Verbose, TEXT("Disconnecting"));
+        DRIFT_LOG(Base, Log, TEXT("Disconnecting"));
+
+        state_ = DriftSessionState::Disconnecting;
+        BroadcastConnectionStateChange(state_);
 
         // Any messages in flight may block shutdown, so it needs to be terminated
         messageQueue.Reset();
@@ -574,9 +574,13 @@ void FDriftBase::Disconnect()
 
 void FDriftBase::Reset()
 {
-    DRIFT_LOG(Base, Verbose, TEXT("Resetting all internal state"));
+    DRIFT_LOG(Base, Warning, TEXT("Resetting all internal state. Connection state: %d"), static_cast<uint8>(state_));
 
-    state_ = DriftSessionState::Disconnected;
+    if (state_ != DriftSessionState::Usurped && state_ != DriftSessionState::Timedout)
+    {
+        state_ = DriftSessionState::Disconnected;
+        BroadcastConnectionStateChange(state_);
+    }
 
     authenticatedRequestManager.Reset();
     secondaryIdentityRequestManager_.Reset();
@@ -2510,7 +2514,7 @@ void FDriftBase::InitAuthentication(const FAuthenticationSettings& Authenticatio
         }
         else
         {
-            DRIFT_LOG(Base, Warning, TEXT("Failed to aquire credentials"));
+            DRIFT_LOG(Base, Error, TEXT("Failed to aquire credentials"));
 
             Reset();
             onPlayerAuthenticated.Broadcast(false, FPlayerAuthenticatedInfo{ EAuthenticationResult::Error_NoOnlineSubsystemCredentials, TEXT("Failed to aquire credentials") });
@@ -4358,7 +4362,7 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
                 context.errorHandled = true;
                 // Reset instead of disconnect as we know all future calls will fail
                 Reset();
-                DRIFT_LOG(Base, Warning, TEXT("Client needs updating. Message '%s', upgrade_url '%s'"), *message.message, *message.upgrade_url);
+                DRIFT_LOG(Base, Error, TEXT("Client needs updating. Message '%s', upgrade_url '%s'"), *message.message, *message.upgrade_url);
                 OnGameVersionMismatch().Broadcast(message.message, message.upgrade_url);
                 return;
             }
@@ -4381,7 +4385,7 @@ void FDriftBase::DefaultErrorHandler(ResponseContext& context)
                         state_ = DriftSessionState::Timedout;
                         BroadcastConnectionStateChange(state_);
                         context.errorHandled = true;
-                        Disconnect();
+                        Reset();
                         return;
                     }
                     // Some other reason
