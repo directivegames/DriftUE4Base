@@ -13,6 +13,10 @@
 #include "Misc/Paths.h"
 #include "Misc/SecureHash.h"
 
+#ifndef PLATFORM_PS4
+#define PLATFORM_PS4 0
+#endif
+
 #if PLATFORM_PS4
 #include "PS4File.h"
 #endif
