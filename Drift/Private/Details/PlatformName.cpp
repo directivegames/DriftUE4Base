@@ -5,6 +5,13 @@
 
 #include "HAL/PlatformMisc.h"
 
+#ifndef PLATFORM_PS4
+#define PLATFORM_PS4 0
+#endif
+
+#ifndef PLATFORM_XBOXONE
+#define PLATFORM_XBOXONE 0
+#endif
 
 namespace details
 {
