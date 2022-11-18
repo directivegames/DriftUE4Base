@@ -21,6 +21,10 @@
 
 DEFINE_LOG_CATEGORY(LogHttpClient);
 
+#ifndef PLATFORM_PS4
+#define PLATFORM_PS4 0
+#endif
+
 
 #if PLATFORM_APPLE
 #include "CFNetwork/CFNetworkErrors.h"
