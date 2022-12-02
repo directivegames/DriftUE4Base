@@ -907,10 +907,10 @@ public:
     virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
 
     /**
-     * Get user-identities for that match name
+     * Get user-identities that match name
      * Fires delegate when finished.
     */
-    virtual void GetUserIdentities(const FString& matchName, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
+    virtual void GetUserIdentities(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
     /**
      * Flush all counters. Requires at least one tick to actually flush.

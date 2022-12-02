@@ -4481,7 +4481,7 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
     });
 }
 
-void FDriftBase::GetUserIdentities(const FString& matchName, const FDriftGetUserIdentitiesDelegate& delegate)
+void FDriftBase::GetUserIdentities(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
