@@ -127,6 +127,8 @@ public:
     bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
+    void GetUserIdentities(const FString& matchName, const FDriftGetUserIdentitiesDelegate& delegate) override;
+
     bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
 
     void FlushCounters() override;

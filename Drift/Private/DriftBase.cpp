@@ -4481,6 +4481,50 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
     });
 }
 
+void FDriftBase::GetUserIdentities(const FString& matchName, const FDriftGetUserIdentitiesDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities without being connected"));
+        delegate.ExecuteIfBound(false, {});
+        return;
+    }
+
+    if (driftEndpoints.user_identities.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities with no endpoint"));
+
+        delegate.ExecuteIfBound(false, {});
+        return;
+    }
+
+    DRIFT_LOG(Base, Log, TEXT("Getting get user identities '%s'"), *matchName);
+
+    const auto url = driftEndpoints.user_identities + TEXT("?name=") + matchName;
+
+    const auto Request = GetGameRequestManager()->Get(url);
+    Request->OnResponse.BindLambda([this, delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        TArray<FDriftUserIdentity> Response;
+        if (!JsonArchive::LoadObject(Doc, Response))
+        {
+            Context.error = TEXT("Failed to parse user identities response");
+            return;
+        }
+
+        delegate.ExecuteIfBound(true, Response);
+    });
+    Request->OnError.BindLambda([this, matchName, delegate](ResponseContext& Context)
+    {
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get user identites: %s. Error: '%s'"), *matchName, *Error);
+
+        delegate.ExecuteIfBound(false, {});
+    });
+    Request->Dispatch();
+}
+
 
 bool FDriftBase::DoSendFriendMessage(int32 FriendId, JsonValue&& MessagePayload)
 {

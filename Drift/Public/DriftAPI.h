@@ -526,6 +526,8 @@ struct FGetDriftMatchesParameters
 class JsonValue;
 struct FDriftPlayerResponse;
 
+struct FDriftUserIdentity;
+
 enum class EMessageType : uint8
 {
     Text,
@@ -621,6 +623,8 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftFriendRemovedDelegate, int32);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendRequestReceivedDelegate, int32, const FString&);
 
 DECLARE_DELEGATE_OneParam(FDriftLoadPlayerAvatarUrlDelegate, const FString&);
+
+DECLARE_DELEGATE_TwoParams(FDriftGetUserIdentitiesDelegate, bool, const TArray<FDriftUserIdentity>&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString&, const FDateTime&);
 
@@ -901,6 +905,12 @@ public:
      * Fires delegate when finished
     */
     virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
+
+    /**
+     * Get user-identities for that match name
+     * Fires delegate when finished.
+    */
+    virtual void GetUserIdentities(const FString& matchName, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
     /**
      * Flush all counters. Requires at least one tick to actually flush.
