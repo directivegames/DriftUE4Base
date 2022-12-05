@@ -4498,9 +4498,9 @@ void FDriftBase::GetUserIdentities(const FString& name, const FDriftGetUserIdent
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("Getting get user identities '%s'"), *matchName);
+    DRIFT_LOG(Base, Log, TEXT("Getting get user identities '%s'"), *name);
 
-    const auto url = driftEndpoints.user_identities + TEXT("?name=") + matchName;
+    const auto url = driftEndpoints.user_identities + TEXT("?name=") + name;
 
     const auto Request = GetGameRequestManager()->Get(url);
     Request->OnResponse.BindLambda([this, delegate](ResponseContext& Context, JsonDocument& Doc)
@@ -4514,11 +4514,11 @@ void FDriftBase::GetUserIdentities(const FString& name, const FDriftGetUserIdent
 
         delegate.ExecuteIfBound(true, Response);
     });
-    Request->OnError.BindLambda([this, matchName, delegate](ResponseContext& Context)
+    Request->OnError.BindLambda([this, name, delegate](ResponseContext& Context)
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("Failed to get user identites: %s. Error: '%s'"), *matchName, *Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get user identites: %s. Error: '%s'"), *name, *Error);
 
         delegate.ExecuteIfBound(false, {});
     });
