@@ -907,10 +907,22 @@ public:
     virtual void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) = 0;
 
     /**
+     * Get user-identities that match playerId
+     * Fires delegate when finished.
+    */
+    virtual void GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
+
+    /**
+     * Get user-identities that match any name in names array
+     * Fires delegate when finished.
+    */
+    virtual void GetUserIdentitiesByName(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
+
+    /**
      * Get user-identities that match name
      * Fires delegate when finished.
     */
-    virtual void GetUserIdentities(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
+    virtual void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
     /**
      * Flush all counters. Requires at least one tick to actually flush.

@@ -127,7 +127,9 @@ public:
     bool RemoveFriend(int32 friendID, const FDriftRemoveFriendDelegate& delegate) override;
     void LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& delegate) override;
 
-    void GetUserIdentities(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
+    void GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUserIdentitiesDelegate& delegate) override;
+    void GetUserIdentitiesByName(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) override;
+    void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
 
     bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
 
@@ -314,6 +316,8 @@ private:
 	void InternalSavePlayerGameState(const FString& name, const FString& state, const FString& url, const FDriftGameStateSavedDelegate& delegate);
 
     void LoadPlayerGameStateInfos(TFunction<void(bool)> next);
+
+    void InternalGetUserIdentities(const FString& url, const FDriftGetUserIdentitiesDelegate& delegate);
 
     void JoinMatchQueueImpl(const FString& ref, const FString& placement, const FString& token, const FDriftJoinedMatchQueueDelegate& delegate);
 

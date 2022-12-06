@@ -4481,11 +4481,29 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
     });
 }
 
-void FDriftBase::GetUserIdentities(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate)
+void FDriftBase::GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUserIdentitiesDelegate& delegate)
 {
-    if (state_ != DriftSessionState::Connected)
+    if (driftEndpoints.user_identities.IsEmpty())
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities without being connected"));
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities with no endpoint"));
+
+        delegate.ExecuteIfBound(false, {});
+        return;
+    }
+
+    DRIFT_LOG(Base, Log, TEXT("Getting get user identities for player id: '%d'"), PlayerId);
+
+    auto url = driftEndpoints.user_identities + TEXT("?player_id=") + FString::FromInt(PlayerId);
+
+    InternalGetUserIdentities(url, delegate);
+}
+
+void FDriftBase::GetUserIdentitiesByName(const TArray<FString>& namesArray,
+    const FDriftGetUserIdentitiesDelegate& delegate)
+{
+    if (namesArray.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities with empty names array"));
         delegate.ExecuteIfBound(false, {});
         return;
     }
@@ -4498,9 +4516,28 @@ void FDriftBase::GetUserIdentities(const FString& name, const FDriftGetUserIdent
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("Getting get user identities '%s'"), *name);
+    DRIFT_LOG(Base, Log, TEXT("Getting get user identities for names: '%s'"), *FString::Join(namesArray, TEXT(", ")));
 
-    const auto url = driftEndpoints.user_identities + TEXT("?name=") + name;
+    auto url = driftEndpoints.user_identities + TEXT("?name=") + FString::Join(namesArray, TEXT("&name="));
+
+    InternalGetUserIdentities(url, delegate);
+}
+
+void FDriftBase::GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate)
+{
+    TArray<FString> namesArray;
+    namesArray.Add(name);
+    GetUserIdentitiesByName(namesArray, delegate);
+}
+
+void FDriftBase::InternalGetUserIdentities(const FString& url, const FDriftGetUserIdentitiesDelegate& delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities without being connected"));
+        delegate.ExecuteIfBound(false, {});
+        return;
+    }
 
     const auto Request = GetGameRequestManager()->Get(url);
     Request->OnResponse.BindLambda([this, delegate](ResponseContext& Context, JsonDocument& Doc)
@@ -4514,11 +4551,11 @@ void FDriftBase::GetUserIdentities(const FString& name, const FDriftGetUserIdent
 
         delegate.ExecuteIfBound(true, Response);
     });
-    Request->OnError.BindLambda([this, name, delegate](ResponseContext& Context)
+    Request->OnError.BindLambda([this, url, delegate](ResponseContext& Context)
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("Failed to get user identites: %s. Error: '%s'"), *name, *Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get user identites from url: %s. Error: '%s'"), *url, *Error);
 
         delegate.ExecuteIfBound(false, {});
     });
