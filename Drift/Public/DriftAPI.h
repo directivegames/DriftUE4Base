@@ -916,7 +916,7 @@ public:
      * Get user-identities that match any name in names array
      * Fires delegate when finished.
     */
-    virtual void GetUserIdentitiesByName(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
+    virtual void GetUserIdentitiesByNames(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
     /**
      * Get user-identities that match name

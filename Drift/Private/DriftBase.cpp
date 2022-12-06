@@ -4498,7 +4498,7 @@ void FDriftBase::GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUser
     InternalGetUserIdentities(url, delegate);
 }
 
-void FDriftBase::GetUserIdentitiesByName(const TArray<FString>& namesArray,
+void FDriftBase::GetUserIdentitiesByNames(const TArray<FString>& namesArray,
     const FDriftGetUserIdentitiesDelegate& delegate)
 {
     if (namesArray.IsEmpty())
@@ -4527,7 +4527,7 @@ void FDriftBase::GetUserIdentitiesByName(const FString& name, const FDriftGetUse
 {
     TArray<FString> namesArray;
     namesArray.Add(name);
-    GetUserIdentitiesByName(namesArray, delegate);
+    GetUserIdentitiesByNames(namesArray, delegate);
 }
 
 void FDriftBase::InternalGetUserIdentities(const FString& url, const FDriftGetUserIdentitiesDelegate& delegate)
