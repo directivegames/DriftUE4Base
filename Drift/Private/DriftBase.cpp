@@ -873,9 +873,19 @@ void FDriftBase::InternalLoadPlayerGameState(const FString& name, const FString&
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("Failed to load game state: %s. Error: '%s'"), *name, *Error);
 
-        const auto Result = Context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound) ? ELoadPlayerGameStateResult::Error_NotFound : ELoadPlayerGameStateResult::Error_Failed;
+        const bool bErrorNotFound = Context.responseCode == static_cast<int32>(HttpStatusCodes::NotFound);
+
+        if (bErrorNotFound)
+        {
+            DRIFT_LOG(Base, Verbose, TEXT("game state: %s not found. Error: '%s'"), *name, *Error);
+        }
+        else
+        {
+            DRIFT_LOG(Base, Error, TEXT("Failed to load game state: %s. Error: '%s'"), *name, *Error);
+        }
+
+        const auto Result = bErrorNotFound ? ELoadPlayerGameStateResult::Error_NotFound : ELoadPlayerGameStateResult::Error_Failed;
 
         delegate.ExecuteIfBound(Result, name, {});
         onPlayerGameStateLoaded.Broadcast(Result, name, {});
