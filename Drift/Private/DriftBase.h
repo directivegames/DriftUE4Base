@@ -81,6 +81,7 @@ public:
     EDriftConnectionState GetConnectionState() const override;
     FString GetPlayerName() override;
     int32 GetPlayerID() override;
+    FString GetPlayerUUID() override;
     void SetPlayerName(const FString& name) override;
     FString GetAuthProviderName() const override;
     void AddPlayerIdentity(const FString& authProvider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate) override;

@@ -2625,6 +2625,9 @@ void FDriftBase::GetUserInfo()
             return;
         }
 
+        const auto PlayerUuid = currentUser.FindField(TEXT("player_uuid"));
+        myPlayer.player_uuid = PlayerUuid.ToString();
+
         RegisterClient();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
@@ -2809,6 +2812,12 @@ FString FDriftBase::GetPlayerName()
 int32 FDriftBase::GetPlayerID()
 {
     return myPlayer.player_id;
+}
+
+
+FString FDriftBase::GetPlayerUUID()
+{
+    return myPlayer.player_uuid;
 }
 
 
