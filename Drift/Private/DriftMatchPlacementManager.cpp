@@ -349,7 +349,7 @@ void FDriftMatchPlacementManager::ResetCurrentMatchPlacement()
 	CurrentMatchPlacementId.Empty();
 	CurrentMatchPlacementURL.Empty();
 
-	UE_LOG(LogDriftMatchPlacement, Verbose, TEXT("Current match placement state reset"));
+	UE_LOG(LogDriftMatchPlacement, Log, TEXT("Current match placement state reset"));
 }
 
 bool FDriftMatchPlacementManager::GetResponseError(const ResponseContext& Context, FString& Error)
