@@ -159,6 +159,7 @@ struct FDriftPlayerResponse
 	int32 player_id = 0;
 	int32 num_logons = 0;
 	int32 user_id = 0;
+    FString player_uuid;
 
 	FString player_name;
 	FString player_url;

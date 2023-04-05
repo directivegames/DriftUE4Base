@@ -701,6 +701,11 @@ public:
     virtual int32 GetPlayerID() = 0;
 
     /**
+    * Return the currently authenticated player's ID, or 0 if not authenticated.
+    */
+    virtual FString GetPlayerUUID() = 0;
+
+    /**
      * Set the currently authenticated player's name.
      * Fires OnPlayerNameSet() when finished.
      */
