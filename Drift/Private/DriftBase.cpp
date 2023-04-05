@@ -2625,8 +2625,11 @@ void FDriftBase::GetUserInfo()
             return;
         }
 
-        const auto PlayerUuid = currentUser.FindField(TEXT("player_uuid"));
-        myPlayer.player_uuid = PlayerUuid.ToString();
+        const JsonValue PlayerUuid = currentUser.FindField(TEXT("player_uuid"));
+        if (PlayerUuid.IsString())
+        {
+            myPlayer.player_uuid = PlayerUuid.ToString();
+        }
 
         RegisterClient();
     });
