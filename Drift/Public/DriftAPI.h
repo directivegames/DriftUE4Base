@@ -1187,22 +1187,6 @@ struct FGetActiveMatchesResponse
 };
 
 
-struct FAddPlayerResponse
-{
-    int32 player_id;
-    int32 team_id;
-
-    bool Serialize(class SerializationContext& context);
-};
-
-
-struct FGetMatchesResponse
-{
-    TArray<FGetMatchesResponseItem> matches;
-
-    bool Serialize(class SerializationContext& context);
-};
-
 struct FMessageQueueEntry
 {
     int32 exchange_id;
