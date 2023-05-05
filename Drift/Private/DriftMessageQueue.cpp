@@ -241,15 +241,3 @@ FDriftMessageQueueDelegate& FDriftMessageQueue::OnMessageQueueMessage(const FStr
 }
 
 
-bool FMessageQueueEntry::Serialize(SerializationContext& context)
-{
-    return SERIALIZE_PROPERTY(context, exchange_id)
-        && SERIALIZE_PROPERTY(context, sender_id)
-        && SERIALIZE_PROPERTY(context, message_number)
-        && SERIALIZE_PROPERTY(context, message_id)
-        && SERIALIZE_PROPERTY(context, exchange)
-        && SERIALIZE_PROPERTY(context, queue)
-        && SERIALIZE_PROPERTY(context, timestamp)
-        && SERIALIZE_PROPERTY(context, expires)
-        && SERIALIZE_PROPERTY(context, payload);
-}

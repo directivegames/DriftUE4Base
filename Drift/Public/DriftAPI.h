@@ -1203,3 +1203,56 @@ struct FGetMatchesResponse
     bool Serialize(class SerializationContext& context);
 };
 
+struct FMessageQueueEntry
+{
+    int32 exchange_id;
+    // The sending player
+    int32 sender_id;
+    // Always incrementing message ID
+    int32 message_number;
+
+    FString message_id;
+    FString exchange;
+    // The queue name
+    FString queue;
+
+    // Time when message was sent
+    FDateTime timestamp;
+    // Time when message expires
+    FDateTime expires;
+
+    // The actual message content
+    JsonValue payload{ rapidjson::kObjectType };
+
+    FMessageQueueEntry()
+    {
+    }
+
+    FMessageQueueEntry(const FMessageQueueEntry& other)
+        : exchange_id(other.exchange_id)
+        , sender_id(other.sender_id)
+        , message_number(other.message_number)
+        , message_id(other.message_id)
+        , exchange(other.exchange)
+        , queue(other.queue)
+        , timestamp(other.timestamp)
+        , expires(other.expires)
+    {
+        payload.CopyFrom(other.payload);
+    }
+
+    FMessageQueueEntry(FMessageQueueEntry&& other)
+        : exchange_id(MoveTemp(other.exchange_id))
+        , sender_id(MoveTemp(other.sender_id))
+        , message_number(MoveTemp(other.message_number))
+        , message_id(MoveTemp(other.message_id))
+        , exchange(MoveTemp(other.exchange))
+        , queue(MoveTemp(other.queue))
+        , timestamp(MoveTemp(other.timestamp))
+        , expires(MoveTemp(other.expires))
+    {
+        payload = MoveTemp(other.payload);
+    }
+
+    bool Serialize(SerializationContext& context);
+};
