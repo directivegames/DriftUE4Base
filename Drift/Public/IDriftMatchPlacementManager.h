@@ -36,6 +36,7 @@ struct FDriftMatchPlacementProperties
 	TOptional<FString> Identifier;
 	TOptional<int32> MaxPlayers;
 	TOptional<FString> CustomData;
+    TOptional<bool> IsPublic;
 
 	FString ToString() const
 	{
@@ -56,12 +57,32 @@ struct FDriftMatchPlacementProperties
 			Ret += FString::Printf(TEXT(" | Custom data: '%s'"), *CustomData.GetValue());
 		}
 
+	    if (IsPublic.IsSet() && IsPublic.GetValue())
+	    {
+	        Ret += FString::Printf(TEXT(" | A public match"));
+	    }
+
 		return Ret;
 	}
 };
 
+
+struct FPlayerSessionInfo
+{
+    FString PlayerSessionId;
+    FString IpAddress;
+    FString Port;
+
+    FString ToString() const
+    {
+        return FString::Printf(TEXT("PlayerSessionInfo: %s | IpAddress: %s | Port: %s"), *PlayerSessionId, *IpAddress, *Port);
+    }
+};
+
+
 DECLARE_DELEGATE_ThreeParams(FQueryMatchPlacementCompletedDelegate, bool /* bSuccess */, const FString& /* MatchPlacementId */, const FString& /* ErrorMessage */);
 DECLARE_DELEGATE_ThreeParams(FCreateMatchPlacementCompletedDelegate, bool /* bSuccess */, const FString& /* MatchPlacementId */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FJoinMatchPlacementCompletedDelegate, bool /* bSuccess */, const FPlayerSessionInfo& /* SessionInfo */, const FString& /* ErrorMessage */);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMatchPlacementStatusChangedDelegate, const FString& /* MatchPlacementId */, EDriftMatchPlacementStatus /* Status */);
 
@@ -76,6 +97,9 @@ public:
 
 	/* Create a new match placement */
 	virtual bool CreateMatchPlacement(FDriftMatchPlacementProperties MatchPlacementProperties, FCreateMatchPlacementCompletedDelegate Delegate) = 0;
+
+	/* Add current player to a given match placement */
+	virtual bool JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) = 0;
 
 	/* Raised when the match placement status changes */
 	virtual FOnMatchPlacementStatusChangedDelegate& OnMatchPlacementStatusChanged() = 0;

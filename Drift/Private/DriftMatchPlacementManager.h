@@ -101,6 +101,7 @@ public:
     TSharedPtr<IDriftMatchPlacement> GetCachedMatchPlacement() const override { return CurrentMatchPlacement; }
     bool QueryMatchPlacement(FQueryMatchPlacementCompletedDelegate Delegate) override;
     bool CreateMatchPlacement(FDriftMatchPlacementProperties MatchPlacementProperties, FCreateMatchPlacementCompletedDelegate Delegate) override;
+    bool JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) override;
 
     FOnMatchPlacementStatusChangedDelegate& OnMatchPlacementStatusChanged() override { return OnMatchPlacementStatusChangedDelegate; }
 
