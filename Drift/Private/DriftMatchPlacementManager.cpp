@@ -180,6 +180,11 @@ bool FDriftMatchPlacementManager::CreateMatchPlacement(FDriftMatchPlacementPrope
 		JsonArchive::AddMember(Payload, TEXT("custom_data"), MatchPlacementProperties.CustomData.GetValue());
 	}
 
+	if (MatchPlacementProperties.IsPublic.IsSet() && MatchPlacementProperties.IsPublic.GetValue())
+	{
+		JsonArchive::AddMember(Payload, TEXT("is_public"), true);
+	}
+
 	const auto Request = RequestManager->Post(MatchPlacementsURL, Payload);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{
@@ -206,6 +211,48 @@ bool FDriftMatchPlacementManager::CreateMatchPlacement(FDriftMatchPlacementPrope
 	});
 
 	return Request->Dispatch();
+}
+
+bool FDriftMatchPlacementManager::JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate)
+{
+    // A bit of a hack to support public match placements
+    if (!HasSession())
+    {
+        UE_LOG(LogDriftMatchPlacement, Error, TEXT("Trying to join a match placement without a session"));
+        (void)Delegate.ExecuteIfBound(false, {}, "No backend connection");
+        return false;
+    }
+    if (MatchPlacementID.IsEmpty())
+    {
+        UE_LOG(LogDriftMatchPlacement, Error, TEXT("PlacementID is empty"));
+        (void)Delegate.ExecuteIfBound(false, {}, "Missing PlacementID");
+        return false;
+    }
+    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Joining match placement '%s'"), *MatchPlacementID);
+
+    FString URL = MatchPlacementsURL;
+    if( !URL.EndsWith("/"))
+        URL += "/";
+    URL +=  MatchPlacementID;
+    const auto Request = RequestManager->Post(MatchPlacementsURL, JsonValue{rapidjson::kObjectType});
+    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement joined"));
+        const auto JsonObject = Doc.GetInternalValue()->AsObject();
+        FPlayerSessionInfo SessionInfo;
+        SessionInfo.Port = JsonObject->GetStringField("Port");
+        SessionInfo.IpAddress = JsonObject->GetStringField("IpAddress");
+        SessionInfo.PlayerSessionId = JsonObject->GetStringField("PlayerSessionId");
+        (void)Delegate.ExecuteIfBound(true, SessionInfo, "");
+    });
+    Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+    {
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        (void)Delegate.ExecuteIfBound(false, {}, Error);
+    });
+
+    return Request->Dispatch();
 }
 
 void FDriftMatchPlacementManager::HandleMatchPlacementEvent(const FMessageQueueEntry& Message)
