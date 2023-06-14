@@ -108,6 +108,8 @@ public:
 private:
 	void InitializeLocalState();
 
+    bool GetPlacement(const FString& MatchPlacementId, FQueryMatchPlacementCompletedDelegate Delegate);
+
 	void HandleMatchPlacementEvent(const FMessageQueueEntry& Message);
 
     static EDriftMatchPlacementStatus ParseEvent(const FString& EventName);

@@ -92,6 +92,50 @@ void FDriftMatchPlacementManager::InitializeLocalState()
 	Request->Dispatch();
 }
 
+bool FDriftMatchPlacementManager::GetPlacement(const FString& MatchPlacementId,
+    FQueryMatchPlacementCompletedDelegate Delegate)
+{
+    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Fetching info on match placement '%s'"), *MatchPlacementId);
+    FString URL = MatchPlacementsURL;
+    if( !URL.EndsWith("/"))
+        URL += "/";
+    URL +=  MatchPlacementId;
+    const auto Request = RequestManager->Get(URL);
+    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        UE_LOG(LogDriftMatchPlacement, Log, TEXT("Git match placement info"));
+        ResetCurrentMatchPlacement();
+
+        const auto Response = Doc.GetObject();
+        FDriftMatchPlacementResponse MatchPlacementResponse;
+        if (!MatchPlacementResponse.FromJson(Doc.GetInternalValue()->AsObject()))
+        {
+            UE_LOG(LogDriftMatchPlacement, Error, TEXT("Failed to serialize get match placement response"));
+            return;
+        }
+
+        // Only react to pending/issued match placements for now
+        const auto Status = ParseStatus(MatchPlacementResponse.Status);
+        if (Status == EDriftMatchPlacementStatus::Issued || Status == EDriftMatchPlacementStatus::Fulfilled)
+        {
+            UE_LOG(LogDriftMatchPlacement, Log, TEXT("Caching match placement '%s'"), *MatchPlacementResponse.PlacementId);
+            CacheMatchPlacement(MatchPlacementResponse);
+            (void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
+            return;
+        }
+        UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
+
+        (void)Delegate.ExecuteIfBound(false, {}, FString::Printf(TEXT("Match placement '%s' not in a usable state"), *MatchPlacementResponse.PlacementId));
+    });
+    Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+    {
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        (void)Delegate.ExecuteIfBound(false, {}, Error);
+    });
+    return Request->Dispatch();
+}
+
 bool FDriftMatchPlacementManager::QueryMatchPlacement(FQueryMatchPlacementCompletedDelegate Delegate)
 {
 	if (!HasSession())
@@ -228,13 +272,36 @@ bool FDriftMatchPlacementManager::JoinMatchPlacement(const FString& MatchPlaceme
         (void)Delegate.ExecuteIfBound(false, {}, "Missing PlacementID");
         return false;
     }
+
+    if (CurrentMatchPlacementId.IsEmpty())
+        // non-obvious; if you have started your own placement and you're erronously attempting to 'join' it, this will
+        // not be empty and we will not attempt to fetch it again. 'Joining' it is basically a no op for the server.
+        // If you're trying to join a placement that you have not started, this will be empty and we will attempt to
+        // fetch and cache it before recursing into this function again.
+    {
+        const auto GetDelegate = FQueryMatchPlacementCompletedDelegate::CreateLambda([this, Delegate]
+            (bool bSuccess, const FString& MatchPlacementId, const FString& ErrorMessage)
+        {
+            if (bSuccess)
+            {
+                JoinMatchPlacement(MatchPlacementId, Delegate);
+            }
+            else
+            {
+                UE_LOG(LogDriftMatchPlacement, Log, TEXT("Fetching match placement '%s' failed. Can't join"), *MatchPlacementId);
+                (void)Delegate.ExecuteIfBound(false, {}, ErrorMessage);
+            }
+        });
+        return GetPlacement(MatchPlacementID, GetDelegate);
+    }
+
     UE_LOG(LogDriftMatchPlacement, Log, TEXT("Joining match placement '%s'"), *MatchPlacementID);
 
     FString URL = MatchPlacementsURL;
     if( !URL.EndsWith("/"))
         URL += "/";
     URL +=  MatchPlacementID;
-    const auto Request = RequestManager->Post(MatchPlacementsURL, JsonValue{rapidjson::kObjectType});
+    const auto Request = RequestManager->Post(URL, JsonValue{rapidjson::kObjectType});
     Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
     {
         UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement joined"));
@@ -245,10 +312,11 @@ bool FDriftMatchPlacementManager::JoinMatchPlacement(const FString& MatchPlaceme
         SessionInfo.PlayerSessionId = JsonObject->GetStringField("PlayerSessionId");
         (void)Delegate.ExecuteIfBound(true, SessionInfo, "");
     });
-    Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+    Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
+        ResetCurrentMatchPlacement();
         (void)Delegate.ExecuteIfBound(false, {}, Error);
     });
 
