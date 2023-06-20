@@ -1155,10 +1155,9 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
     auto factories = IModularFeatures::Get().GetModularFeatureImplementations<IDriftAuthProviderFactory>(TEXT("DriftAuthProviderFactory"));
 
 #if WITH_EDITOR
-	const auto bIsPIE = GIsEditor && !IsRunningGame();
 	bool bEnableExternalAuthInPIE = false;
 	GConfig->GetBool(*settingsSection_, TEXT("bEnableExternalAuthInPIE"), bEnableExternalAuthInPIE, GGameIni);
-	if (!bEnableExternalAuthInPIE)
+	if (GIsEditor && !bEnableExternalAuthInPIE)
 	{
 		DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
 
@@ -1171,7 +1170,7 @@ TUniquePtr<IDriftAuthProvider> FDriftBase::MakeAuthProvider(const FString& crede
         if (credentialType.Compare(factory->GetAuthProviderName().ToString(), ESearchCase::IgnoreCase) == 0)
         {
 #if WITH_EDITOR
-        	if (bIsPIE && !factory->IsSupportedInPIE())
+        	if (GIsEditor && !factory->IsSupportedInPIE())
         	{
 	            DRIFT_LOG(Base, Warning, TEXT("Bypassing external authentication when running in editor."));
 
