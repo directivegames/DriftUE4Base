@@ -33,7 +33,12 @@ public:
     FString GetHeader(const FString& HeaderName) IS_CONST  override;
     TArray<FString> GetAllHeaders() IS_CONST  override;
     FString GetContentType() IS_CONST  override;
+
+#if UE_VERSION_OLDER_THAN(5, 3, 0)
     int32 GetContentLength() IS_CONST  override;
+#else
+    uint64 GetContentLength() IS_CONST  override;
+#endif
     const TArray<uint8>& GetContent() IS_CONST  override;
 
     // IHttpResponse API

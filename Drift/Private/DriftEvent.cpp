@@ -50,6 +50,11 @@ public:
         InternalAdd(name, value);
     }
 
+    void Add(const FString& name, uint64 value) override
+    {
+        InternalAdd(name, value);
+    }
+
     void Add(const FString& name, long long value) override
     {
         InternalAdd(name, value);

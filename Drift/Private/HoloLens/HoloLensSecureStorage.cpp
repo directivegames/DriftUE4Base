@@ -12,9 +12,8 @@
 
 #include "HoloLensSecureStorage.h"
 
-#include "HoloLens/AllowWindowsPlatformTypes.h"
-
 #if PLATFORM_HOLOLENS
+#include "HoloLens/AllowWindowsPlatformTypes.h"
 
 HoloLensSecureStorage::HoloLensSecureStorage(const FString& productName, const FString& serviceName)
 : productName_{ productName }
@@ -68,6 +67,6 @@ bool HoloLensSecureStorage::GetValue(const FString& key, FString& value)
     return false;
 }
 
-#endif // PLATFORM_WINDOWS
-
 #include "HoloLens/HideWindowsPlatformTypes.h"
+
+#endif // PLATFORM_WINDOWS

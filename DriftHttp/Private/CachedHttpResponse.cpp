@@ -61,7 +61,11 @@ FString CachedHttpResponse::GetContentType() IS_CONST
 }
 
 
+#if UE_VERSION_OLDER_THAN(5, 3, 0)
 int32 CachedHttpResponse::GetContentLength() IS_CONST
+#else
+uint64 CachedHttpResponse::GetContentLength() IS_CONST
+#endif
 {
     return payload.Num();
 }
