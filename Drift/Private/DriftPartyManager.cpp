@@ -6,7 +6,7 @@
 #include "ErrorResponse.h"
 #include "JsonUtils.h"
 #include "Details/UrlHelper.h"
-#include "Json/Public/Serialization/JsonSerializerMacros.h"
+#include "Serialization/JsonSerializerMacros.h"
 
 
 DEFINE_LOG_CATEGORY(LogDriftParties);
