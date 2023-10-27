@@ -99,9 +99,12 @@ public:
 
 	// IDriftMatchPlacementManager overrides
     TSharedPtr<IDriftMatchPlacement> GetCachedMatchPlacement() const override { return CurrentMatchPlacement; }
+    TArray< TSharedPtr<IDriftMatchPlacement> >& GetCachedPublicMatchPlacements() override { return PublicMatchPlacements; }
+
     bool QueryMatchPlacement(FQueryMatchPlacementCompletedDelegate Delegate) override;
     bool CreateMatchPlacement(FDriftMatchPlacementProperties MatchPlacementProperties, FCreateMatchPlacementCompletedDelegate Delegate) override;
     bool JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) override;
+    bool FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate) override;
 
     FOnMatchPlacementStatusChangedDelegate& OnMatchPlacementStatusChanged() override { return OnMatchPlacementStatusChangedDelegate; }
 
@@ -127,10 +130,12 @@ private:
 	TSharedPtr<IDriftMessageQueue> MessageQueue;
 
 	FString MatchPlacementsURL;
+    FString PublicPlacementsURL;
 	FString CurrentMatchPlacementURL;
 	int32 PlayerId = INDEX_NONE;
 
 	TSharedPtr<FDriftMatchPlacement> CurrentMatchPlacement;
+    TArray< TSharedPtr<IDriftMatchPlacement> > PublicMatchPlacements;
 	FString CurrentMatchPlacementId;
 
 	FOnMatchPlacementStatusChangedDelegate OnMatchPlacementStatusChangedDelegate;

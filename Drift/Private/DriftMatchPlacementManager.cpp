@@ -30,6 +30,7 @@ void FDriftMatchPlacementManager::ConfigureSession(const FDriftEndpointsResponse
 	PlayerId = InPlayerId;
 
 	MatchPlacementsURL = DriftEndpoints.match_placements;
+    PublicPlacementsURL = DriftEndpoints.public_match_placements;
 
 	if (HasSession())
 	{
@@ -318,6 +319,77 @@ bool FDriftMatchPlacementManager::JoinMatchPlacement(const FString& MatchPlaceme
         Context.errorHandled = GetResponseError(Context, Error);
         ResetCurrentMatchPlacement();
         (void)Delegate.ExecuteIfBound(false, {}, Error);
+    });
+
+    return Request->Dispatch();
+}
+
+bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate)
+{
+    if (!HasSession())
+    {
+        UE_LOG(LogDriftMatchPlacement, Error, TEXT("Trying to query public match placements without a session"));
+        (void)Delegate.ExecuteIfBound(false, 0, "No backend connection");
+        return false;
+    }
+
+    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Querying for public match placements"));
+
+    const auto Request = RequestManager->Get(PublicPlacementsURL);
+    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        UE_LOG(LogDriftMatchPlacement, Verbose, TEXT("FetchPublicMatchPlacements response:'n'%s'"), *Doc.ToString());
+
+        PublicMatchPlacements.Empty();
+
+        const TArray<TSharedPtr<FJsonValue>> *PlacementsJson = nullptr;
+        if (Doc.GetInternalValue()->TryGetArray(PlacementsJson))
+        {
+            for (const auto& PlacementJson : *PlacementsJson)
+            {
+                FDriftMatchPlacementResponse MatchPlacementResponse{};
+                if (!MatchPlacementResponse.FromJson(Doc.GetInternalValue()->AsObject()))
+                {
+                    UE_LOG(LogDriftMatchPlacement, Error, TEXT("Failed to serialize get match placement response"));
+                    return;
+                }
+
+                // Only react to Fulfilled as we use these for joining existing games
+                const auto Status = ParseStatus(MatchPlacementResponse.Status);
+                if (Status == EDriftMatchPlacementStatus::Fulfilled)
+                {
+                    TSharedPtr<FDriftMatchPlacement> PublicMatchPlacement = MakeShared<FDriftMatchPlacement>(
+                        CurrentMatchPlacementId,
+                        MatchPlacementResponse.MapName,
+                        MatchPlacementResponse.PlayerId,
+                        MatchPlacementResponse.MaxPlayers,
+                        ParseStatus(MatchPlacementResponse.Status),
+                        MatchPlacementResponse.CustomData,
+                        CurrentMatchPlacementURL
+                    );
+                    /*
+                    if (!MatchPlacementResponse.ConnectionString.IsEmpty())
+                    {
+                        PublicMatchPlacement.Get()->ConnectionString = MatchPlacementResponse.ConnectionString;
+                        PublicMatchPlacement.Get()->ConnectionOptions = MatchPlacementResponse.ConnectionOptions.IsEmpty() ? "SpectatorOnly=1" : MatchPlacementResponse.ConnectionOptions;
+                    }
+                    */
+
+                    PublicMatchPlacements.Add(PublicMatchPlacement);
+                }
+
+                UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
+            }
+            (void)Delegate.ExecuteIfBound(true, PlacementsJson->Num(), "");
+        }
+        (void)Delegate.ExecuteIfBound(true, 0, "");
+
+    });
+    Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+    {
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        (void)Delegate.ExecuteIfBound(false, 0, Error);
     });
 
     return Request->Dispatch();

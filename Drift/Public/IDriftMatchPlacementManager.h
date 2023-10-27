@@ -83,6 +83,7 @@ struct FPlayerSessionInfo
 DECLARE_DELEGATE_ThreeParams(FQueryMatchPlacementCompletedDelegate, bool /* bSuccess */, const FString& /* MatchPlacementId */, const FString& /* ErrorMessage */);
 DECLARE_DELEGATE_ThreeParams(FCreateMatchPlacementCompletedDelegate, bool /* bSuccess */, const FString& /* MatchPlacementId */, const FString& /* ErrorMessage */);
 DECLARE_DELEGATE_ThreeParams(FJoinMatchPlacementCompletedDelegate, bool /* bSuccess */, const FPlayerSessionInfo& /* SessionInfo */, const FString& /* ErrorMessage */);
+DECLARE_DELEGATE_ThreeParams(FFetchPublicMatchPlacementsCompletedDelegate, bool /* bSuccess */, int32 /* Num of public placements fetched */, const FString& /* ErrorMessage */);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMatchPlacementStatusChangedDelegate, const FString& /* MatchPlacementId */, EDriftMatchPlacementStatus /* Status */);
 
@@ -100,6 +101,12 @@ public:
 
 	/* Add current player to a given match placement */
 	virtual bool JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) = 0;
+
+    /* Get available public match placement ids and cache them */
+    virtual bool FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate) = 0;
+
+    /* Get cached match placements */
+    virtual TArray< TSharedPtr<IDriftMatchPlacement> >& GetCachedPublicMatchPlacements() = 0;
 
 	/* Raised when the match placement status changes */
 	virtual FOnMatchPlacementStatusChangedDelegate& OnMatchPlacementStatusChanged() = 0;

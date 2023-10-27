@@ -49,6 +49,7 @@ struct FDriftEndpointsResponse
 	FString party_invites;
 	FString lobbies;
 	FString match_placements;
+    FString public_match_placements;
 
 	// Templates
 	FString template_lobby_member;
