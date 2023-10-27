@@ -52,7 +52,7 @@ FString JsonValue::ToString() const
 		FString JsonString;
 		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 		FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
-		return MoveTemp(JsonString);
+		return JsonString;
 	}
 	if (IsArray())
 	{
@@ -60,7 +60,7 @@ FString JsonValue::ToString() const
 		FString JsonString;
 		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 		FJsonSerializer::Serialize(JsonArray, Writer);
-		return MoveTemp(JsonString);
+		return JsonString;
 	}
 	
 	return GetString();
@@ -205,7 +205,7 @@ TArray<JsonValue> JsonValue::GetArray() const
 		{
 			ValueArray.Add(JsonValue(Element));
 		}
-		return MoveTemp(ValueArray);
+		return ValueArray;
 	}
 	
 	return {};
@@ -343,7 +343,7 @@ TMap<FString, JsonValue> JsonValue::GetObject() const
 		}
 	}
 	
-	return MoveTemp(Values);
+	return Values;
 }
 
 int JsonValue::MemberCount() const
