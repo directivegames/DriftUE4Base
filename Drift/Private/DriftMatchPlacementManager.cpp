@@ -348,7 +348,7 @@ bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPl
             for (const auto& PlacementJson : *PlacementsJson)
             {
                 FDriftMatchPlacementResponse MatchPlacementResponse{};
-                if (!MatchPlacementResponse.FromJson(Doc.GetInternalValue()->AsObject()))
+                if (!MatchPlacementResponse.FromJson(PlacementJson->AsObject()))
                 {
                     UE_LOG(LogDriftMatchPlacement, Error, TEXT("Failed to serialize get match placement response"));
                     return;
@@ -359,13 +359,13 @@ bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPl
                 if (Status == EDriftMatchPlacementStatus::Fulfilled)
                 {
                     TSharedPtr<FDriftMatchPlacement> PublicMatchPlacement = MakeShared<FDriftMatchPlacement>(
-                        CurrentMatchPlacementId,
+                        MatchPlacementResponse.PlacementId,
                         MatchPlacementResponse.MapName,
                         MatchPlacementResponse.PlayerId,
                         MatchPlacementResponse.MaxPlayers,
                         ParseStatus(MatchPlacementResponse.Status),
                         MatchPlacementResponse.CustomData,
-                        CurrentMatchPlacementURL
+                        MatchPlacementResponse.MatchPlacementURL
                     );
                     /*
                     if (!MatchPlacementResponse.ConnectionString.IsEmpty())
@@ -380,9 +380,8 @@ bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPl
 
                 UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
             }
-            (void)Delegate.ExecuteIfBound(true, PlacementsJson->Num(), "");
         }
-        (void)Delegate.ExecuteIfBound(true, 0, "");
+        (void)Delegate.ExecuteIfBound(true, PublicMatchPlacements.Num(), "");
 
     });
     Request->OnError.BindLambda([Delegate](ResponseContext& Context)
