@@ -366,9 +366,11 @@ FHttpResponsePtr FileHttpCache::MakeResponse(HttpCacheEntry& entry)
 TSharedPtr<IHttpCache> FileHttpCacheFactory::Create()
 {
     static TWeakPtr<IHttpCache> singleton;
-    if (!singleton.IsValid())
+    auto cache = singleton.Pin();
+    if (!cache.IsValid())
     {
-        singleton = TSharedPtr<IHttpCache>(MakeShareable(new FileHttpCache()));
+        cache = MakeShareable(new FileHttpCache());
+        singleton = cache;
     }
-    return singleton.Pin();
+    return cache;
 }
