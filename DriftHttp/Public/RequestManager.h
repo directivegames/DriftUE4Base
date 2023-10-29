@@ -54,6 +54,10 @@ public:
 	TSharedRef<HttpRequest> CreateRequest(HttpMethods method, const FString& url, const FString& payload
 	                                      , HttpStatusCodes expectedCode);
 
+    TSharedRef<HttpRequest> CreateRequest(HttpMethods method, const FString& url, const TArray<uint8>& payload);
+    TSharedRef<HttpRequest> CreateRequest(HttpMethods method, const FString& url, const TArray<uint8>& payload
+        , HttpStatusCodes expectedCode);
+
 	void SetDefaultRetries(int32 retries) { defaultRetries_ = retries; }
 
 

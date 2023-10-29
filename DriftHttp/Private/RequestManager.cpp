@@ -186,6 +186,21 @@ TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const 
 }
 
 
+TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const FString& url, const TArray<uint8>& payload)
+{
+    return CreateRequest(method, url, payload, HttpStatusCodes::Undefined);
+}
+
+
+TSharedRef<HttpRequest> RequestManager::CreateRequest(HttpMethods method, const FString& url, const TArray<uint8>& payload
+    , HttpStatusCodes expectedResponseCode)
+{
+    auto Request = CreateRequest(method, url, expectedResponseCode);
+    Request->SetContent(payload);
+    return Request;
+}
+
+
 void RequestManager::OnRequestFinished(TSharedRef<HttpRequest> request)
 {
 	check(IsInGameThread());
