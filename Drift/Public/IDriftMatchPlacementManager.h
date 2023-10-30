@@ -23,6 +23,7 @@ public:
     virtual FString GetCustomData() const = 0;
     virtual FString GetConnectionString() const = 0;
     virtual FString GetConnectionOptions() const = 0;
+    virtual TArray<int32>& GetPlayerIds() = 0;
 
     virtual FString ToString() const = 0;
 

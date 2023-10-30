@@ -35,6 +35,7 @@ struct FDriftMatchPlacement : IDriftMatchPlacement
     FString GetCustomData() const override { return CustomData; }
     FString GetConnectionString() const override { return ConnectionString; }
     FString GetConnectionOptions() const override { return ConnectionOptions; }
+    TArray<int32>& GetPlayerIds() override { return PlayerIds; }
 
     FString ToString() const override
 	{
@@ -48,6 +49,7 @@ struct FDriftMatchPlacement : IDriftMatchPlacement
 	int32 MaxPlayers = 0;
 	EDriftMatchPlacementStatus MatchPlacementStatus = EDriftMatchPlacementStatus::Unknown;
 	FString CustomData;
+    TArray<int32> PlayerIds;
 
 	FString MatchPlacementURL;
 

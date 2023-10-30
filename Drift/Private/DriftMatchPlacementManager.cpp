@@ -367,6 +367,18 @@ bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPl
                         MatchPlacementResponse.CustomData,
                         MatchPlacementResponse.MatchPlacementURL
                     );
+
+                    const TArray<TSharedPtr<FJsonValue>> *PlayerIdsJson = nullptr;
+                    if (PlacementJson->AsObject()->TryGetArrayField("player_ids", PlayerIdsJson))
+                    {
+                        for (auto& PlacementPlayerIdValue : *PlayerIdsJson)
+                        {
+                            int32 PlacementPlayerId = 0;
+                            PlacementPlayerIdValue->TryGetNumber(PlacementPlayerId);
+                            PublicMatchPlacement->PlayerIds.Add(PlacementPlayerId);
+                        }
+                    }
+
                     /*
                     if (!MatchPlacementResponse.ConnectionString.IsEmpty())
                     {
