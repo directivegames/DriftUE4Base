@@ -377,8 +377,10 @@ bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPl
 
                     PublicMatchPlacements.Add(PublicMatchPlacement);
                 }
-
-                UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
+                else
+                {
+                    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
+                }
             }
         }
         (void)Delegate.ExecuteIfBound(true, PublicMatchPlacements.Num(), "");
