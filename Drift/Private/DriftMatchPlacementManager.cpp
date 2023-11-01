@@ -368,6 +368,8 @@ bool FDriftMatchPlacementManager::RejoinMatchPlacement(const FString& MatchPlace
         return false;
     }
 
+    CurrentMatchPlacementId = MatchPlacementID;
+
     const auto ConnectionStringDelegate = FQueryMatchPlacementCompletedDelegate::CreateLambda([this, Delegate]
         (bool bSuccess, const FString& ConnectionStringMatchPlacementId, const FString& ErrorMessage)
     {
@@ -392,7 +394,7 @@ bool FDriftMatchPlacementManager::RejoinMatchPlacement(const FString& MatchPlace
                 }
             });
 
-            GetPlacement(ConnectionStringMatchPlacementId, GetDelegate);
+            GetPlacement(CurrentMatchPlacementId, GetDelegate);
         }
         else
         {
@@ -402,7 +404,7 @@ bool FDriftMatchPlacementManager::RejoinMatchPlacement(const FString& MatchPlace
             (void)Delegate.ExecuteIfBound(false, {}, ErrorMessage);
         }
     });
-    return GetConnectionString(MatchPlacementID, ConnectionStringDelegate);
+    return GetConnectionString(CurrentMatchPlacementId, ConnectionStringDelegate);
 }
 
 bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate)
