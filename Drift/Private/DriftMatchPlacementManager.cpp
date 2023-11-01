@@ -514,7 +514,7 @@ void FDriftMatchPlacementManager::HandleMatchPlacementEvent(const FMessageQueueE
 	const auto MatchPlacementId = EventData.FindField("placement_id").GetString();
 
 	// Verify that this event is relevant to us
-	if (MatchPlacementId != CurrentMatchPlacementId)
+	if (MatchPlacementId != CurrentMatchPlacementId || !CurrentMatchPlacement.IsValid())
 	{
 		UE_LOG(LogDriftMatchPlacement, Warning, TEXT("HandleMatchPlacementEvent - Cached match placement '%s' does not match the event match placement '%s'"), *CurrentMatchPlacementId, *MatchPlacementId);
         return;
