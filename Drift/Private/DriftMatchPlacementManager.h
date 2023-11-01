@@ -106,6 +106,7 @@ public:
     bool QueryMatchPlacement(FQueryMatchPlacementCompletedDelegate Delegate) override;
     bool CreateMatchPlacement(FDriftMatchPlacementProperties MatchPlacementProperties, FCreateMatchPlacementCompletedDelegate Delegate) override;
     bool JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) override;
+    bool RejoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) override;
     bool FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate) override;
 
     FOnMatchPlacementStatusChangedDelegate& OnMatchPlacementStatusChanged() override { return OnMatchPlacementStatusChangedDelegate; }
@@ -114,6 +115,7 @@ private:
 	void InitializeLocalState();
 
     bool GetPlacement(const FString& MatchPlacementId, FQueryMatchPlacementCompletedDelegate Delegate);
+    bool GetConnectionString(const FString& MatchPlacementId, FQueryMatchPlacementCompletedDelegate Delegate);
 
 	void HandleMatchPlacementEvent(const FMessageQueueEntry& Message);
 
@@ -134,6 +136,8 @@ private:
 	FString MatchPlacementsURL;
     FString PublicPlacementsURL;
 	FString CurrentMatchPlacementURL;
+    FString RejoinConnectionString;
+    FString RejoinConnectionOptions;;
 	int32 PlayerId = INDEX_NONE;
 
 	TSharedPtr<FDriftMatchPlacement> CurrentMatchPlacement;

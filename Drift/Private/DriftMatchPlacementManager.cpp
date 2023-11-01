@@ -104,7 +104,7 @@ bool FDriftMatchPlacementManager::GetPlacement(const FString& MatchPlacementId,
     const auto Request = RequestManager->Get(URL);
     Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
     {
-        UE_LOG(LogDriftMatchPlacement, Log, TEXT("Git match placement info"));
+        UE_LOG(LogDriftMatchPlacement, Log, TEXT("Got match placement info"));
         ResetCurrentMatchPlacement();
 
         const auto Response = Doc.GetObject();
@@ -127,6 +127,34 @@ bool FDriftMatchPlacementManager::GetPlacement(const FString& MatchPlacementId,
         UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement '%s' found, but the status is '%s'. Ignoring."), *MatchPlacementResponse.PlacementId, *MatchPlacementResponse.Status);
 
         (void)Delegate.ExecuteIfBound(false, {}, FString::Printf(TEXT("Match placement '%s' not in a usable state"), *MatchPlacementResponse.PlacementId));
+    });
+    Request->OnError.BindLambda([Delegate](ResponseContext& Context)
+    {
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        (void)Delegate.ExecuteIfBound(false, {}, Error);
+    });
+    return Request->Dispatch();
+}
+
+bool FDriftMatchPlacementManager::GetConnectionString(const FString& MatchPlacementId, FQueryMatchPlacementCompletedDelegate Delegate)
+{
+    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Fetching info on connection string '%s'"), *MatchPlacementId);
+    FString URL = MatchPlacementsURL;
+    if( !URL.EndsWith("/"))
+        URL += "/";
+    URL +=  MatchPlacementId;
+    JsonValue Payload{rapidjson::kObjectType};
+    const auto Request = RequestManager->Post(URL, Payload);
+    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        UE_LOG(LogDriftMatchPlacement, Log, TEXT("Got previous session info"));
+        const auto ResponseObject = Doc.GetInternalValue()->AsObject();
+
+        RejoinConnectionString = ResponseObject->GetStringField("IpAddress") + ":" + ResponseObject->GetStringField("Port");
+        RejoinConnectionOptions = "PlayerSessionId=" + ResponseObject->GetStringField("PlayerSessionId") + "?PlayerId=" + ResponseObject->GetStringField("PlayerId");
+
+        (void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
     });
     Request->OnError.BindLambda([Delegate](ResponseContext& Context)
     {
@@ -322,6 +350,59 @@ bool FDriftMatchPlacementManager::JoinMatchPlacement(const FString& MatchPlaceme
     });
 
     return Request->Dispatch();
+}
+
+bool FDriftMatchPlacementManager::RejoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate)
+{
+    // A bit of a hack to support public match placements
+    if (!HasSession())
+    {
+        UE_LOG(LogDriftMatchPlacement, Error, TEXT("Trying to join a match placement without a session"));
+        (void)Delegate.ExecuteIfBound(false, {}, "No backend connection");
+        return false;
+    }
+    if (MatchPlacementID.IsEmpty())
+    {
+        UE_LOG(LogDriftMatchPlacement, Error, TEXT("PlacementID is empty"));
+        (void)Delegate.ExecuteIfBound(false, {}, "Missing PlacementID");
+        return false;
+    }
+
+    const auto ConnectionStringDelegate = FQueryMatchPlacementCompletedDelegate::CreateLambda([this, Delegate]
+        (bool bSuccess, const FString& ConnectionStringMatchPlacementId, const FString& ErrorMessage)
+    {
+        if (bSuccess)
+        {
+            UE_LOG(LogDriftMatchPlacement, Log, TEXT("Got previous session connection info %s %s"), *RejoinConnectionString, *RejoinConnectionOptions);
+          // Could skip this part but lets keep internal state sane
+            const auto GetDelegate = FQueryMatchPlacementCompletedDelegate::CreateLambda([this, Delegate]
+                (bool bSuccess, const FString& GetMatchPlacementId, const FString& ErrorMessage)
+            {
+                RejoinConnectionOptions.Empty();
+                RejoinConnectionOptions.Empty();
+
+                if (bSuccess)
+                {
+                    (void)Delegate.ExecuteIfBound(true, {}, ErrorMessage);
+                }
+                else
+                {
+                    UE_LOG(LogDriftMatchPlacement, Log, TEXT("Rejoinig match placement '%s' failed. Can't join"), *GetMatchPlacementId);
+                    (void)Delegate.ExecuteIfBound(false, {}, ErrorMessage);
+                }
+            });
+
+            GetPlacement(ConnectionStringMatchPlacementId, GetDelegate);
+        }
+        else
+        {
+            RejoinConnectionOptions.Empty();
+            RejoinConnectionOptions.Empty();
+            UE_LOG(LogDriftMatchPlacement, Log, TEXT("Fetching match placement connection string '%s' failed. Can't join %s"), *ConnectionStringMatchPlacementId, *ErrorMessage);
+            (void)Delegate.ExecuteIfBound(false, {}, ErrorMessage);
+        }
+    });
+    return GetConnectionString(MatchPlacementID, ConnectionStringDelegate);
 }
 
 bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate)
@@ -536,6 +617,14 @@ void FDriftMatchPlacementManager::CacheMatchPlacement(const FDriftMatchPlacement
 		CurrentMatchPlacement->ConnectionString = MatchPlacementResponse.ConnectionString;
 		CurrentMatchPlacement->ConnectionOptions = MatchPlacementResponse.ConnectionOptions.IsEmpty() ? "SpectatorOnly=1" : MatchPlacementResponse.ConnectionOptions;
 	}
+    else
+    {
+        if (!RejoinConnectionOptions.IsEmpty() && !RejoinConnectionString.IsEmpty())
+        {
+            CurrentMatchPlacement->ConnectionString = RejoinConnectionString;
+            CurrentMatchPlacement->ConnectionOptions = RejoinConnectionOptions;
+        }
+    }
 
     UE_LOG(LogDriftMatchPlacement, Verbose, TEXT("Cached match placement '%s' from response '%s'"), *CurrentMatchPlacement->ToString(), *MatchPlacementResponse.ToString());
 

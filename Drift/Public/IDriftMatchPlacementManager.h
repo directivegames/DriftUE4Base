@@ -103,6 +103,9 @@ public:
 	/* Add current player to a given match placement */
 	virtual bool JoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) = 0;
 
+    /* Add current player to a given match placement */
+    virtual bool RejoinMatchPlacement(const FString& MatchPlacementID, FJoinMatchPlacementCompletedDelegate Delegate) = 0;
+
     /* Get available public match placement ids and cache them */
     virtual bool FetchPublicMatchPlacements(FFetchPublicMatchPlacementsCompletedDelegate Delegate) = 0;
 
