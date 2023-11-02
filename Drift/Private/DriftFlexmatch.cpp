@@ -597,6 +597,12 @@ void FDriftFlexmatch::InitializeLocalState()
 					// We're missing the acceptance status per player as that isn't currently stored in the ticket we just fetched.
 					// However, chances are the player will receive a proper event just a tad later which should correct
 					// the situation
+					if (!Response.Contains("MatchId"))
+					{   // Added this because of a crash.  MatchId should always be present in a ticket in this state though.
+					    UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::InitializeLocalState - Ticket in state '%s' doesn't contain 'MatchId'. Bailing."), *TicketStatus);
+					    UE_LOG(LogDriftMatchmaking, Error, TEXT("Ticket as received: %s"), *Doc.ToString());
+					    break;
+					}
 					const FString PotentialMatchId = Response["MatchId"].GetString();
 					constexpr int32 FakeTimeOut = 10;
 					TArray<FString> FakeTeams = {TEXT("Team 1"), TEXT("Team 2")};
