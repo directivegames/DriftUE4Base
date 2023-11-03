@@ -99,7 +99,7 @@ void FDriftLobbyManager::InitializeLocalState()
 	});
 	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
-		if (Context.response->GetResponseCode() == EHttpResponseCodes::NotFound)
+		if (Context.responseCode == EHttpResponseCodes::NotFound)
 		{
 			UE_LOG(LogDriftLobby, Log, TEXT("No existing lobby found"));
 			Context.errorHandled = true;

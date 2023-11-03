@@ -75,7 +75,7 @@ void FDriftMatchPlacementManager::InitializeLocalState()
 	});
 	Request->OnError.BindLambda([this](ResponseContext& Context)
 	{
-		if (Context.response->GetResponseCode() == EHttpResponseCodes::NotFound)
+		if (Context.responseCode == EHttpResponseCodes::NotFound)
 		{
 			UE_LOG(LogDriftMatchPlacement, Log, TEXT("No existing match placement found"));
 			Context.errorHandled = true;
