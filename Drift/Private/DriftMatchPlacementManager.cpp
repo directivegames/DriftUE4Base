@@ -152,7 +152,7 @@ bool FDriftMatchPlacementManager::GetConnectionString(const FString& MatchPlacem
         const auto ResponseObject = Doc.GetInternalValue()->AsObject();
 
         RejoinConnectionString = ResponseObject->GetStringField("IpAddress") + ":" + ResponseObject->GetStringField("Port");
-        RejoinConnectionOptions = "PlayerSessionId=" + ResponseObject->GetStringField("PlayerSessionId") + "?PlayerId=" + ResponseObject->GetStringField("PlayerId");
+        RejoinConnectionOptions = "PlayerSessionId=" + ResponseObject->GetStringField("PlayerSessionId") + "?PlayerId=" + FString::FromInt(PlayerId);
 
         (void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
     });
