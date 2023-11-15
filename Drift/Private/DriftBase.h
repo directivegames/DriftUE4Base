@@ -23,6 +23,7 @@
 #include "DriftFlexmatch.h"
 #include "DriftLobbyManager.h"
 #include "DriftMatchPlacementManager.h"
+#include "DriftSandboxManager.h"
 #include "LogForwarder.h"
 
 #include "Tickable.h"
@@ -206,6 +207,7 @@ public:
     TSharedPtr<IDriftMatchmaker> GetMatchmaker() override;
     TSharedPtr<IDriftLobbyManager> GetLobbyManager() override;
     TSharedPtr<IDriftMatchPlacementManager> GetMatchPlacementManager() override;
+    TSharedPtr<IDriftSandboxManager> GetSandboxManager() override;
     TSharedPtr<IDriftMessageQueue> GetMessageQueue() const override;
 
     int32 GetInstanceIndex() const override { return instanceIndex_; }
@@ -337,6 +339,7 @@ private:
     void CreateMatchmaker();
     void CreateLobbyManager();
     void CreateMatchPlacementManager();
+    void CreateSandboxManager();
 
     void CachePlayerInfo(int32 playerID);
 
@@ -438,6 +441,8 @@ private:
     TSharedPtr<FDriftLobbyManager> lobbyManager;
 
     TSharedPtr<FDriftMatchPlacementManager> matchPlacementManager;
+
+    TSharedPtr<FDriftSandboxManager> sandboxManager;
 
     bool countersLoaded = false;
     TArray<FDriftCounterInfo> counterInfos;

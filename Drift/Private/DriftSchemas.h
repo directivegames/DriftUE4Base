@@ -50,6 +50,7 @@ struct FDriftEndpointsResponse
 	FString lobbies;
 	FString match_placements;
     FString public_match_placements;
+    FString sandbox;
 
 	// Templates
 	FString template_lobby_member;

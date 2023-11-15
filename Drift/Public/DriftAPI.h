@@ -16,6 +16,7 @@
 #include "IDriftMatchmaker.h"
 #include "IDriftLobbyManager.h"
 #include "IDriftMatchPlacementManager.h"
+#include "IDriftSandboxManager.h"
 #include "JsonValueWrapper.h"
 
 #include "DriftAPI.generated.h"
@@ -1086,6 +1087,9 @@ public:
 
     /** Get the match placement manager */
     virtual TSharedPtr<IDriftMatchPlacementManager> GetMatchPlacementManager() = 0;
+
+    /** Get the match placement manager */
+    virtual TSharedPtr<IDriftSandboxManager> GetSandboxManager() = 0;
 
     /** Get a handle to the message queue */
     virtual TSharedPtr<IDriftMessageQueue> GetMessageQueue() const = 0;

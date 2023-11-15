@@ -144,6 +144,7 @@ FDriftBase::FDriftBase(const TSharedPtr<IHttpCache>& cache, const FName& instanc
     CreateMatchmaker();
     CreateLobbyManager();
     CreateMatchPlacementManager();
+    CreateSandboxManager();
 
     DRIFT_LOG(Base, Verbose, TEXT("Drift instance %s (%d) created"), *instanceName_.ToString(), instanceIndex_);
 }
@@ -199,6 +200,11 @@ void FDriftBase::CreateLobbyManager()
 void FDriftBase::CreateMatchPlacementManager()
 {
     matchPlacementManager = MakeShared<FDriftMatchPlacementManager>(messageQueue);
+}
+
+void FDriftBase::CreateSandboxManager()
+{
+    sandboxManager = MakeShared<FDriftSandboxManager>(messageQueue);
 }
 
 void FDriftBase::ConfigurePlacement()
@@ -2711,6 +2717,7 @@ void FDriftBase::RegisterClient()
         matchmaker->SetRequestManager(manager);
         lobbyManager->SetRequestManager(manager);
         matchPlacementManager->SetRequestManager(manager);
+        sandboxManager->SetRequestManager(manager);
         partyManager->ConfigureSession(driftClient.player_id, driftEndpoints.party_invites, driftEndpoints.parties);
         GetPlayerEndpoints();
     });
@@ -2748,6 +2755,7 @@ void FDriftBase::GetPlayerEndpoints()
         matchmaker->ConfigureSession(driftEndpoints, driftClient.player_id);
         lobbyManager->ConfigureSession(driftEndpoints, driftClient.player_id);
         matchPlacementManager->ConfigureSession(driftEndpoints, driftClient.player_id);
+        sandboxManager->ConfigureSession(driftEndpoints, driftClient.player_id);
         GetPlayerInfo();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
@@ -4712,6 +4720,11 @@ TSharedPtr<IDriftLobbyManager> FDriftBase::GetLobbyManager()
 TSharedPtr<IDriftMatchPlacementManager> FDriftBase::GetMatchPlacementManager()
 {
     return matchPlacementManager;
+}
+
+TSharedPtr<IDriftSandboxManager> FDriftBase::GetSandboxManager()
+{
+    return sandboxManager;
 }
 
 TSharedPtr<IDriftMessageQueue> FDriftBase::GetMessageQueue() const
