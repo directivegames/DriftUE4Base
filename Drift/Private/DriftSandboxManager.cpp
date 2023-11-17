@@ -27,7 +27,7 @@ void FDriftSandboxManager::ConfigureSession(const FDriftEndpointsResponse& Drift
     SandboxURL = DriftEndpoints.sandbox;
 }
 
-bool FDriftSandboxManager::JoinSandbox(const int32 SandboxId, FJoinSandboxFinishedDelegate Delegate)
+bool FDriftSandboxManager::JoinSandbox(const int32 SandboxId, FString Queue, FJoinSandboxFinishedDelegate Delegate)
 {
     if (PlayerId == INDEX_NONE)
 	{
@@ -44,6 +44,7 @@ bool FDriftSandboxManager::JoinSandbox(const int32 SandboxId, FJoinSandboxFinish
     URL +=  FString::FromInt(SandboxId);
 
 	JsonValue Payload{};
+    Payload.SetField("queue", Queue);
     const auto Request = RequestManager->Put(URL, Payload, HttpStatusCodes::Created);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
 	{

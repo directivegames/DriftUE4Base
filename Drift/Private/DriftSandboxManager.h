@@ -16,7 +16,7 @@ public:
     void SetRequestManager(TSharedPtr<JsonRequestManager> RootRequestManager);
     void ConfigureSession(const FDriftEndpointsResponse& DriftEndpoints, int32 InPlayerId);
 
-    bool JoinSandbox(const int32 SandboxId, FJoinSandboxFinishedDelegate Delegate) override;
+    bool JoinSandbox(const int32 SandboxId, FString Queue, FJoinSandboxFinishedDelegate Delegate) override;
     FOnSandboxJoinStatusChangedDelegate& OnSandboxJoinStatusChanged() override { return OnSandboxJoinStatusChangedDelegate; }
 
 private:

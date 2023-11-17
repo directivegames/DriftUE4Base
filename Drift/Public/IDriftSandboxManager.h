@@ -8,7 +8,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSandboxJoinStatusChangedDelegate, const 
 class IDriftSandboxManager
 {
 public:
-    virtual bool JoinSandbox(const int32 SandboxId, FJoinSandboxFinishedDelegate Delegate) = 0;
+    virtual bool JoinSandbox(const int32 SandboxId, FString Queue, FJoinSandboxFinishedDelegate Delegate) = 0;
 
     virtual FOnSandboxJoinStatusChangedDelegate& OnSandboxJoinStatusChanged() = 0;
     virtual ~IDriftSandboxManager() = default;
