@@ -43,7 +43,7 @@ bool FDriftSandboxManager::JoinSandbox(const int32 SandboxId, FString Queue, FJo
         URL += "/";
     URL +=  FString::FromInt(SandboxId);
 
-	JsonValue Payload{};
+	JsonValue Payload{rapidjson::kObjectType};
     Payload.SetField("queue", Queue);
     const auto Request = RequestManager->Put(URL, Payload, HttpStatusCodes::Created);
 	Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
