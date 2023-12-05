@@ -15,6 +15,7 @@
 #include "Containers/UnrealString.h"
 #include "JsonArchive.h"
 #include "Misc/DateTime.h"
+#include "DriftAPI.h"
 
 
 class SerializationContext;
@@ -386,20 +387,6 @@ struct FDriftPlayerCounter
 	int32 counter_id = -1;
 	float total = -1;
 	FString name;
-
-	bool Serialize(SerializationContext& context);
-};
-
-
-/**
- * Array item response from GET endpoints.user_identities
- */
-struct FDriftUserIdentity
-{
-	int32 player_id = 0;
-	FString identity_name;
-	FString player_name;
-	FString player_url;
 
 	bool Serialize(SerializationContext& context);
 };

@@ -527,7 +527,19 @@ struct FGetDriftMatchesParameters
 class JsonValue;
 struct FDriftPlayerResponse;
 
-struct FDriftUserIdentity;
+/**
+ * Array item response from GET endpoints.user_identities
+ */
+struct FDriftUserIdentity
+{
+    int32 player_id = 0;
+    FString identity_name;
+    FString player_name;
+    FString player_url;
+
+    bool Serialize(class SerializationContext& context);
+};
+
 
 enum class EMessageType : uint8
 {
