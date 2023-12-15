@@ -132,7 +132,18 @@ void FLogForwarder::Log(const TCHAR* text, ELogVerbosity::Type level, const FNam
         return;
     }
 
-    pendingLogs.Emplace(text, *GetLogLevelName(level), category, FDateTime::UtcNow());
+    auto newLog = FDriftLogMessage(text, *GetLogLevelName(level), category, FDateTime::UtcNow());
+    for (auto& pendLog : pendingLogs)
+    {
+        if (pendLog.message_hash == newLog.message_hash)
+        {
+            pendLog.last_entry_timestamp = newLog.timestamp;
+            pendLog.count += 1;
+            return;
+        }
+    }
+    
+    pendingLogs.Add(MoveTemp(newLog));
 }
 
 

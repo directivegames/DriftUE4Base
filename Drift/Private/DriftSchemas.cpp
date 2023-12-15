@@ -359,7 +359,17 @@ bool FDriftLogMessage::Serialize(SerializationContext& context)
 		return false;
 	}
 
-	SERIALIZE_PROPERTY(context, message);
+    if (count > 1)
+    {
+        FString adjusted_message = message;
+        adjusted_message += FString::Printf(TEXT(" (This log message has been repeated %d times until %s)"), count, *last_entry_timestamp.ToString());
+        context.SerializeProperty(TEXT("message"), message);
+    }
+    else
+    {
+        SERIALIZE_PROPERTY(context, message);
+    }
+
 	SERIALIZE_PROPERTY(context, level);
 	SERIALIZE_PROPERTY(context, category);
 

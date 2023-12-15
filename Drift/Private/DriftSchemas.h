@@ -454,6 +454,9 @@ struct FDriftLogMessage
 	FString level;
 	FName category;
 	FDateTime timestamp;
+    uint32 message_hash;
+    int32 count;
+    FDateTime last_entry_timestamp;
 
 
 	FDriftLogMessage()
@@ -461,15 +464,20 @@ struct FDriftLogMessage
 	}
 
 
-	FDriftLogMessage(const FString& _message, const FString& _level, const FName& _category
-	                 , const FDateTime& _timestamp)
-		: message(_message)
-		, level(_level)
-		, category(_category)
-		, timestamp(_timestamp)
+    FDriftLogMessage(const FString& _message, const FString& _level, const FName& _category
+        , const FDateTime& _timestamp)
+        : message(_message)
+        , level(_level)
+        , category(_category)
+        , timestamp(_timestamp)
+        , count(1)
+        , last_entry_timestamp(_timestamp)
 	{
+        const auto A = GetTypeHash(message);
+        const auto B = GetTypeHash(level);
+        const auto C = GetTypeHash(category);
+        message_hash = HashCombine(HashCombine(A, B), C);
 	}
-
 
 	bool Serialize(SerializationContext& context);
 };
