@@ -52,6 +52,7 @@ private:
     FString logsUrl;
 
     TArray<FDriftLogMessage> pendingLogs;
+    TMap<uint32, int32> pendingLogsHashTable;
     float flushLogsInSeconds = FLT_MAX;
 
     ELogVerbosity::Type minLogLevel = ELogVerbosity::Error;

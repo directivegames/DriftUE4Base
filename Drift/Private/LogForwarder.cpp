@@ -101,6 +101,7 @@ void FLogForwarder::FlushLogs()
 		auto request = rm->Post(logsUrl, pendingLogs);
 		request->Dispatch();
 		pendingLogs.Empty();
+        pendingLogsHashTable.Empty();
 	}
 
 	flushLogsInSeconds += FLUSH_LOGS_INTERVAL;
@@ -132,18 +133,22 @@ void FLogForwarder::Log(const TCHAR* text, ELogVerbosity::Type level, const FNam
         return;
     }
 
-    auto newLog = FDriftLogMessage(text, *GetLogLevelName(level), category, FDateTime::UtcNow());
-    for (auto& pendLog : pendingLogs)
+    const auto timestamp = FDateTime::UtcNow();
+
+    const auto A = FCrc::Strihash_DEPRECATED(text);
+    const auto B = GetTypeHash(level);
+    const auto C = GetTypeHash(category);
+    const auto message_hash = HashCombine(HashCombine(A, B), C);
+    if (auto ptrIndex = pendingLogsHashTable.Find(message_hash))
     {
-        if (pendLog.message_hash == newLog.message_hash)
-        {
-            pendLog.last_entry_timestamp = newLog.timestamp;
-            pendLog.count += 1;
-            return;
-        }
+        auto& pendLog = pendingLogs[*ptrIndex];
+        pendLog.last_entry_timestamp = timestamp;
+        pendLog.count += 1;
+        return;
     }
     
-    pendingLogs.Add(MoveTemp(newLog));
+    const auto index = pendingLogs.Emplace(text, *GetLogLevelName(level), category, timestamp);
+    pendingLogsHashTable.Add(message_hash, index);
 }
 
 
