@@ -63,6 +63,8 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
 		return;
 	}
 
+    check(request);
+
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (response.IsValid())
 	{
@@ -77,6 +79,15 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
 		}
 	}
 #endif
+
+    if (!response)
+    {
+        if (bWasSuccessful)
+        {
+            ensureAlwaysMsgf(false, TEXT("Did not get a valid response from a successful request to '%s'"), *request->GetURL());
+        }
+        response = MakeShared<FFakeHttpResponse>(request->GetURL(), INDEX_NONE, TEXT("This is a fake response since the engine/OS returns null"));
+    }
 
 	ResponseContext context(request, response, sent_, false);
 
@@ -529,5 +540,68 @@ void HttpRequest::SetPayload(const FString& content)
 	}
 }
 
+
+FFakeHttpResponse::FFakeHttpResponse(const FString& url, int32 responseCode, const FString& content)
+    : url_{ url }
+    , responseCode_{ responseCode }
+    , content_{ content }
+{
+    auto Converted = StringCast<UTF8CHAR>(*content);
+    contentBytes_.Append((const uint8*)Converted.Get(), Converted.Length());
+}
+
+
+int32 FFakeHttpResponse::GetResponseCode() const
+{
+    return responseCode_;
+}
+
+
+FString FFakeHttpResponse::GetContentAsString() const
+{
+    return content_;
+}
+
+
+FString FFakeHttpResponse::GetURL() const
+{
+    return url_;
+}
+
+
+FString FFakeHttpResponse::GetURLParameter(const FString& ParameterName) const
+{
+    return {};
+}
+
+
+FString FFakeHttpResponse::GetHeader(const FString& HeaderName) const
+{
+    return {};
+}
+
+
+TArray<FString> FFakeHttpResponse::GetAllHeaders() const
+{
+    return {};
+}
+
+
+FString FFakeHttpResponse::GetContentType() const
+{
+    return TEXT("text/plain");
+}
+
+
+uint64 FFakeHttpResponse::GetContentLength() const
+{
+    return contentBytes_.Num();
+}
+
+
+const TArray<uint8>& FFakeHttpResponse::GetContent() const
+{
+    return contentBytes_;
+}
 
 #undef LOCTEXT_NAMESPACE

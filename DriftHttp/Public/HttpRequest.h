@@ -238,3 +238,31 @@ static FString GetDebugText(FHttpResponsePtr response)
 	                       *response->GetContentAsString()
 	);
 }
+
+// A fake response whose only purpose is to provide a valid response object when null is returned from the engine
+class DRIFTHTTP_API FFakeHttpResponse : public IHttpResponse
+{
+public:
+    FFakeHttpResponse(const FString& url, int32 responseCode, const FString& content);
+
+    // IHttpResponse
+    int32 GetResponseCode() const override;
+    FString GetContentAsString() const override;
+    // !IHttpResponse
+
+    // IHttpBase
+    FString GetURL() const override;
+    FString GetURLParameter(const FString& ParameterName) const override;
+    FString GetHeader(const FString& HeaderName) const override;
+    TArray<FString> GetAllHeaders() const override;
+    FString GetContentType() const override;
+    uint64 GetContentLength() const override;
+    const TArray<uint8>& GetContent() const override;
+    // !IHttpBase
+
+private:
+    FString url_;
+    int32 responseCode_;
+    FString content_;
+    TArray<uint8> contentBytes_;
+};
