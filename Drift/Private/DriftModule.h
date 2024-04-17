@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2017 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2024 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -15,6 +15,7 @@
 #include "Modules/ModuleManager.h"
 #include "DriftAPI.h"
 #include "DriftProvider.h"
+#include "Auth/DriftTokenAuthProviderFactory.h"
 
 
 struct FAutoCompleteCommand;
@@ -24,7 +25,7 @@ class FDriftModule : public IModuleInterface
 {
 public:
     FDriftModule();
-    
+
     bool IsGameModule() const override
     {
         return true;
@@ -40,4 +41,6 @@ private:
 #endif // ALLOW_CONSOLE
 
 	FDriftProvider provider;
+
+    FDriftTokenAuthProviderFactory tokenProviderFactory;
 };

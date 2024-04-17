@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2019 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2024 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -37,11 +37,14 @@ void FDriftModule::StartupModule()
 #if ALLOW_CONSOLE
 	UConsole::RegisterConsoleAutoCompleteEntries.AddStatic(&FDriftModule::PopulateAutoCompleteEntries);
 #endif // ALLOW_CONSOLE
+
+    IModularFeatures::Get().RegisterModularFeature(TEXT("DriftAuthProviderFactory"), &tokenProviderFactory);
 }
 
 
 void FDriftModule::ShutdownModule()
 {
+    IModularFeatures::Get().UnregisterModularFeature(TEXT("DriftAuthProviderFactory"), &tokenProviderFactory);
     IModularFeatures::Get().UnregisterModularFeature(TEXT("Drift"), &provider);
 }
 
