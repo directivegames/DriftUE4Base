@@ -3414,10 +3414,11 @@ void FDriftBase::InitServerAuthentication()
     }
 
     // Post to 'auth' and get token. Use hacky credentials
-    const auto Payload = FString::Printf(
-        TEXT("{\"username\": \"%s\", \"password\": \"%s\", \"provider\": \"%s\"}"),
-        *SERVER_CREDENTIALS_USERNAME, *Password, *SERVER_CREDENTIALS_PROVIDER
-        );
+    FUserPassAuthenticationPayload Payload{};
+    Payload.provider = SERVER_CREDENTIALS_PROVIDER;
+    Payload.automatic_account_creation = false;
+    JsonArchive::AddMember(Payload.provider_details, TEXT("username"), *SERVER_CREDENTIALS_USERNAME);
+    JsonArchive::AddMember(Payload.provider_details, TEXT("password"), *Password);
 
     const auto Request = GetRootRequestManager()->Post(driftEndpoints.auth, Payload, HttpStatusCodes::Ok);
 
