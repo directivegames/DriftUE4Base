@@ -929,7 +929,7 @@ void FDriftBase::SavePlayerGameState(int32 playerId, const FString& name, const 
 {
     if (state_ != DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to save player game state without being connected"));
+        DRIFT_LOG(Base, Warning, TEXT("SavePlayerGameState: attempting to save player game state without being connected"));
         delegate.ExecuteIfBound(false, name);
         onPlayerGameStateSaved.Broadcast(false, name);
         return;
@@ -937,14 +937,14 @@ void FDriftBase::SavePlayerGameState(int32 playerId, const FString& name, const 
 
     if (driftEndpoints.template_player_gamestate.IsEmpty())
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to save player game state with no endpoint"));
+        DRIFT_LOG(Base, Warning, TEXT("SavePlayerGameState: attempting to save player game state with no endpoint"));
 
         delegate.ExecuteIfBound(false, name);
         onPlayerGameStateSaved.Broadcast(false, name);
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("Saving player game state '%s' for player '%d'"), *name, playerId);
+    DRIFT_LOG(Base, Log, TEXT("SavePlayerGameState: player_id: %d, state_name: %s, state: %s"), playerId, *name, *gameState);
 
     const auto url = driftEndpoints.template_player_gamestate.Replace(TEXT("{player_id}"), *FString::FromInt(playerId)).Replace(TEXT("{namespace}"), *name);
 
@@ -3731,19 +3731,17 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
 {
     if (state_ != DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to update player in match without being connected"));
+        DRIFT_LOG(Base, Warning, TEXT("UpdatePlayerInMatch: attempting to update player in match without being connected"));
         delegate.ExecuteIfBound(false);
         return;
     }
 
     if (!match_players_urls.Contains(playerID))
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to update player in match without the player being added to the match"));
+        DRIFT_LOG(Base, Warning, TEXT("UpdatePlayerInMatch: attempting to update player in match without the player being added to the match"));
         delegate.ExecuteIfBound(false);
         return;
     }
-
-    DRIFT_LOG(Base, Verbose, TEXT("Updating player '%d' in match '%d'"), playerID, match_info.match_id);
 
     JsonValue Payload{ rapidjson::kObjectType };
     if (properties.status.IsSet())
@@ -3762,6 +3760,8 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
     {
         JsonArchive::AddMember(Payload, TEXT("details"), properties.details.GetValue());
     }
+
+    DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: match_id: %d, player_id: %d, payload: %s"), match_info.match_id, playerID, *Payload.ToString());
 
     const auto Url = match_players_urls.FindChecked(playerID);
     const auto Request = GetGameRequestManager()->Patch(Url, Payload);
@@ -3864,9 +3864,6 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 	if (properties.status.IsSet())
 	{
 		const auto Status = properties.status.GetValue();
-
-		DRIFT_LOG(Base, Log, TEXT("Updating match status to '%s'"), *Status);
-
 		JsonArchive::AddMember(payload, TEXT("status"), Status);
 		match_info.status = Status;
 	}
@@ -3916,6 +3913,7 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 		(void)delegate.ExecuteIfBound(false);
 		onMatchUpdated.Broadcast(false);
 	});
+    DRIFT_LOG(Base, Log, TEXT("UpdateMatch: match_id: %d, payload: %s"), match_info.match_id, *payload.ToString());
 	request->Dispatch();
 }
 
