@@ -3699,17 +3699,18 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
 
     if (!match_players_urls.Contains(playerID))
     {
-        DRIFT_LOG(Base, Warning, TEXT("Attempting to remove player from the match without the player being added to the match"));
+        DRIFT_LOG(Base, Error, TEXT("RemovePlayerFromMatch: attempting to remove player_id %d from the match without the player being added to the match, aborted"), playerID);
         delegate.ExecuteIfBound(false);
         return;
     }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Removing player: %i from match %i"), playerID, match_info.match_id);
+    DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: player_id: %d, match_id: %d"), playerID, match_info.match_id);
 
     const auto Url = match_players_urls.FindChecked(playerID);
     const auto Request = GetGameRequestManager()->Delete(Url);
     Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
+        DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: player_id: %d removed from match_id: %d"), playerID, match_info.match_id);
         match_players_urls.Remove(playerID);
 
         delegate.ExecuteIfBound(true);
@@ -3719,7 +3720,7 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("Failed to remove player '%d' from match '%d'. Error: %s"), playerID, match_info.match_id, *Error);
+        DRIFT_LOG(Base, Error, TEXT("RemovePlayerFromMatch: failed to remove player_id: %d from match_id: %d, error: %s"), playerID, match_info.match_id, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerRemovedFromMatch.Broadcast(false, playerID);
