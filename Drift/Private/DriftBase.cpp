@@ -944,7 +944,7 @@ void FDriftBase::SavePlayerGameState(int32 playerId, const FString& name, const 
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("SavePlayerGameState: player_id: %d, state_name: %s, state: %s"), playerId, *name, *gameState);
+    DRIFT_LOG(Base, Log, TEXT("SavePlayerGameState: player_id (%d), state_name (%s), state (%s)"), playerId, *name, *gameState);
 
     const auto url = driftEndpoints.template_player_gamestate.Replace(TEXT("{player_id}"), *FString::FromInt(playerId)).Replace(TEXT("{namespace}"), *name);
 
@@ -3704,13 +3704,13 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: player_id: %d, match_id: %d"), playerID, match_info.match_id);
+    DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: removing player_id (%d) from match_id (%d)"), playerID, match_info.match_id);
 
     const auto Url = match_players_urls.FindChecked(playerID);
     const auto Request = GetGameRequestManager()->Delete(Url);
     Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
-        DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: player_id: %d removed from match_id: %d"), playerID, match_info.match_id);
+        DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: player_id (%d) removed from match_id (%d)"), playerID, match_info.match_id);
         match_players_urls.Remove(playerID);
 
         delegate.ExecuteIfBound(true);
@@ -3720,7 +3720,7 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("RemovePlayerFromMatch: failed to remove player_id: %d from match_id: %d, error: %s"), playerID, match_info.match_id, *Error);
+        DRIFT_LOG(Base, Error, TEXT("RemovePlayerFromMatch: failed to remove player_id (%d) from match_id (%d) with error (%s)"), playerID, match_info.match_id, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerRemovedFromMatch.Broadcast(false, playerID);
@@ -3762,20 +3762,22 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
         JsonArchive::AddMember(Payload, TEXT("details"), properties.details.GetValue());
     }
 
-    DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: match_id: %d, player_id: %d, payload: %s"), match_info.match_id, playerID, *Payload.ToString());
+    const auto matchID = match_info.match_id;
+    DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: updating player_id (%d) in match_id (%d) with payload (%s)"), playerID, matchID, *Payload.ToString());
 
     const auto Url = match_players_urls.FindChecked(playerID);
     const auto Request = GetGameRequestManager()->Patch(Url, Payload);
-    Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
+    Request->OnResponse.BindLambda([this, playerID, matchID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
+        DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: player_id (%d) updated in match_id"), playerID, matchID);
         delegate.ExecuteIfBound(true);
         onPlayerUpdatedInMatch.Broadcast(true, playerID);
     });
-    Request->OnError.BindLambda([this, playerID, delegate](ResponseContext& Context)
+    Request->OnError.BindLambda([this, playerID, matchID, delegate](ResponseContext& Context)
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("Failed to update player '%d' in match '%d'. Error: %s"), playerID, match_info.match_id, *Error);
+        DRIFT_LOG(Base, Error, TEXT("UpdatePlayerInMatch: failed to update player_id (%d) in match_id (%d) with error (%s)"), playerID, matchID, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerUpdatedInMatch.Broadcast(false, playerID);
@@ -3899,22 +3901,24 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 		match_info.match_statistics = properties.match_statistics.GetValue();
 	}
 
+    const auto matchID = match_info.match_id;
+    DRIFT_LOG(Base, Log, TEXT("UpdateMatch: updating match_id (%d) with payload (%s)"), matchID, *payload.ToString());
 	auto request = GetGameRequestManager()->Put(match_info.url, payload);
-	request->OnResponse.BindLambda([this, delegate](ResponseContext& context, JsonDocument& doc)
+	request->OnResponse.BindLambda([this, delegate, matchID](ResponseContext& context, JsonDocument& doc)
 	{
+        DRIFT_LOG(Base, Log, TEXT("UpdateMatch: match_id (%d) updated"), matchID);
 		(void)delegate.ExecuteIfBound(true);
 		onMatchUpdated.Broadcast(true);
 	});
-	request->OnError.BindLambda([this, delegate](ResponseContext& context)
+	request->OnError.BindLambda([this, delegate, matchID](ResponseContext& context)
 	{
 	    FString Error;
         context.errorHandled = GetResponseError(context, Error);
-	    DRIFT_LOG(Base, Error, TEXT("Failed to update match. Error: %s"), *Error);
+        DRIFT_LOG(Base, Error, TEXT("UpdateMatch: failed to update match_id (%d) with error (%s)"), matchID, *Error);
 
 		(void)delegate.ExecuteIfBound(false);
 		onMatchUpdated.Broadcast(false);
-	});
-    DRIFT_LOG(Base, Log, TEXT("UpdateMatch: match_id: %d, payload: %s"), match_info.match_id, *payload.ToString());
+	});    
 	request->Dispatch();
 }
 
