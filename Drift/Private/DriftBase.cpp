@@ -944,7 +944,7 @@ void FDriftBase::SavePlayerGameState(int32 playerId, const FString& name, const 
         return;
     }
 
-    DRIFT_LOG(Base, Log, TEXT("SavePlayerGameState: player_id (%d), state_name (%s), state (%s)"), playerId, *name, *gameState);
+    DRIFT_LOG(Base, Log, TEXT("SavePlayerGameState: player_id (%d), state_name (%s)"), playerId, *name);
 
     const auto url = driftEndpoints.template_player_gamestate.Replace(TEXT("{player_id}"), *FString::FromInt(playerId)).Replace(TEXT("{namespace}"), *name);
 
