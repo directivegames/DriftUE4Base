@@ -107,6 +107,11 @@ IDriftAPI* FDriftWorldHelper::GetInstance(const FString& config)
 
 void FDriftWorldHelper::DestroyInstance()
 {
+    if (!IModularFeatures::Get().IsModularFeatureAvailable(DriftModuleName))
+    {
+        return;
+    }
+
     FName identifier = NAME_None;
 #if UE_EDITOR
     identifier = internal::GetIdentifierFromWorld(world_);
@@ -117,6 +122,11 @@ void FDriftWorldHelper::DestroyInstance()
 
 void FDriftWorldHelper::DestroyInstance(IDriftAPI* instance)
 {
+    if (!IModularFeatures::Get().IsModularFeatureAvailable(DriftModuleName))
+    {
+        return;
+    }
+
     auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
     provider.DestroyInstance(instance);
 }
