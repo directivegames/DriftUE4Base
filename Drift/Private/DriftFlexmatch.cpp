@@ -215,7 +215,7 @@ void FDriftFlexmatch::ReportLatencies(const TSharedRef<TMap<FString, int>> Laten
 		UE_LOG(LogDriftMatchmaking, Error, TEXT("FDriftFlexmatch::ReportLatencies - Failed to report latencies to %s"
 			", Response code %d, error: '%s'"), *FlexmatchLatencyURL, Context.responseCode, *Context.error);
 	});
-	PatchRequest->OnResponse.BindLambda([this](const ResponseContext& Context, const JsonDocument& Doc)
+	PatchRequest->OnResponse.BindLambda([WeakThis = TWeakPtr<FDriftFlexmatch>(AsShared())](const ResponseContext& Context, const JsonDocument& Doc)
 	{
 		FDriftFlexmatchLatencySchema LatencyAverages;
 		if (!JsonArchive::LoadObject(Doc, LatencyAverages))
@@ -224,10 +224,14 @@ void FDriftFlexmatch::ReportLatencies(const TSharedRef<TMap<FString, int>> Laten
 				", Response code %d, error: '%s'"), Context.responseCode, *Context.error);
 			return;
 		}
-		for( auto Entry: LatencyAverages.latencies.GetObject() )
-		{
-			AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
-		}
+        if (auto Pinned = WeakThis.Pin())
+        {
+            for (auto Entry : LatencyAverages.latencies.GetObject())
+            {
+                Pinned->AverageLatencyMap.Add(Entry.Key, Entry.Value.GetInt32());
+            }
+        }
+		
 	});
 	PatchRequest->Dispatch();
 }
