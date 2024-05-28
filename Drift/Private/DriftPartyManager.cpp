@@ -268,14 +268,17 @@ bool FDriftPartyManager::QueryParty(FQueryPartyCompletedDelegate Callback)
                     UE_LOG(LogDriftParties, Verbose, TEXT("Checking for member: %d / %s"), Member->GetPlayerID(), *Member->GetPlayerName());
 
                     bool bMemberFound = false;
-                    for (const auto& PartyMember : CurrentParty_->Members)
+                    if (CurrentParty_)
                     {
-                        UE_LOG(LogDriftParties, Verbose, TEXT("Comparing cached member: %d / %s"), PartyMember->GetPlayerID(), *PartyMember->GetPlayerName());
-
-                        if (PartyMember.IsValid() && Member->GetPlayerID() == PartyMember->GetPlayerID() && Member->GetPlayerName() == PartyMember->GetPlayerName())
+                        for (const auto& PartyMember : CurrentParty_->Members)
                         {
-                            bMemberFound = true;
-                            break;
+                            UE_LOG(LogDriftParties, Verbose, TEXT("Comparing cached member: %d / %s"), PartyMember->GetPlayerID(), *PartyMember->GetPlayerName());
+
+                            if (PartyMember.IsValid() && Member->GetPlayerID() == PartyMember->GetPlayerID() && Member->GetPlayerName() == PartyMember->GetPlayerName())
+                            {
+                                bMemberFound = true;
+                                break;
+                            }
                         }
                     }
 
