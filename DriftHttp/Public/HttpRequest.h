@@ -15,7 +15,7 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "JsonArchive.h"
-#include "Sound/SoundNode.h"
+#include "Misc/EngineVersionComparison.h"
 
 
 class IHttpCache;
@@ -258,6 +258,12 @@ public:
     FString GetContentType() const override;
     uint64 GetContentLength() const override;
     const TArray<uint8>& GetContent() const override;
+
+#if !UE_VERSION_OLDER_THAN(5, 4, 0)
+    const FString& GetEffectiveURL() const override { return url_; }
+    EHttpRequestStatus::Type GetStatus() const override { return EHttpRequestStatus::Failed_ConnectionError; }
+    EHttpFailureReason GetFailureReason() const override { return EHttpFailureReason::ConnectionError; }
+#endif
     // !IHttpBase
 
 private:

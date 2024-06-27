@@ -612,7 +612,7 @@ bool FDriftLobbyManager::KickLobbyMember(int32 MemberPlayerId, FKickMemberComple
 
 	if (PlayerIndex == INDEX_NONE)
 	{
-		UE_LOG(LogDriftLobby, Warning, TEXT("Player '%d' not found in locally cached lobby. Maybe out of sync with server. Will query just in case"));
+		UE_LOG(LogDriftLobby, Warning, TEXT("Player '%d' not found in locally cached lobby. Maybe out of sync with server. Will query just in case"), MemberPlayerId);
 		QueryLobby({});
 	}
 	else
@@ -624,7 +624,7 @@ bool FDriftLobbyManager::KickLobbyMember(int32 MemberPlayerId, FKickMemberComple
 		}
 		else
 		{
-			UE_LOG(LogDriftLobby, Warning, TEXT("Player '%d' invalid in locally cached lobby. Maybe out of sync with server. Will query just in case"));
+			UE_LOG(LogDriftLobby, Warning, TEXT("Player '%d' invalid in locally cached lobby. Maybe out of sync with server. Will query just in case"), MemberPlayerId);
 			QueryLobby({});
 		}
 

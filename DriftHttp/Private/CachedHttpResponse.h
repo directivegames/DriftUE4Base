@@ -45,6 +45,12 @@ public:
     int32 GetResponseCode() IS_CONST  override;
     FString GetContentAsString() IS_CONST  override;
 
+#if !UE_VERSION_OLDER_THAN(5, 4, 0)
+    const FString& GetEffectiveURL() const override { return url; }
+    EHttpRequestStatus::Type GetStatus() const override { return EHttpRequestStatus::Succeeded; }
+    EHttpFailureReason GetFailureReason() const override { return EHttpFailureReason::None; }
+#endif
+
 #undef IS_CONST
 
     friend class FileHttpCache;
