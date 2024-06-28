@@ -91,7 +91,11 @@ void HttpRequest::InternalRequestCompleted(FHttpRequestPtr request, FHttpRespons
 
 	ResponseContext context(request, response, sent_, false);
 
-	const auto bWasConnectionError = request->GetStatus() == EHttpRequestStatus::Failed_ConnectionError;
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
+    const auto bWasConnectionError = request->GetStatus() == EHttpRequestStatus::Failed_ConnectionError;
+#else
+	const auto bWasConnectionError = (request->GetStatus() == EHttpRequestStatus::Failed && request->GetFailureReason() == EHttpFailureReason::ConnectionError);
+#endif
 	if (!bWasConnectionError && response.IsValid())
 	{
 		/**
@@ -351,7 +355,11 @@ void HttpRequest::LogError(ResponseContext& context)
 	}
 	else
 	{
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
 		if (context.request->GetStatus() == EHttpRequestStatus::Failed_ConnectionError)
+#else
+        if (context.request->GetStatus() == EHttpRequestStatus::Failed && context.request->GetFailureReason() == EHttpFailureReason::ConnectionError)
+#endif
 		{
 			errorMessage = TEXT("HTTP request timeout");
 		}
@@ -469,7 +477,7 @@ void HttpRequest::Discard()
 {
 	discarded_ = true;
 
-	wrappedRequest_->OnRequestProgress().Unbind();
+    OnRequestProgress().Unbind();
 }
 
 

@@ -115,7 +115,11 @@ public:
 	FShouldRetryDelegate& OnShouldRetry() { return shouldRetryDelegate_; }
 
 	/** Return the delegate called when the progress of the request updates */
+#if UE_VERSION_OLDER_THAN(5, 3, 0)
 	FHttpRequestProgressDelegate& OnRequestProgress() { return wrappedRequest_->OnRequestProgress(); }
+#else
+    FHttpRequestProgressDelegate64& OnRequestProgress() { return wrappedRequest_->OnRequestProgress64(); }
+#endif
 
 	/** Return the delegate called when the server returns debug headers */
 	FOnDebugMessageDelegate& OnDebugMessage() { return onDebugMessage_; }
@@ -261,7 +265,7 @@ public:
 
 #if !UE_VERSION_OLDER_THAN(5, 4, 0)
     const FString& GetEffectiveURL() const override { return url_; }
-    EHttpRequestStatus::Type GetStatus() const override { return EHttpRequestStatus::Failed_ConnectionError; }
+    EHttpRequestStatus::Type GetStatus() const override { return EHttpRequestStatus::Failed; }
     EHttpFailureReason GetFailureReason() const override { return EHttpFailureReason::ConnectionError; }
 #endif
     // !IHttpBase

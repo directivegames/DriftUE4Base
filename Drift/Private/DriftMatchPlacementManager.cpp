@@ -151,8 +151,8 @@ bool FDriftMatchPlacementManager::GetConnectionString(const FString& MatchPlacem
         UE_LOG(LogDriftMatchPlacement, Log, TEXT("Got previous session info"));
         const auto ResponseObject = Doc.GetInternalValue()->AsObject();
 
-        RejoinConnectionString = ResponseObject->GetStringField("IpAddress") + ":" + ResponseObject->GetStringField("Port");
-        RejoinConnectionOptions = "PlayerSessionId=" + ResponseObject->GetStringField("PlayerSessionId") + "?PlayerId=" + FString::FromInt(PlayerId);
+        RejoinConnectionString = ResponseObject->GetStringField(TEXT("IpAddress")) + ":" + ResponseObject->GetStringField(TEXT("Port"));
+        RejoinConnectionOptions = "PlayerSessionId=" + ResponseObject->GetStringField(TEXT("PlayerSessionId")) + "?PlayerId=" + FString::FromInt(PlayerId);
 
         (void)Delegate.ExecuteIfBound(true, CurrentMatchPlacementId, "");
     });
@@ -336,9 +336,9 @@ bool FDriftMatchPlacementManager::JoinMatchPlacement(const FString& MatchPlaceme
         UE_LOG(LogDriftMatchPlacement, Log, TEXT("Match placement joined"));
         const auto JsonObject = Doc.GetInternalValue()->AsObject();
         FPlayerSessionInfo SessionInfo;
-        SessionInfo.Port = JsonObject->GetStringField("Port");
-        SessionInfo.IpAddress = JsonObject->GetStringField("IpAddress");
-        SessionInfo.PlayerSessionId = JsonObject->GetStringField("PlayerSessionId");
+        SessionInfo.Port = JsonObject->GetStringField(TEXT("Port"));
+        SessionInfo.IpAddress = JsonObject->GetStringField(TEXT("IpAddress"));
+        SessionInfo.PlayerSessionId = JsonObject->GetStringField(TEXT("PlayerSessionId"));
         (void)Delegate.ExecuteIfBound(true, SessionInfo, "");
     });
     Request->OnError.BindLambda([this, Delegate](ResponseContext& Context)
@@ -452,7 +452,7 @@ bool FDriftMatchPlacementManager::FetchPublicMatchPlacements(FFetchPublicMatchPl
                     );
 
                     const TArray<TSharedPtr<FJsonValue>> *PlayerIdsJson = nullptr;
-                    if (PlacementJson->AsObject()->TryGetArrayField("player_ids", PlayerIdsJson))
+                    if (PlacementJson->AsObject()->TryGetArrayField(TEXT("player_ids"), PlayerIdsJson))
                     {
                         for (auto& PlacementPlayerIdValue : *PlayerIdsJson)
                         {
