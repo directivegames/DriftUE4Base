@@ -14,7 +14,7 @@
 #include "RequestManager.h"
 
 #include "HttpRequest.h"
-#include "HttpCache.h"
+#include "DriftHttpCache.h"
 #include "HttpModule.h"
 #include "JsonArchive.h"
 

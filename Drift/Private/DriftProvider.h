@@ -14,7 +14,7 @@
 
 #include "IDriftProvider.h"
 #include "DriftAPI.h"
-#include "HttpCache.h"
+#include "DriftHttpCache.h"
 
 #include "Features/IModularFeature.h"
 

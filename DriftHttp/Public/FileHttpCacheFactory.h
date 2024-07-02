@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "HttpCache.h"
+#include "DriftHttpCache.h"
 
 
 class DRIFTHTTP_API FileHttpCacheFactory : public IHttpCacheFactory
