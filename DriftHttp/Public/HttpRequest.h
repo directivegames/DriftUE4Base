@@ -115,7 +115,7 @@ public:
 	FShouldRetryDelegate& OnShouldRetry() { return shouldRetryDelegate_; }
 
 	/** Return the delegate called when the progress of the request updates */
-#if UE_VERSION_OLDER_THAN(5, 3, 0)
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
 	FHttpRequestProgressDelegate& OnRequestProgress() { return wrappedRequest_->OnRequestProgress(); }
 #else
     FHttpRequestProgressDelegate64& OnRequestProgress() { return wrappedRequest_->OnRequestProgress64(); }
