@@ -244,6 +244,7 @@ struct FMatchesSearch
 {
     TArray<FActiveMatch> matches;
     FString ref_filter;
+    TOptional<TArray<int32>> match_id_filter;
 };
 
 

@@ -1263,8 +1263,15 @@ void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
     }
     internal::UrlHelper::AddUrlOption(matches_url, TEXT("ref"), ref_filter);
     internal::UrlHelper::AddUrlOption(matches_url, TEXT("placement"), defaultPlacement);
+    if (search->match_id_filter.IsSet())
+    {
+        for (const auto match_id : *search->match_id_filter)
+        {
+            internal::UrlHelper::AddUrlOption(matches_url, TEXT("match_id"), match_id);
+        }
+    }
 
-    DRIFT_LOG(Base, Verbose, TEXT("Fetching active matches ref='%s', placement='%s'"), *ref_filter, *defaultPlacement);
+    DRIFT_LOG(Base, Verbose, TEXT("Fetching active matches '%s'"), *matches_url);
 
     auto request = GetGameRequestManager()->Get(matches_url);
     request->OnResponse.BindLambda([this, search](ResponseContext& context, JsonDocument& doc)
@@ -3924,7 +3931,7 @@ void FDriftBase::UpdateMatch(const FDriftUpdateMatchProperties& properties, cons
 
 		(void)delegate.ExecuteIfBound(false);
 		onMatchUpdated.Broadcast(false);
-	});    
+	});
 	request->Dispatch();
 }
 
