@@ -4361,6 +4361,29 @@ bool FDriftBase::GetPlayerCounter(int32 playerID, const FString& counterName, fl
 }
 
 
+TOptional<FDriftMatchTeam> FDriftBase::GetMatchTeam(const FString& TeamName) const
+{
+    for (const auto& Team : match_info.teams)
+    {
+        if (Team.name == TeamName)
+        {
+            return FDriftMatchTeam
+            {
+                Team.team_id,
+                Team.match_id,
+                Team.create_date,
+                Team.name,
+                Team.details,
+                Team.statistics,
+                Team.url,
+            };
+        }
+    }
+
+    return {};
+}
+
+
 TArray<FDriftMatchTeam> FDriftBase::GetMatchTeams() const
 {
 	TArray<FDriftMatchTeam> Teams;

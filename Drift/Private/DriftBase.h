@@ -190,6 +190,7 @@ public:
     void ModifyPlayerCounter(int32 playerID, const FString& counterName, float value, bool absolute) override;
     bool GetPlayerCounter(int32 playerID, const FString& counterName, float& value) override;
 	TArray<FDriftMatchTeam> GetMatchTeams() const override;
+    TOptional<FDriftMatchTeam> GetMatchTeam(const FString& TeamName) const override;
 
     FDriftServerRegisteredDelegate& OnServerRegistered() override { return onServerRegistered; }
     FDriftPlayerAddedToMatchDelegate& OnPlayerAddedToMatch() override { return onPlayerAddedToMatch; }
