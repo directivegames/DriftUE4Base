@@ -3724,7 +3724,6 @@ void FDriftBase::RemovePlayerFromMatch(int32 playerID, const FDriftPlayerRemoved
     Request->OnResponse.BindLambda([this, playerID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
         DRIFT_LOG(Base, Log, TEXT("RemovePlayerFromMatch: player removed"));
-        match_players_urls.Remove(playerID);
 
         delegate.ExecuteIfBound(true);
         onPlayerRemovedFromMatch.Broadcast(true, playerID);
@@ -3745,14 +3744,14 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
 {
     if (state_ != DriftSessionState::Connected)
     {
-        DRIFT_LOG(Base, Warning, TEXT("UpdatePlayerInMatch: attempting to update player in match without being connected"));
+        DRIFT_LOG(Base, Warning, TEXT("UpdatePlayerInMatch: attempting to update player %d in match without being connected"), playerID);
         delegate.ExecuteIfBound(false);
         return;
     }
 
     if (!match_players_urls.Contains(playerID))
     {
-        DRIFT_LOG(Base, Warning, TEXT("UpdatePlayerInMatch: attempting to update player in match without the player being added to the match"));
+        DRIFT_LOG(Base, Warning, TEXT("UpdatePlayerInMatch: attempting to update player %d in match without the player being added to the match"), playerID);
         delegate.ExecuteIfBound(false);
         return;
     }
@@ -3776,13 +3775,13 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
     }
 
     const auto matchID = match_info.match_id;
-    DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: updating player with payload (%s)"), *Payload.ToString());
+    DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: updating player %d with payload (%s)"), playerID, *Payload.ToString());
 
     const auto Url = match_players_urls.FindChecked(playerID);
     const auto Request = GetGameRequestManager()->Patch(Url, Payload);
     Request->OnResponse.BindLambda([this, playerID, matchID, delegate](ResponseContext& Context, JsonDocument& Doc)
     {
-        DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: player updated"));
+        DRIFT_LOG(Base, Log, TEXT("UpdatePlayerInMatch: player %d updated"), playerID);
         delegate.ExecuteIfBound(true);
         onPlayerUpdatedInMatch.Broadcast(true, playerID);
     });
@@ -3790,7 +3789,7 @@ void FDriftBase::UpdatePlayerInMatch(int32 playerID, const FDriftUpdateMatchPlay
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("UpdatePlayerInMatch: failed to update player with error (%s)"), *Error);
+        DRIFT_LOG(Base, Error, TEXT("UpdatePlayerInMatch: failed to update player %d with error (%s)"), playerID, *Error);
 
         delegate.ExecuteIfBound(false);
         onPlayerUpdatedInMatch.Broadcast(false, playerID);
