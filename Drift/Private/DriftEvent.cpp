@@ -65,6 +65,18 @@ public:
         InternalAdd(name, value);
     }
 
+    void Add(const FString& name, const TArray<float>& value) override
+    {
+        JsonValue array{ rapidjson::kArrayType };
+        for (auto& v : value)
+        {
+            JsonValue json;
+            json.SetDouble(v);
+            array.PushBack(json);
+        }
+        JsonArchive::AddMember(details_, name, array);
+    }
+
     void Add(const FString& name, double value) override
     {
         InternalAdd(name, value);
@@ -78,6 +90,18 @@ public:
     void Add(const FString& name, const FString& value) override
     {
         InternalAdd(name, value);
+    }
+
+    void Add(const FString& name, const TArray<FString>& value) override
+    {
+        JsonValue array{ rapidjson::kArrayType };
+        for (auto& v : value)
+        {
+            JsonValue json;
+            json.SetString(v);
+            array.PushBack(json);
+        }
+        JsonArchive::AddMember(details_, name, array);
     }
 
     void Add(const FString& name, bool value) override

@@ -19,9 +19,11 @@ public:
     virtual void Add(const FString& name, uint64 value) = 0;
     virtual void Add(const FString& name, long long value) = 0;
     virtual void Add(const FString& name, float value) = 0;
+    virtual void Add(const FString& name, const TArray<float>& value) = 0;
     virtual void Add(const FString& name, double value) = 0;
     virtual void Add(const FString& name, const TCHAR* value) = 0;
     virtual void Add(const FString& name, const FString& value) = 0;
+    virtual void Add(const FString& name, const TArray<FString>& value) = 0;
     virtual void Add(const FString& name, bool value) = 0;
     virtual void Add(const FString& name, TArray<TUniquePtr<IDriftEvent>> events) = 0;
     
