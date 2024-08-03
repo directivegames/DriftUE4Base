@@ -20,24 +20,25 @@ class UGetActiveMatchesProxy : public UOnlineBlueprintCallProxyBase
     GENERATED_BODY()
 
 public:
+    /** If bUseDefaultsForEmptyRefFilter is true and ref_filter is empty, the default ref_filter will be used. Otherwise ref_filter will stay empty. */
     UFUNCTION(BlueprintCallable, Category = "Drift|Matches", meta = (DisplayName = "Get Active Matches", BlueprintInternalUseOnly = "true", WorldContext = "worldContextObject"))
-    static UGetActiveMatchesProxy* GetActiveMatches(UObject* worldContextObject, FString ref_filter);
+    static UGetActiveMatchesProxy* GetActiveMatches(UObject* worldContextObject, FString ref_filter, bool bUseDefaultsForEmptyRefFilter = true);
 
     UFUNCTION(BlueprintPure, Category = "Drift|Matches")
     static FString GetGameMode(const FBlueprintActiveMatch& entry);
-    
+
     UFUNCTION(BlueprintPure, Category = "Drift|Matches")
     static FString GetMapName(const FBlueprintActiveMatch& entry);
-    
+
     UFUNCTION(BlueprintPure, Category = "Drift|Matches")
     static FString GetMatchStatus(const FBlueprintActiveMatch& entry);
-    
+
     UFUNCTION(BlueprintPure, Category = "Drift|Matches")
     static int32 GetNumPlayers(const FBlueprintActiveMatch& entry);
-    
+
     UFUNCTION(BlueprintPure, Category = "Drift|Matches")
     static FString GetServerStatus(const FBlueprintActiveMatch& entry);
-    
+
     UPROPERTY(BlueprintAssignable)
     FGetActiveMatchesDelegate OnSuccess;
 
@@ -49,13 +50,13 @@ public:
     UGetActiveMatchesProxy(const FObjectInitializer& oi);
     virtual ~UGetActiveMatchesProxy();
 
-    FString ref_filter;
+    TOptional<FString> ref_filter;
 
 private:
     void OnCompleted(bool success);
 
     UObject* worldContextObject;
     TSharedPtr<FMatchesSearch> search;
-    
+
     FDelegateHandle onGotActiveMatchesHandle;
 };

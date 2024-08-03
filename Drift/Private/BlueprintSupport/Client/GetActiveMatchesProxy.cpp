@@ -7,10 +7,14 @@
 #include "DriftUtils.h"
 
 
-UGetActiveMatchesProxy* UGetActiveMatchesProxy::GetActiveMatches(UObject* worldContextObject, FString ref_filter)
+UGetActiveMatchesProxy* UGetActiveMatchesProxy::GetActiveMatches(UObject* worldContextObject, FString ref_filter, bool bUseDefaultsForEmptyRefFilter)
 {
-	auto request = NewObject<UGetActiveMatchesProxy>();
-	request->ref_filter = ref_filter;
+	const auto request = NewObject<UGetActiveMatchesProxy>();
+    const auto bUseDefaultRefFilter = ref_filter.IsEmpty() && bUseDefaultsForEmptyRefFilter;
+    if (!bUseDefaultRefFilter)
+    {
+        request->ref_filter = ref_filter;
+    }
     request->worldContextObject = worldContextObject;
 	return request;
 }

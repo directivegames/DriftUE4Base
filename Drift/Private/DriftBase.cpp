@@ -1256,11 +1256,7 @@ IDriftAuthProviderFactory* FDriftBase::GetUserPassAuthProviderFactory(const FStr
 void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
 {
     FString matches_url = driftEndpoints.active_matches;
-    FString ref_filter = search->ref_filter;
-    if (ref_filter.IsEmpty())
-    {
-        ref_filter = buildReference;
-    }
+    const FString ref_filter = search->ref_filter.Get(buildReference);
     internal::UrlHelper::AddUrlOption(matches_url, TEXT("ref"), ref_filter);
     internal::UrlHelper::AddUrlOption(matches_url, TEXT("placement"), defaultPlacement);
     if (search->match_id_filter.IsSet())
