@@ -501,7 +501,7 @@ private:
 
 	TMap<int32, int32> PlayerIdToTeamId;
 
-    TMap<FString,FString> DriftClientConfig;
+    TMap<FString, FString> DriftClientConfig;
 };
 
 

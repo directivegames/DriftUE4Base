@@ -2460,7 +2460,7 @@ void FDriftBase::InitDriftClientConfigs()
 
         auto ConfigJSON = doc.GetInternalValue()->AsObject();
 
-        if(!FJsonObjectConverter::JsonObjectToUStruct(ConfigJSON.ToSharedRef(), FDriftClientConfigListResponse::StaticStruct(), &ConfigList))
+        if (!FJsonObjectConverter::JsonObjectToUStruct(ConfigJSON.ToSharedRef(), FDriftClientConfigListResponse::StaticStruct(), &ConfigList))
         {
             FString Error;
             context.errorHandled = GetResponseError(context, Error);
@@ -2483,7 +2483,7 @@ void FDriftBase::InitDriftClientConfigs()
 FString FDriftBase::GetDriftClientConfigValue(const FString& ConfigKey)
 {
     FString* ValuePtr = DriftClientConfig.Find(ConfigKey);
-    if(!ValuePtr)
+    if (!ValuePtr)
     {
         DRIFT_LOG(Base, Warning, TEXT("Could not find client config value for key %s, returning empty string"), *ConfigKey);
         return TEXT("");

@@ -220,13 +220,13 @@ struct FChangePlayerNamePayload
 /*
  * Serialization of this from JSON to the struct, is handled by FJSonObjectConverter instead of JsonArchive
  */
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FDriftClientConfigListResponse
 {
     GENERATED_BODY();
 
-    UPROPERTY(BlueprintReadOnly)
-    TMap<FString,FString> client_configs;
+    UPROPERTY()
+    TMap<FString, FString> client_configs;
 };
 
 
