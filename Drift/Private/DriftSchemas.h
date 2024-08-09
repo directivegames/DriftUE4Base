@@ -16,6 +16,8 @@
 #include "JsonArchive.h"
 #include "Misc/DateTime.h"
 #include "DriftAPI.h"
+#include "CoreMinimal.h"
+#include "DriftSchemas.generated.h"
 
 
 class SerializationContext;
@@ -215,20 +217,16 @@ struct FChangePlayerNamePayload
 	bool Serialize(SerializationContext& context);
 };
 
-
-struct FDriftClientConfigResponse
-{
-    FString key;
-    FString value;
-
-    bool Serialize(SerializationContext& context);
-};
-
+/*
+ * Serialization of this from JSON to the struct, is handled by FJSonObjectConverter instead of JsonArchive
+ */
+USTRUCT(BlueprintType)
 struct FDriftClientConfigListResponse
 {
-    TArray<FDriftClientConfigResponse> configs;
+    GENERATED_BODY();
 
-    bool Serialize(SerializationContext& context);
+    UPROPERTY(BlueprintReadOnly)
+    TMap<FString,FString> client_configs;
 };
 
 

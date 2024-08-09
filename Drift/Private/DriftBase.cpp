@@ -33,6 +33,7 @@
 #include "GeneralProjectSettings.h"
 #include "IDriftMatchmaker.h"
 #include "IPAddress.h"
+#include "JsonObjectConverter.h"
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
@@ -2457,7 +2458,9 @@ void FDriftBase::InitDriftClientConfigs()
     {
         FDriftClientConfigListResponse ConfigList;
 
-        if (!JsonArchive::LoadObject(doc, ConfigList))
+        auto ConfigJSON = doc.GetInternalValue()->AsObject();
+
+        if(!FJsonObjectConverter::JsonObjectToUStruct(ConfigJSON.ToSharedRef(), FDriftClientConfigListResponse::StaticStruct(), &ConfigList))
         {
             FString Error;
             context.errorHandled = GetResponseError(context, Error);
@@ -2465,10 +2468,7 @@ void FDriftBase::InitDriftClientConfigs()
             return;
         }
 
-        for(const auto& Config : ConfigList.configs)
-        {
-            DriftClientConfig.Add({Config.key,Config.value});
-        }
+        DriftClientConfig.Append(ConfigList.client_configs);
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -2482,17 +2482,14 @@ void FDriftBase::InitDriftClientConfigs()
 
 FString FDriftBase::GetDriftClientConfigValue(const FString& ConfigKey)
 {
-    for (const auto& Entry : DriftClientConfig)
+    FString* ValuePtr = DriftClientConfig.Find(ConfigKey);
+    if(!ValuePtr)
     {
-        if(Entry.Key == ConfigKey)
-        {
-            return Entry.Value;
-        }
+        DRIFT_LOG(Base, Warning, TEXT("Could not find client config value for key %s, returning empty string"), *ConfigKey);
+        return TEXT("");
     }
 
-    DRIFT_LOG(Base, Warning, TEXT("Could not find client config value for key %s, returning empty string", *ConfigKey));
-
-    return TEXT("");
+    return *ValuePtr;
 }
 
 

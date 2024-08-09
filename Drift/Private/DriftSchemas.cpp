@@ -146,18 +146,6 @@ bool FChangePlayerNamePayload::Serialize(SerializationContext& context)
 	return SERIALIZE_PROPERTY(context, name);
 }
 
-bool FDriftClientConfigResponse::Serialize(SerializationContext& context)
-{
-    return SERIALIZE_PROPERTY(context, key)
-        && SERIALIZE_PROPERTY(context, value);
-}
-
-bool FDriftClientConfigListResponse::Serialize(SerializationContext& context)
-{
-    return SERIALIZE_PROPERTY(context, configs);
-}
-
-
 bool FCdnInfo::Serialize(SerializationContext& context)
 {
 	return SERIALIZE_PROPERTY(context, cdn)
