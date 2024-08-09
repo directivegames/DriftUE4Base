@@ -2460,7 +2460,7 @@ void FDriftBase::InitDriftClientConfigs()
         if (!JsonArchive::LoadObject(doc, ConfigList))
         {
             FString Error;
-            context.error = TEXT("Failed to parse client config response");
+            context.errorHandled = GetResponseError(context, Error);
             DRIFT_LOG(Base, Error, TEXT("Failed to parse client configs from drift-base. Error: %s"), *Error);
             return;
         }
@@ -2489,6 +2489,8 @@ FString FDriftBase::GetDriftClientConfigValue(const FString& ConfigKey)
             return Entry.Value;
         }
     }
+
+    DRIFT_LOG(Base, Warning, TEXT("Could not find client config value for key %s, returning empty string", *ConfigKey));
 
     return TEXT("");
 }
