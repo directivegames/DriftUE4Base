@@ -16,6 +16,8 @@
 #include "JsonArchive.h"
 #include "Misc/DateTime.h"
 #include "DriftAPI.h"
+#include "CoreMinimal.h"
+#include "DriftSchemas.generated.h"
 
 
 class SerializationContext;
@@ -31,6 +33,7 @@ struct FDriftEndpointsResponse
 	FString auth;
 	FString clientlogs;
 	FString clients;
+    FString client_configs;
 	FString counters;
 	FString eventlogs;
 	FString flexmatch_regions;
@@ -214,6 +217,18 @@ struct FChangePlayerNamePayload
 	bool Serialize(SerializationContext& context);
 };
 
+/*
+ * Serialization of this from JSON to the struct, is handled by FJSonObjectConverter instead of JsonArchive
+ */
+USTRUCT()
+struct FDriftClientConfigListResponse
+{
+    GENERATED_BODY();
+
+    UPROPERTY()
+    TMap<FString, FString> client_configs;
+};
+
 
 struct FCdnInfo
 {
@@ -258,6 +273,7 @@ struct FServerRegistrationPayload
 
 	bool Serialize(class SerializationContext& context);
 };
+
 
 
 struct FMatchesPayload

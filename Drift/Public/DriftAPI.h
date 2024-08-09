@@ -944,6 +944,9 @@ public:
     */
     virtual void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
+    /* Gets the value of a client config from drift */
+    virtual FString GetDriftClientConfigValue(const FString& ConfigKey) = 0;
+
     /**
      * Flush all counters. Requires at least one tick to actually flush.
      * This is normally called automatically on a timer. Only use it when you want to prepare for shutdown,

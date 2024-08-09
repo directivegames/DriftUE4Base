@@ -33,6 +33,7 @@
 #include "GeneralProjectSettings.h"
 #include "IDriftMatchmaker.h"
 #include "IPAddress.h"
+#include "JsonObjectConverter.h"
 #include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Features/IModularFeatures.h"
 #include "OnlineSubsystemTypes.h"
@@ -2450,6 +2451,47 @@ void FDriftBase::ConfigureSettingsSection(const FString& config)
     }
 }
 
+void FDriftBase::InitDriftClientConfigs()
+{
+    auto request = GetGameRequestManager()->Get(driftEndpoints.client_configs, HttpStatusCodes::Ok);
+    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    {
+        FDriftClientConfigListResponse ConfigList;
+
+        auto ConfigJSON = doc.GetInternalValue()->AsObject();
+
+        if (!FJsonObjectConverter::JsonObjectToUStruct(ConfigJSON.ToSharedRef(), FDriftClientConfigListResponse::StaticStruct(), &ConfigList))
+        {
+            FString Error;
+            context.errorHandled = GetResponseError(context, Error);
+            DRIFT_LOG(Base, Error, TEXT("Failed to parse client configs from drift-base. Error: %s"), *Error);
+            return;
+        }
+
+        DriftClientConfig.Append(ConfigList.client_configs);
+    });
+    request->OnError.BindLambda([this](ResponseContext& context)
+    {
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get client configs from drift-base. Error: %s"), *Error);
+
+    });
+    request->Dispatch();
+}
+
+FString FDriftBase::GetDriftClientConfigValue(const FString& ConfigKey)
+{
+    FString* ValuePtr = DriftClientConfig.Find(ConfigKey);
+    if (!ValuePtr)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Could not find client config value for key %s, returning empty string"), *ConfigKey);
+        return TEXT("");
+    }
+
+    return *ValuePtr;
+}
+
 
 void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
 {
@@ -2598,6 +2640,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         GetUserInfo();
+        InitDriftClientConfigs();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {

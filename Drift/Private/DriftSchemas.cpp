@@ -21,6 +21,7 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, auth)
 		&& SERIALIZE_PROPERTY(context, clientlogs)
 		&& SERIALIZE_PROPERTY(context, clients)
+        && SERIALIZE_PROPERTY(context, client_configs)
 		&& SERIALIZE_PROPERTY(context, counters)
 		&& SERIALIZE_PROPERTY(context, eventlogs)
 		&& SERIALIZE_PROPERTY(context, flexmatch_regions)
@@ -144,7 +145,6 @@ bool FChangePlayerNamePayload::Serialize(SerializationContext& context)
 {
 	return SERIALIZE_PROPERTY(context, name);
 }
-
 
 bool FCdnInfo::Serialize(SerializationContext& context)
 {
