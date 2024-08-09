@@ -2450,6 +2450,49 @@ void FDriftBase::ConfigureSettingsSection(const FString& config)
     }
 }
 
+void FDriftBase::InitDriftClientConfigs()
+{
+    auto request = GetGameRequestManager()->Get(driftEndpoints.client_configs, HttpStatusCodes::Ok);
+    request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
+    {
+        FDriftClientConfigListResponse ConfigList;
+
+        if (!JsonArchive::LoadObject(doc, ConfigList))
+        {
+            FString Error;
+            context.error = TEXT("Failed to parse client config response");
+            DRIFT_LOG(Base, Error, TEXT("Failed to parse client configs from drift-base. Error: %s"), *Error);
+            return;
+        }
+
+        for(const auto& Config : ConfigList.configs)
+        {
+            DriftClientConfig.Add({Config.key,Config.value});
+        }
+    });
+    request->OnError.BindLambda([this](ResponseContext& context)
+    {
+        FString Error;
+        context.errorHandled = GetResponseError(context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get client configs from drift-base. Error: %s"), *Error);
+
+    });
+    request->Dispatch();
+}
+
+FString FDriftBase::GetDriftClientConfigValue(const FString& ConfigKey)
+{
+    for (const auto& Entry : DriftClientConfig)
+    {
+        if(Entry.Key == ConfigKey)
+        {
+            return Entry.Value;
+        }
+    }
+
+    return TEXT("");
+}
+
 
 void FDriftBase::GetRootEndpoints(TFunction<void()> onSuccess)
 {
@@ -2598,6 +2641,7 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         GetUserInfo();
+        InitDriftClientConfigs();
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {

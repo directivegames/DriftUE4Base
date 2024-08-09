@@ -31,6 +31,7 @@ struct FDriftEndpointsResponse
 	FString auth;
 	FString clientlogs;
 	FString clients;
+    FString client_configs;
 	FString counters;
 	FString eventlogs;
 	FString flexmatch_regions;
@@ -215,6 +216,22 @@ struct FChangePlayerNamePayload
 };
 
 
+struct FDriftClientConfigResponse
+{
+    FString key;
+    FString value;
+
+    bool Serialize(SerializationContext& context);
+};
+
+struct FDriftClientConfigListResponse
+{
+    TArray<FDriftClientConfigResponse> configs;
+
+    bool Serialize(SerializationContext& context);
+};
+
+
 struct FCdnInfo
 {
 	FString cdn;
@@ -258,6 +275,7 @@ struct FServerRegistrationPayload
 
 	bool Serialize(class SerializationContext& context);
 };
+
 
 
 struct FMatchesPayload

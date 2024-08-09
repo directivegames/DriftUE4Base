@@ -138,6 +138,8 @@ public:
     void FlushCounters() override;
     void FlushEvents() override;
 
+    FString GetDriftClientConfigValue(const FString& ConfigKey) override;
+
     void Shutdown() override;
 
     const TMap<FString, FDateTime>& GetDeprecations() override;
@@ -219,6 +221,7 @@ public:
 
 private:
     void ConfigureSettingsSection(const FString& config);
+    void InitDriftClientConfigs();
 
     void GetRootEndpoints(TFunction<void()> onSuccess);
     void InitAuthentication(const FAuthenticationSettings& AuthenticationSettings);
@@ -497,6 +500,8 @@ private:
 	FString serverBearerToken_;
 
 	TMap<int32, int32> PlayerIdToTeamId;
+
+    TArray<TPair<FString,FString>> DriftClientConfig;
 };
 
 
