@@ -160,7 +160,10 @@ struct FClientRegistrationResponse
 
 struct FDriftPlayerResponse
 {
+    // LIAM
+    // Deprecated - see player_presence
 	bool is_online = false;
+   // FString player_presence; // See EDriftPresence
 
 	int32 player_id = 0;
 	int32 num_logons = 0;
@@ -203,7 +206,8 @@ struct FDriftUserIdentityPayload
 struct FDriftPlayerUpdateResponse
 {
 	bool is_online = false;
-
+    // LIAM: I added this and will attempt to adjust DB query to match
+    FString status = TEXT("active"); // LIAM TODO: Probably wrong default type?
 	int32 player_id = 0;
 
 	bool Serialize(SerializationContext& context);

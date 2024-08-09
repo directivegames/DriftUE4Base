@@ -134,6 +134,7 @@ bool FDriftPlayerUpdateResponse::Serialize(SerializationContext& context)
 	if (context.IsLoading())
 	{
 		return SERIALIZE_PROPERTY(context, is_online)
+            && SERIALIZE_PROPERTY(context, status)
 			&& SERIALIZE_PROPERTY(context, player_id);
 	}
 

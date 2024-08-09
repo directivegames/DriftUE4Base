@@ -2038,10 +2038,12 @@ bool FDriftBase::GetFriendsList(TArray<FDriftFriend>& friends)
     {
         if (entry.player_id == myPlayer.player_id)
         {
-            continue;
+            continue;\
         }
         const auto playerInfo = GetFriendInfo(entry.player_id);
+        // LIAM - Will this actually work?
         const auto presence = (playerInfo && playerInfo->is_online) ? EDriftPresence::Online : EDriftPresence::Offline;
+        // const auto presence = StaticCast<EDriftPresence>(StaticEnum<EDriftPresence>()->GetValueByNameString(playerInfo->player_presence));
         const auto type = (driftFriends.Find(entry.player_id) != nullptr)
             ? EDriftFriendType::Drift : EDriftFriendType::External;
         friends.Add(FDriftFriend{ entry.player_id, entry.player_name, presence, type });
@@ -4238,14 +4240,22 @@ void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
 
 void FDriftBase::UpdateFriendOnlineInfos()
 {
-    if (driftEndpoints.players.IsEmpty())
+    // LIAM - We hit this endpoint every few seconds to refresh friend data (i.e., it's polled)
+
+    // Example of URL structure, as far as I can tell
+    // https://www.directiveapi.dev/players/?player_group=friends&?key=is_online
+
+    auto url = driftEndpoints.players;
+    if (url.IsEmpty())
     {
         return;
     }
 
-    auto url = driftEndpoints.players;
     internal::UrlHelper::AddUrlOption(url, TEXT("player_group"), TEXT("friends"));
     internal::UrlHelper::AddUrlOption(url, TEXT("key"), TEXT("is_online"));
+    // LIAM: I added this stuff, in order to get the status from the DB alongside player online
+    internal::UrlHelper::AddUrlOption(url, TEXT("key"), TEXT("status"));
+
     auto request = GetGameRequestManager()->Get(url);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
     {
@@ -4259,13 +4269,24 @@ void FDriftBase::UpdateFriendOnlineInfos()
         {
             DRIFT_LOG(Base, VeryVerbose, TEXT("Got online status for %d: %d"), info.player_id, info.is_online ? 1 : 0);
 
+            // LIAM - Remove this
+            DRIFT_LOG(Base, Warning, TEXT("Got status for %d: %s"), info.player_id, *info.status);
+
             if (auto friendInfo = friendInfos.Find(info.player_id))
             {
                 auto oldOnlineStatus = friendInfo->is_online;
-                if (oldOnlineStatus != info.is_online)
+                auto oldStatus = friendInfo->status;
+
+                if (oldOnlineStatus != info.is_online || oldStatus != info.status)
                 {
                     friendInfo->is_online = info.is_online;
-                    onFriendPresenceChanged.Broadcast(info.player_id, info.is_online ? EDriftPresence::Online : EDriftPresence::Offline);
+                    friendInfo->status = info.status;
+
+                    // TODO: Could be extracted into a helper method.
+                    EDriftPresence presence = info.is_online ? EDriftPresence::Online : EDriftPresence::Offline;
+                    presence = (info.status == TEXT("active")) ? EDriftPresence::Playing : presence;
+
+                    onFriendPresenceChanged.Broadcast(info.player_id, presence);
                 }
             }
             else

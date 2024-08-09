@@ -339,13 +339,16 @@ struct FDriftLeaderboard
     TArray<FDriftLeaderboardEntry> rows;
 };
 
-
+// Liam
 UENUM(BlueprintType)
 enum class EDriftPresence : uint8
 {
     Unknown,
     Offline,
-    Online
+    // User is online, but not in a session
+    Online,
+    // User is online, and actively engaged in a session
+    Playing
 };
 
 
