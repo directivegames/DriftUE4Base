@@ -31,6 +31,7 @@ bool FDriftEndpointsResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, matchqueue)
 		&& SERIALIZE_PROPERTY(context, players)
 		&& SERIALIZE_PROPERTY(context, root)
+		&& SERIALIZE_PROPERTY(context, richpresence)
 		&& SERIALIZE_PROPERTY(context, servers)
 		&& SERIALIZE_PROPERTY(context, static_data)
 		&& SERIALIZE_PROPERTY(context, user_identities)
@@ -99,6 +100,18 @@ bool FClientRegistrationResponse::Serialize(SerializationContext& context)
 		&& SERIALIZE_PROPERTY(context, url)
 		&& SERIALIZE_PROPERTY(context, jwt)
 		&& SERIALIZE_PROPERTY(context, jti);
+}
+
+bool FRichPresenceResponse::Serialize(SerializationContext& context)
+{
+    if (context.IsLoading())
+    {
+        return SERIALIZE_PROPERTY(context, game_mode)
+            && SERIALIZE_PROPERTY(context, map_name)
+            && SERIALIZE_PROPERTY(context, is_online)
+            && SERIALIZE_PROPERTY(context, is_in_game);
+    }
+    return false;
 }
 
 

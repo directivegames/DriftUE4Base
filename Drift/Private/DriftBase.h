@@ -274,6 +274,7 @@ private:
     FDriftPlayerAuthenticatedDelegate onPlayerAuthenticated;
     FDriftConnectionStateChangedDelegate onConnectionStateChanged;
     FDriftFriendPresenceChangedDelegate onFriendPresenceChanged;
+    FDriftFriendRichPresenceChangedDelegate onFriendRichPresenceChanged;
     FDriftRecievedMatchInviteDelegate onReceivedMatchInvite;
     FDriftStaticDataLoadedDelegate onStaticDataLoaded;
     FDriftStaticDataProgressDelegate onStaticDataProgress;
@@ -351,6 +352,13 @@ private:
     void MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegate);
     void CacheFriendInfos(const TFunction<void(bool)>& delegate);
     void UpdateFriendOnlineInfos();
+
+    /**
+     * Refreshes the rich-presence status of a player, if it's changed.
+     * @param playerID The ID of the friend you want to fetch rich-presence information from
+     * @emit onFriendRichPresenceChanged
+     */
+    void UpdateFriendRichPresence(int32 playerID);
 
     const FDriftPlayerResponse* GetFriendInfo(int32 playerID) const;
 
@@ -461,6 +469,8 @@ private:
 
     TMap<int32, FDriftFriendResponse> driftFriends;
     TMap<int32, FDriftPlayerResponse> friendInfos;
+    TMap<int32, FRichPresenceResponse> richPresenceCache;
+
     bool shouldUpdateFriends = false;
     float updateFriendsInSeconds = 0.0f;
 

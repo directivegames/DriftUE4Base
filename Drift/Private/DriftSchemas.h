@@ -42,6 +42,7 @@ struct FDriftEndpointsResponse
 	FString matches;
 	FString matchqueue;
 	FString players;
+    FString richpresence;
 	FString root;
 	FString servers;
 	FString static_data;
@@ -152,18 +153,39 @@ struct FClientRegistrationResponse
 	bool Serialize(SerializationContext& context);
 };
 
+/**
+ * Response from GET endpoints.richpresence
+ */
+struct FRichPresenceResponse
+{
+    FString game_mode;
+    FString map_name;
+    bool is_online;
+    bool is_in_game;
+
+    friend bool operator==(const FRichPresenceResponse& Lhs, const FRichPresenceResponse& RHS)
+    {
+        return Lhs.game_mode == RHS.game_mode
+            && Lhs.map_name == RHS.map_name
+            && Lhs.is_online == RHS.is_online
+            && Lhs.is_in_game == RHS.is_in_game;
+    }
+
+    friend bool operator!=(const FRichPresenceResponse& Lhs, const FRichPresenceResponse& RHS)
+    {
+        return !(Lhs == RHS);
+    }
+
+    bool Serialize(SerializationContext& context);
+};
 
 /**
  * Response from GET endpoints.my_player
  * Array item response from GET endpoints.players
  */
-
 struct FDriftPlayerResponse
 {
-    // LIAM
-    // Deprecated - see player_presence
-	bool is_online = false;
-   // FString player_presence; // See EDriftPresence
+	bool is_online = false; // Deprecated: See RichPresence
 
 	int32 player_id = 0;
 	int32 num_logons = 0;
@@ -206,8 +228,6 @@ struct FDriftUserIdentityPayload
 struct FDriftPlayerUpdateResponse
 {
 	bool is_online = false;
-    // LIAM: I added this and will attempt to adjust DB query to match
-    FString status = TEXT("active"); // LIAM TODO: Probably wrong default type?
 	int32 player_id = 0;
 
 	bool Serialize(SerializationContext& context);

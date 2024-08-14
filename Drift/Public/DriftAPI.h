@@ -339,18 +339,13 @@ struct FDriftLeaderboard
     TArray<FDriftLeaderboardEntry> rows;
 };
 
-// Liam
 UENUM(BlueprintType)
 enum class EDriftPresence : uint8
 {
     Unknown,
     Offline,
-    // User is online, but not in a session
     Online,
-    // User is online, and actively engaged in a session
-    Playing
 };
-
 
 UENUM(BlueprintType)
 enum class EDriftFriendType : uint8
@@ -615,7 +610,9 @@ DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<F
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
 
+// Deprecated: Use FDriftFriendRichPresenceChangedDelegate
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendRichPresenceChangedDelegate, int32 /*player_id*/, FRichPresenceResponse);
 
 DECLARE_DELEGATE_OneParam(FDriftAddPlayerIdentityProgressDelegate, const FDriftAddPlayerIdentityProgress&);
 

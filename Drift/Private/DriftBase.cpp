@@ -4240,11 +4240,6 @@ void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
 
 void FDriftBase::UpdateFriendOnlineInfos()
 {
-    // LIAM - We hit this endpoint every few seconds to refresh friend data (i.e., it's polled)
-
-    // Example of URL structure, as far as I can tell
-    // https://www.directiveapi.dev/players/?player_group=friends&?key=is_online
-
     auto url = driftEndpoints.players;
     if (url.IsEmpty())
     {
@@ -4253,8 +4248,6 @@ void FDriftBase::UpdateFriendOnlineInfos()
 
     internal::UrlHelper::AddUrlOption(url, TEXT("player_group"), TEXT("friends"));
     internal::UrlHelper::AddUrlOption(url, TEXT("key"), TEXT("is_online"));
-    // LIAM: I added this stuff, in order to get the status from the DB alongside player online
-    internal::UrlHelper::AddUrlOption(url, TEXT("key"), TEXT("status"));
 
     auto request = GetGameRequestManager()->Get(url);
     request->OnResponse.BindLambda([this](ResponseContext& context, JsonDocument& doc)
@@ -4268,24 +4261,17 @@ void FDriftBase::UpdateFriendOnlineInfos()
         for (const auto& info : infos)
         {
             DRIFT_LOG(Base, VeryVerbose, TEXT("Got online status for %d: %d"), info.player_id, info.is_online ? 1 : 0);
-
-            // LIAM - Remove this
-            DRIFT_LOG(Base, Warning, TEXT("Got status for %d: %s"), info.player_id, *info.status);
+            UpdateFriendRichPresence(info.player_id);
 
             if (auto friendInfo = friendInfos.Find(info.player_id))
             {
                 auto oldOnlineStatus = friendInfo->is_online;
-                auto oldStatus = friendInfo->status;
 
-                if (oldOnlineStatus != info.is_online || oldStatus != info.status)
+                if (oldOnlineStatus != info.is_online)
                 {
                     friendInfo->is_online = info.is_online;
-                    friendInfo->status = info.status;
 
-                    // TODO: Could be extracted into a helper method.
                     EDriftPresence presence = info.is_online ? EDriftPresence::Online : EDriftPresence::Offline;
-                    presence = (info.status == TEXT("active")) ? EDriftPresence::Playing : presence;
-
                     onFriendPresenceChanged.Broadcast(info.player_id, presence);
                 }
             }
@@ -4302,6 +4288,36 @@ void FDriftBase::UpdateFriendOnlineInfos()
         DRIFT_LOG(Base, Error, TEXT("Failed to update friend online infos: %s"), *Error);
     });
     request->Dispatch();
+}
+
+void FDriftBase::UpdateFriendRichPresence(int32 playerID)
+{
+    const auto url = driftEndpoints.richpresence.Replace(TEXT("{player_id}"), *FString::FromInt(playerID));
+    if (url.IsEmpty())
+    {
+        return;
+    }
+
+    auto request = GetGameRequestManager()->Get(url);
+    request->OnResponse.BindLambda([this, playerID](ResponseContext& context, JsonDocument& doc)
+    {
+        FRichPresenceResponse richPresence;
+        if (!JsonArchive::LoadObject(doc, richPresence))
+        {
+            context.error = TEXT("Failed to parse rich presence response");
+            return;
+        }
+
+        if (!richPresenceCache.Contains(playerID))
+        {
+            richPresenceCache.Add(playerID, richPresence);
+        }
+
+        if (richPresence != richPresenceCache.FindChecked(playerID))
+        {
+            onFriendRichPresenceChanged.Broadcast(playerID, richPresence);
+        }
+    });
 }
 
 
