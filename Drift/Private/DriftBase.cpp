@@ -2041,9 +2041,7 @@ bool FDriftBase::GetFriendsList(TArray<FDriftFriend>& friends)
             continue;
         }
         const auto playerInfo = GetFriendInfo(entry.player_id);
-        // LIAM - Will this actually work?
         const auto presence = (playerInfo && playerInfo->is_online) ? EDriftPresence::Online : EDriftPresence::Offline;
-        // const auto presence = StaticCast<EDriftPresence>(StaticEnum<EDriftPresence>()->GetValueByNameString(playerInfo->player_presence));
         const auto type = (driftFriends.Find(entry.player_id) != nullptr)
             ? EDriftFriendType::Drift : EDriftFriendType::External;
         friends.Add(FDriftFriend{ entry.player_id, entry.player_name, presence, type });
@@ -4270,9 +4268,7 @@ void FDriftBase::UpdateFriendOnlineInfos()
                 if (oldOnlineStatus != info.is_online)
                 {
                     friendInfo->is_online = info.is_online;
-
-                    EDriftPresence presence = info.is_online ? EDriftPresence::Online : EDriftPresence::Offline;
-                    onFriendPresenceChanged.Broadcast(info.player_id, presence);
+                    onFriendPresenceChanged.Broadcast(info.player_id, info.is_online ? EDriftPresence::Online : EDriftPresence::Offline);
                 }
             }
             else
