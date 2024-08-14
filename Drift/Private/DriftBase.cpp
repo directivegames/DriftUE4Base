@@ -2038,7 +2038,7 @@ bool FDriftBase::GetFriendsList(TArray<FDriftFriend>& friends)
     {
         if (entry.player_id == myPlayer.player_id)
         {
-            continue;\
+            continue;
         }
         const auto playerInfo = GetFriendInfo(entry.player_id);
         // LIAM - Will this actually work?
