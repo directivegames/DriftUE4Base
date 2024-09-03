@@ -25,6 +25,10 @@ public:
     FName GetAuthProviderName() const override;
     TUniquePtr<IDriftAuthProvider> GetAuthProvider() override;
 
+#if WITH_EDITOR
+    bool IsSupportedInPIE() const override { return true; }
+#endif
+
 private:
     FCommandLineArgumentAccessTokenSource AccessTokenArgSource{TEXT("access_token")};
     FCommandLineArgumentAccessTokenSource JwtArgSource{TEXT("jwt")};
