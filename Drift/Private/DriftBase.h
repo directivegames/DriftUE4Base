@@ -139,6 +139,7 @@ public:
     void FlushEvents() override;
 
     FString GetDriftClientConfigValue(const FString& ConfigKey) override;
+    void FetchDriftClientConfigs(const FDriftFetchClientConfigsComplete& InDelegate) override;
 
     void Shutdown() override;
 
@@ -221,7 +222,6 @@ public:
 
 private:
     void ConfigureSettingsSection(const FString& config);
-    void InitDriftClientConfigs();
 
     void GetRootEndpoints(TFunction<void()> onSuccess);
     void InitAuthentication(const FAuthenticationSettings& AuthenticationSettings);

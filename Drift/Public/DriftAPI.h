@@ -645,6 +645,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftNewDeprecationDelegate, const FString
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FDriftReceivedMessageDelegate, const FDriftMessage& /*Message*/);
 
+DECLARE_DELEGATE_OneParam(FDriftFetchClientConfigsComplete, bool /*bSuccess*/);
+
 
 struct FAuthenticationSettings
 {
@@ -944,8 +946,11 @@ public:
     */
     virtual void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
-    /* Gets the value of a client config from drift */
+    /* Gets the cached value of a client config from drift */
     virtual FString GetDriftClientConfigValue(const FString& ConfigKey) = 0;
+
+    /* Fetch client config values from the client and update the cache*/
+    virtual void FetchDriftClientConfigs(const FDriftFetchClientConfigsComplete& InDelegate) = 0;
 
     /**
      * Flush all counters. Requires at least one tick to actually flush.
