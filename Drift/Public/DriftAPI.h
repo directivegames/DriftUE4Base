@@ -623,6 +623,7 @@ DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
 
 DECLARE_DELEGATE_TwoParams(FDriftGetFriendRichPresenceDelegate, bool, const FRichPresenceResult);
+DECLARE_DELEGATE_OneParam(FDriftGetFriendsRichPresenceDelegate, bool);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -900,6 +901,11 @@ public:
      * After doing a one-time request, you should listen for updates via the 'richpresence' message queue instead.
      */
     virtual void GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) = 0;
+
+    /**
+     * Gets and caches Rich Presence information for the friends in your friend list.
+     */
+    virtual void CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate) = 0;
 
     /**
      * Gets rich presence information sync. Requires to be pre-cached.

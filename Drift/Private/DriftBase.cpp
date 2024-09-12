@@ -4656,7 +4656,7 @@ void FDriftBase::GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRich
     FString Url = driftEndpoints.template_richpresence.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
 
     const auto Request = GetGameRequestManager()->Get(Url);
-    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    Request->OnResponse.BindLambda([this, Delegate, FriendId](ResponseContext& Context, JsonDocument& Doc)
     {
         FRichPresenceResult Result;
         if (!JsonArchive::LoadObject(Doc, Result))
@@ -4665,6 +4665,7 @@ void FDriftBase::GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRich
             return;
         }
 
+        RichPresenceCache.Add(FriendId, Result);
         (void) Delegate.ExecuteIfBound(true, Result);
     });
 
@@ -4674,6 +4675,26 @@ void FDriftBase::GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRich
         Context.errorHandled = GetResponseError(Context, Error);
         DRIFT_LOG(Base, Error, TEXT("Failed to get richpresence from url: %s. Error: '%s'"), *Url, *Error);
     });
+}
+
+void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate)
+{
+    TArray<FDriftFriend> DriftFriends;
+    GetFriendsList(DriftFriends);
+    const int32 NumFriends = DriftFriends.Num();
+    int32 Results = 0;
+
+    for (auto& DriftFriend : DriftFriends)
+    {
+        GetFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([&Results, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
+        {
+            Results += 1;
+            if (Results == NumFriends)
+            {
+                Delegate.Execute(true);
+            }
+        }));
+    }
 }
 
 void FDriftBase::InternalGetUserIdentities(const FString& url, const FDriftGetUserIdentitiesDelegate& delegate)

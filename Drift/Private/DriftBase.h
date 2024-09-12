@@ -133,7 +133,9 @@ public:
     void GetUserIdentitiesByNames(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) override;
     void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
 
+    const FRichPresenceResult* GetRichPresence(int32 playerID) const override;
     void GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) override;
+    void CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate) override;
 
     bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
 
@@ -355,7 +357,6 @@ private:
     void UpdateFriendOnlineInfos();
 
     const FDriftPlayerResponse* GetFriendInfo(int32 playerID) const;
-    const FRichPresenceResult* GetRichPresence(int32 playerID) const override;
 
 	void InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams);
 
