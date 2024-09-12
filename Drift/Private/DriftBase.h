@@ -133,6 +133,8 @@ public:
     void GetUserIdentitiesByNames(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) override;
     void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
 
+    void GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) override;
+
     bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
 
     void FlushCounters() override;
@@ -353,6 +355,7 @@ private:
     void UpdateFriendOnlineInfos();
 
     const FDriftPlayerResponse* GetFriendInfo(int32 playerID) const;
+    const FRichPresenceResult* GetRichPresence(int32 playerID) const override;
 
 	void InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams);
 
@@ -461,6 +464,8 @@ private:
 
     TMap<int32, FDriftFriendResponse> driftFriends;
     TMap<int32, FDriftPlayerResponse> friendInfos;
+    TMap<int32, FRichPresenceResult> RichPresenceCache;
+
     bool shouldUpdateFriends = false;
     float updateFriendsInSeconds = 0.0f;
 

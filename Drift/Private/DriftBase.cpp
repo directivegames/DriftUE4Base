@@ -4291,6 +4291,11 @@ const FDriftPlayerResponse* FDriftBase::GetFriendInfo(int32 playerID) const
     return friendInfos.Find(playerID);
 }
 
+const FRichPresenceResult* FDriftBase::GetRichPresence(int32 playerID) const
+{
+    return RichPresenceCache.Find(playerID);
+}
+
 void FDriftBase::InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams)
 {
     if (state_ != DriftSessionState::Connected)
@@ -4637,6 +4642,38 @@ void FDriftBase::GetUserIdentitiesByName(const FString& name, const FDriftGetUse
     TArray<FString> namesArray;
     namesArray.Add(name);
     GetUserIdentitiesByNames(namesArray, delegate);
+}
+
+void FDriftBase::GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate)
+{
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get rich presence without being connected"));
+        (void) Delegate.ExecuteIfBound(false, {});
+        return;
+    }
+
+    FString Url = driftEndpoints.template_richpresence.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
+
+    const auto Request = GetGameRequestManager()->Get(Url);
+    Request->OnResponse.BindLambda([this, Delegate](ResponseContext& Context, JsonDocument& Doc)
+    {
+        FRichPresenceResult Result;
+        if (!JsonArchive::LoadObject(Doc, Result))
+        {
+            Context.error = TEXT("Failed to parse user identities response");
+            return;
+        }
+
+        (void) Delegate.ExecuteIfBound(true, Result);
+    });
+
+    Request->OnError.BindLambda([this, Delegate, Url](ResponseContext& Context)
+    {
+        FString Error;
+        Context.errorHandled = GetResponseError(Context, Error);
+        DRIFT_LOG(Base, Error, TEXT("Failed to get richpresence from url: %s. Error: '%s'"), *Url, *Error);
+    });
 }
 
 void FDriftBase::InternalGetUserIdentities(const FString& url, const FDriftGetUserIdentitiesDelegate& delegate)

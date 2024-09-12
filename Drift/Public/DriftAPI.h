@@ -513,6 +513,16 @@ struct FDriftMatchesResult
     int32 MatchesPerPage = 0;
 };
 
+struct FRichPresenceResult
+{
+    bool is_online;
+    bool is_in_game;
+    FString map_name;
+    FString game_mode;
+
+    bool Serialize(class SerializationContext& context);
+};
+
 struct FGetDriftMatchesParameters
 {
     int32 PageNumber = 1;
@@ -611,6 +621,8 @@ DECLARE_DELEGATE_OneParam(FDriftDeclineFriendRequestDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<FDriftFriendRequest>&);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
+
+DECLARE_DELEGATE_TwoParams(FDriftGetFriendRichPresenceDelegate, bool, const FRichPresenceResult);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -882,6 +894,17 @@ public:
      * Get the name of a friend, if it has been cached by LoadFriendsList()
      */
     virtual FString GetFriendName(int32 friendID) = 0;
+
+    /**
+     * Gets the Rich Presence information for a specific player. The player must be a friend of the local player.
+     * After doing a one-time request, you should listen for updates via the 'richpresence' message queue instead.
+     */
+    virtual void GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) = 0;
+
+    /**
+     * Gets rich presence information sync. Requires to be pre-cached.
+     */
+    virtual const FRichPresenceResult* GetRichPresence(int32 playerID) const = 0;
 
     /**
      * Issue a friend invite token to 'PlayerID'
