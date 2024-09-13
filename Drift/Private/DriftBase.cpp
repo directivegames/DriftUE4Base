@@ -12,6 +12,7 @@
 
 #include "DriftBase.h"
 
+#include "CommonDelegates.h"
 #include "JsonRequestManager.h"
 #include "JsonArchive.h"
 #include "JsonUtils.h"
@@ -4292,13 +4293,18 @@ const FDriftPlayerResponse* FDriftBase::GetFriendInfo(int32 playerID) const
     return friendInfos.Find(playerID);
 }
 
-const FRichPresence& FDriftBase::GetRichPresence(int32 playerID) const
+const FRichPresenceResult& FDriftBase::GetRichPresence(int32 playerID) const
 {
     if (RichPresenceCache.Contains(playerID))
     {
-        return FRichPresence(RichPresenceCache.FindChecked(playerID));
+        return RichPresenceCache.FindChecked(playerID);;
     }
-    return FRichPresence();
+    return FRichPresenceResult();
+}
+
+const bool FDriftBase::HasRichPresence(int32 PlayerID) const
+{
+    return RichPresenceCache.Contains(PlayerID);
 }
 
 void FDriftBase::InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams)

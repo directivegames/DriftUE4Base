@@ -918,7 +918,12 @@ public:
     /**
      * Gets rich presence information sync. Requires to be pre-cached.
      */
-    virtual const FRichPresence& GetRichPresence(int32 playerID) const = 0;
+    virtual const FRichPresenceResult& GetRichPresence(int32 PlayerID) const = 0;
+
+    /**
+     * Returns whether rich presence information is available for a specific player.
+     */
+    virtual const bool HasRichPresence(int32 PlayerID) const = 0;
 
     /**
      * Issue a friend invite token to 'PlayerID'
