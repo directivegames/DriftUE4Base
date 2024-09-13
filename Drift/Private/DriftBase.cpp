@@ -40,6 +40,7 @@
 #include "Internationalization/Internationalization.h"
 #include "Misc/EngineVersionComparison.h"
 #include "GenericPlatform/GenericPlatformOutputDevices.h"
+#include "Perseus/Public/Services/IPlayerGameStateSvc.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -4291,9 +4292,13 @@ const FDriftPlayerResponse* FDriftBase::GetFriendInfo(int32 playerID) const
     return friendInfos.Find(playerID);
 }
 
-const FRichPresenceResult* FDriftBase::GetRichPresence(int32 playerID) const
+const FRichPresence& FDriftBase::GetRichPresence(int32 playerID) const
 {
-    return RichPresenceCache.Find(playerID);
+    if (RichPresenceCache.Contains(playerID))
+    {
+        return FRichPresence(RichPresenceCache.FindChecked(playerID));
+    }
+    return FRichPresence();
 }
 
 void FDriftBase::InternalAddMatch(const FString& mapName, const FString& gameMode, int32 maxPlayers, TOptional<TArray<FString>> teamNames, TOptional<int32> numTeams)

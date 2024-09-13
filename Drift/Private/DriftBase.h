@@ -30,6 +30,7 @@
 #include "VisualLogger/VisualLoggerTypes.h"
 
 
+struct FRichPresence;
 class ResponseContext;
 class FKaleoErrorDelegate;
 
@@ -133,7 +134,7 @@ public:
     void GetUserIdentitiesByNames(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) override;
     void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
 
-    const FRichPresenceResult* GetRichPresence(int32 playerID) const override;
+    const FRichPresence& GetRichPresence(int32 playerID) const override;
     void GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) override;
     void CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate) override;
 

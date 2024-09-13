@@ -21,6 +21,7 @@
 
 #include "DriftAPI.generated.h"
 
+struct FRichPresence;
 class IDriftMessageQueue;
 
 /**
@@ -917,7 +918,7 @@ public:
     /**
      * Gets rich presence information sync. Requires to be pre-cached.
      */
-    virtual const FRichPresenceResult* GetRichPresence(int32 playerID) const = 0;
+    virtual const FRichPresence& GetRichPresence(int32 playerID) const = 0;
 
     /**
      * Issue a friend invite token to 'PlayerID'
