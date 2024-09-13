@@ -21,6 +21,7 @@
 
 #include "DriftAPI.generated.h"
 
+struct FRichPresence;
 class IDriftMessageQueue;
 
 /**
@@ -513,6 +514,23 @@ struct FDriftMatchesResult
     int32 MatchesPerPage = 0;
 };
 
+struct FRichPresenceResult: FJsonSerializable
+{
+    BEGIN_JSON_SERIALIZER;
+        JSON_SERIALIZE("is_online", is_online);
+        JSON_SERIALIZE("is_in_game", is_in_game);
+        JSON_SERIALIZE("map_name", map_name);
+        JSON_SERIALIZE("game_mode", game_mode);
+    END_JSON_SERIALIZER;
+
+    bool is_online;
+    bool is_in_game;
+    FString map_name;
+    FString game_mode;
+
+    bool Serialize(class SerializationContext& context);
+};
+
 struct FGetDriftMatchesParameters
 {
     int32 PageNumber = 1;
@@ -611,6 +629,9 @@ DECLARE_DELEGATE_OneParam(FDriftDeclineFriendRequestDelegate, bool);
 DECLARE_DELEGATE_TwoParams(FDriftGetFriendRequestsDelegate, bool, const TArray<FDriftFriendRequest>&);
 DECLARE_DELEGATE_TwoParams(FDriftRemoveFriendDelegate, bool, int32);
 DECLARE_DELEGATE_TwoParams(FDriftFindPlayerByNameDelegate, bool, const TArray<FDriftFriend>&);
+
+DECLARE_DELEGATE_TwoParams(FDriftGetFriendRichPresenceDelegate, bool, const FRichPresenceResult);
+DECLARE_DELEGATE_OneParam(FDriftGetFriendsRichPresenceDelegate, bool);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftFriendPresenceChangedDelegate, int32, EDriftPresence);
 
@@ -882,6 +903,27 @@ public:
      * Get the name of a friend, if it has been cached by LoadFriendsList()
      */
     virtual FString GetFriendName(int32 friendID) = 0;
+
+    /**
+     * Gets the Rich Presence information for a specific player. The player must be a friend of the local player.
+     * After doing a one-time request, you should listen for updates via the 'richpresence' message queue instead.
+     */
+    virtual void CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) = 0;
+
+    /**
+     * Gets and caches Rich Presence information for the friends in your friend list.
+     */
+    virtual void CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate) = 0;
+
+    /**
+     * Gets rich presence information sync. Requires to be pre-cached.
+     */
+    virtual FRichPresenceResult GetRichPresence(int32 PlayerID) const = 0;
+
+    /**
+     * Returns whether rich presence information is available for a specific player.
+     */
+    virtual const bool HasRichPresence(int32 PlayerID) const = 0;
 
     /**
      * Issue a friend invite token to 'PlayerID'

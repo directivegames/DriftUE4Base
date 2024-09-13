@@ -60,6 +60,7 @@ struct FDriftEndpointsResponse
 	FString template_lobby_member;
 	FString template_lobby_members;
 	FString template_player_gamestate;
+    FString template_richpresence;
 
 	// Added after authentication
 	FString my_flexmatch;

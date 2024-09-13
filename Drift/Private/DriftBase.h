@@ -14,7 +14,6 @@
 
 #include "DriftAPI.h"
 #include "DriftSchemas.h"
-#include "CommonDelegates.h"
 #include "JsonRequestManager.h"
 #include "DriftCounterManager.h"
 #include "DriftEventManager.h"
@@ -30,6 +29,7 @@
 #include "VisualLogger/VisualLoggerTypes.h"
 
 
+struct FRichPresence;
 class ResponseContext;
 class FKaleoErrorDelegate;
 
@@ -132,6 +132,11 @@ public:
     void GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUserIdentitiesDelegate& delegate) override;
     void GetUserIdentitiesByNames(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) override;
     void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
+
+    FRichPresenceResult GetRichPresence(int32 playerID) const override;
+    const bool HasRichPresence(int32 PlayerID) const override;
+    void CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) override;
+    void CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate) override;
 
     bool FindPlayersByName(const FString& SearchString, const FDriftFindPlayerByNameDelegate& delegate) override;
 
@@ -461,6 +466,8 @@ private:
 
     TMap<int32, FDriftFriendResponse> driftFriends;
     TMap<int32, FDriftPlayerResponse> friendInfos;
+    TMap<int32, FRichPresenceResult> RichPresenceCache;
+
     bool shouldUpdateFriends = false;
     float updateFriendsInSeconds = 0.0f;
 
