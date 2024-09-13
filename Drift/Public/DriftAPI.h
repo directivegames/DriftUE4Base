@@ -908,7 +908,7 @@ public:
      * Gets the Rich Presence information for a specific player. The player must be a friend of the local player.
      * After doing a one-time request, you should listen for updates via the 'richpresence' message queue instead.
      */
-    virtual void GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) = 0;
+    virtual void CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) = 0;
 
     /**
      * Gets and caches Rich Presence information for the friends in your friend list.
@@ -918,7 +918,7 @@ public:
     /**
      * Gets rich presence information sync. Requires to be pre-cached.
      */
-    virtual const FRichPresenceResult& GetRichPresence(int32 PlayerID) const = 0;
+    virtual FRichPresenceResult GetRichPresence(int32 PlayerID) const = 0;
 
     /**
      * Returns whether rich presence information is available for a specific player.

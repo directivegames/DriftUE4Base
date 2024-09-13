@@ -41,7 +41,6 @@
 #include "Internationalization/Internationalization.h"
 #include "Misc/EngineVersionComparison.h"
 #include "GenericPlatform/GenericPlatformOutputDevices.h"
-#include "Perseus/Public/Services/IPlayerGameStateSvc.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -4293,7 +4292,7 @@ const FDriftPlayerResponse* FDriftBase::GetFriendInfo(int32 playerID) const
     return friendInfos.Find(playerID);
 }
 
-const FRichPresenceResult& FDriftBase::GetRichPresence(int32 playerID) const
+FRichPresenceResult FDriftBase::GetRichPresence(int32 playerID) const
 {
     if (RichPresenceCache.Contains(playerID))
     {
@@ -4655,7 +4654,7 @@ void FDriftBase::GetUserIdentitiesByName(const FString& name, const FDriftGetUse
     GetUserIdentitiesByNames(namesArray, delegate);
 }
 
-void FDriftBase::GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate)
+void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate)
 {
     if (state_ != DriftSessionState::Connected)
     {
@@ -4684,7 +4683,9 @@ void FDriftBase::GetFriendRichPresence(int32 FriendId, const FDriftGetFriendRich
     {
         FString Error;
         Context.errorHandled = GetResponseError(Context, Error);
-        DRIFT_LOG(Base, Error, TEXT("Failed to get richpresence from url: %s. Error: '%s'"), *Url, *Error);
+        const FString ErrorMessage = FString::Printf(TEXT("Failed to get richpresence from url: %s. Error: '%s'"), *Url, *Error);
+        DRIFT_LOG(Base, Error, TEXT("%s"), *ErrorMessage);
+        IErrorReporter::Get()->AddError(TEXT("FDriftBase"), *ErrorMessage);
     });
 }
 
@@ -4697,8 +4698,9 @@ void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDele
 
     for (auto& DriftFriend : DriftFriends)
     {
-        GetFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([&Results, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
+        CacheFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([&Results, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
         {
+            // Fire delegate once all requests are complete
             Results += 1;
             if (Results == NumFriends)
             {
