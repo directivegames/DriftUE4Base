@@ -517,12 +517,14 @@ struct FDriftMatchesResult
 struct FRichPresenceResult: FJsonSerializable
 {
     BEGIN_JSON_SERIALIZER;
+        JSON_SERIALIZE("player_id", player_id);
         JSON_SERIALIZE("is_online", is_online);
         JSON_SERIALIZE("is_in_game", is_in_game);
         JSON_SERIALIZE("map_name", map_name);
         JSON_SERIALIZE("game_mode", game_mode);
     END_JSON_SERIALIZER;
 
+    int32 player_id;
     bool is_online;
     bool is_in_game;
     FString map_name;

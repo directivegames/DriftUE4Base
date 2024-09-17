@@ -4664,6 +4664,8 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
     }
 
     FString Url = driftEndpoints.template_richpresence.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
+    // Url = TEXT("https://dg-perseus-dev.live.dg-api.com/drift/rich-presence/{player_id}");
+    // Url = Url.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
 
     const auto Request = GetGameRequestManager()->Get(Url);
     Request->OnResponse.BindLambda([this, Delegate, FriendId](ResponseContext& Context, JsonDocument& Doc)
@@ -4671,7 +4673,7 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
         FRichPresenceResult Result;
         if (!JsonArchive::LoadObject(Doc, Result))
         {
-            Context.error = TEXT("Failed to parse user identities response");
+            Context.error = TEXT("Failed to parse richpresence response");
             return;
         }
 
@@ -4687,6 +4689,7 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
         DRIFT_LOG(Base, Error, TEXT("%s"), *ErrorMessage);
         IErrorReporter::Get()->AddError(TEXT("FDriftBase"), *ErrorMessage);
     });
+    Request->Dispatch();
 }
 
 void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate)
