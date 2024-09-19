@@ -4669,6 +4669,11 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
     }
 
     FString Url = driftEndpoints.template_richpresence.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
+    if (Url.IsEmpty())
+    {
+        // This could be the case if the Client is speaking with an old deployment of drift-base, pre rich-presence
+        return;
+    }
 
     const auto Request = GetGameRequestManager()->Get(Url);
     Request->OnResponse.BindLambda([this, Delegate, FriendId](ResponseContext& Context, JsonDocument& Doc)
