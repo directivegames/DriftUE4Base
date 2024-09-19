@@ -235,6 +235,7 @@ private:
     void GetPlayerEndpoints();
     void GetPlayerInfo();
 
+    // TODO LIAM
     void AuthenticatePlayer(IDriftAuthProvider* provider);
 
     void AddPlayerIdentity(const TSharedPtr<IDriftAuthProvider>& provider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate);
@@ -509,6 +510,8 @@ private:
 	TMap<int32, int32> PlayerIdToTeamId;
 
     TMap<FString, FString> DriftClientConfig;
+
+    int32 NumPendingDelegates = 0;
 };
 
 

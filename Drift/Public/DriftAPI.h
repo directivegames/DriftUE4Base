@@ -724,6 +724,7 @@ public:
     */
     virtual void AuthenticatePlayer() = 0;
     virtual void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) = 0;
+    // TODO LIAM:Is there a deauthenticate?
 
     /**
      * Get connection state

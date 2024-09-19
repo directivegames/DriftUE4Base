@@ -4664,8 +4664,6 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
     }
 
     FString Url = driftEndpoints.template_richpresence.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
-    // Url = TEXT("https://dg-perseus-dev.live.dg-api.com/drift/rich-presence/{player_id}");
-    // Url = Url.Replace(TEXT("{player_id}"), *FString::FromInt(FriendId));
 
     const auto Request = GetGameRequestManager()->Get(Url);
     Request->OnResponse.BindLambda([this, Delegate, FriendId](ResponseContext& Context, JsonDocument& Doc)
@@ -4697,15 +4695,13 @@ void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDele
     TArray<FDriftFriend> DriftFriends;
     GetFriendsList(DriftFriends);
     const int32 NumFriends = DriftFriends.Num();
-    int32 Results = 0;
-
     for (auto& DriftFriend : DriftFriends)
     {
-        CacheFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([&Results, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
+        CacheFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([this, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
         {
             // Fire delegate once all requests are complete
-            Results += 1;
-            if (Results == NumFriends)
+            NumPendingDelegates += 1;
+            if (NumPendingDelegates == NumFriends)
             {
                 Delegate.Execute(true);
             }
