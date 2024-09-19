@@ -133,7 +133,8 @@ public:
     void GetUserIdentitiesByNames(const TArray<FString>& namesArray, const FDriftGetUserIdentitiesDelegate& delegate) override;
     void GetUserIdentitiesByName(const FString& name, const FDriftGetUserIdentitiesDelegate& delegate) override;
 
-    FRichPresenceResult GetRichPresence(int32 playerID) const override;
+    FRichPresenceResult GetRichPresence(int32 PlayerID) const override;
+    void SetRichPresence(int32 PlayerID, const FRichPresenceResult& Presence) override;
     const bool HasRichPresence(int32 PlayerID) const override;
     void CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRichPresenceDelegate& Delegate) override;
     void CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate) override;
@@ -509,6 +510,13 @@ private:
 	TMap<int32, int32> PlayerIdToTeamId;
 
     TMap<FString, FString> DriftClientConfig;
+
+    // FIXME: Storing the delegate count in the class is a hack. It won't work correctly
+    // if CacheFriendsRichPresence is called multiple times.
+    // Fixes include:
+    // - Moving everything to the task graph
+    // - Integrating UE5Coro library w/ C++20 coroutines
+    int32 PendingRichPresenceDelegates = 0;
 };
 
 

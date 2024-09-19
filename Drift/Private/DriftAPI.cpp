@@ -22,10 +22,11 @@ bool FGetActiveMatchesResponse::Serialize(SerializationContext& context)
 
 bool FRichPresenceResult::Serialize(SerializationContext& context)
 {
-    const bool result =  SERIALIZE_PROPERTY(context, game_mode)
+    const bool result = SERIALIZE_PROPERTY(context, player_id) &&
+        SERIALIZE_PROPERTY(context, is_online)
+        && SERIALIZE_PROPERTY(context, is_in_game)
         && SERIALIZE_PROPERTY(context, map_name)
-        && SERIALIZE_PROPERTY(context, is_online)
-        && SERIALIZE_PROPERTY(context, is_in_game);
+        && SERIALIZE_PROPERTY(context, game_mode);
     return result;
 }
 

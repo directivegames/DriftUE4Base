@@ -4301,6 +4301,11 @@ FRichPresenceResult FDriftBase::GetRichPresence(int32 playerID) const
     return FRichPresenceResult();
 }
 
+void FDriftBase::SetRichPresence(int32 PlayerID, const FRichPresenceResult& Presence)
+{
+    RichPresenceCache[PlayerID] = Presence;
+}
+
 const bool FDriftBase::HasRichPresence(int32 PlayerID) const
 {
     return RichPresenceCache.Contains(PlayerID);
@@ -4671,7 +4676,7 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
         FRichPresenceResult Result;
         if (!JsonArchive::LoadObject(Doc, Result))
         {
-            Context.error = TEXT("Failed to parse user identities response");
+            Context.error = TEXT("Failed to parse richpresence response");
             return;
         }
 
@@ -4687,6 +4692,7 @@ void FDriftBase::CacheFriendRichPresence(int32 FriendId, const FDriftGetFriendRi
         DRIFT_LOG(Base, Error, TEXT("%s"), *ErrorMessage);
         IErrorReporter::Get()->AddError(TEXT("FDriftBase"), *ErrorMessage);
     });
+    Request->Dispatch();
 }
 
 void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDelegate& Delegate)
@@ -4694,15 +4700,13 @@ void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDele
     TArray<FDriftFriend> DriftFriends;
     GetFriendsList(DriftFriends);
     const int32 NumFriends = DriftFriends.Num();
-    int32 Results = 0;
-
     for (auto& DriftFriend : DriftFriends)
     {
-        CacheFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([&Results, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
+        CacheFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([this, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
         {
             // Fire delegate once all requests are complete
-            Results += 1;
-            if (Results == NumFriends)
+            PendingRichPresenceDelegates += 1;
+            if (PendingRichPresenceDelegates == NumFriends)
             {
                 Delegate.Execute(true);
             }
