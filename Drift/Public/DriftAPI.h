@@ -724,7 +724,6 @@ public:
     */
     virtual void AuthenticatePlayer() = 0;
     virtual void AuthenticatePlayer(FAuthenticationSettings AuthenticationSettings) = 0;
-    // TODO LIAM:Is there a deauthenticate?
 
     /**
      * Get connection state
@@ -922,6 +921,11 @@ public:
      * Gets rich presence information sync. Requires to be pre-cached.
      */
     virtual FRichPresenceResult GetRichPresence(int32 PlayerID) const = 0;
+
+    /**
+     * Sets the rich presence information for a specific player.
+     */
+    virtual void SetRichPresence(int32 PlayerID, const FRichPresenceResult& Presence) = 0;
 
     /**
      * Returns whether rich presence information is available for a specific player.

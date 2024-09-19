@@ -4301,6 +4301,11 @@ FRichPresenceResult FDriftBase::GetRichPresence(int32 playerID) const
     return FRichPresenceResult();
 }
 
+void FDriftBase::SetRichPresence(int32 PlayerID, const FRichPresenceResult& Presence)
+{
+    RichPresenceCache[PlayerID] = Presence;
+}
+
 const bool FDriftBase::HasRichPresence(int32 PlayerID) const
 {
     return RichPresenceCache.Contains(PlayerID);
@@ -4700,8 +4705,8 @@ void FDriftBase::CacheFriendsRichPresence(const FDriftGetFriendsRichPresenceDele
         CacheFriendRichPresence(DriftFriend.playerID, FDriftGetFriendRichPresenceDelegate::CreateLambda([this, NumFriends, Delegate](bool Success, const FRichPresenceResult& Result)
         {
             // Fire delegate once all requests are complete
-            NumPendingDelegates += 1;
-            if (NumPendingDelegates == NumFriends)
+            PendingRichPresenceDelegates += 1;
+            if (PendingRichPresenceDelegates == NumFriends)
             {
                 Delegate.Execute(true);
             }
