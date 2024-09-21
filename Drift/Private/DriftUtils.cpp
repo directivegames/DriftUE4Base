@@ -114,7 +114,7 @@ void FDriftWorldHelper::DestroyInstance()
 
     FName identifier = NAME_None;
 #if UE_EDITOR
-    identifier = internal::GetIdentifierFromWorld(world_);
+    identifier = world_ ? internal::GetIdentifierFromWorld(world_) : context_;
 #endif // UE_EDITOR
     auto& provider = IModularFeatures::Get().GetModularFeature<IDriftProvider>(DriftModuleName);
     provider.DestroyInstance(identifier);
