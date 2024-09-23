@@ -1257,6 +1257,13 @@ IDriftAuthProviderFactory* FDriftBase::GetUserPassAuthProviderFactory(const FStr
 
 void FDriftBase::GetActiveMatches(const TSharedRef<FMatchesSearch>& search)
 {
+    if (state_ != DriftSessionState::Connected)
+    {
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to call GetActiveMatches without being connected"));
+        onGotActiveMatches.Broadcast(false);
+        return;
+    }
+
     FString matches_url = driftEndpoints.active_matches;
     const FString ref_filter = search->ref_filter.Get(buildReference);
     internal::UrlHelper::AddUrlOption(matches_url, TEXT("ref"), ref_filter);
@@ -2454,6 +2461,13 @@ void FDriftBase::ConfigureSettingsSection(const FString& config)
 
 void FDriftBase::FetchDriftClientConfigs(const FDriftFetchClientConfigsComplete& InDelegate)
 {
+    if (state_ != DriftSessionState::Connected)
+    {
+        IErrorReporter::Get()->AddError(TEXT("LogDriftBase"), TEXT("Attempting to call FetchDriftClientConfigs without being connected"));
+        InDelegate.ExecuteIfBound(false);
+        return;
+    }
+
     auto request = GetGameRequestManager()->Get(driftEndpoints.client_configs, HttpStatusCodes::Ok);
     request->OnResponse.BindLambda([this, InDelegate](ResponseContext& context, JsonDocument& doc)
     {
