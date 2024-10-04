@@ -1,7 +1,7 @@
 /**
 * This file is part of the Drift Unreal Engine Integration.
 *
-* Copyright (C) 2016-2019 Directive Games Limited. All Rights Reserved.
+* Copyright (C) 2016-2024 Directive Games Limited. All Rights Reserved.
 *
 * Licensed under the MIT License (the "License");
 *
@@ -2657,7 +2657,6 @@ void FDriftBase::AuthenticatePlayer(IDriftAuthProvider* provider)
         manager->SetCache(httpCache_);
         SetGameRequestManager(manager);
         GetUserInfo();
-        FetchDriftClientConfigs({});
     });
     request->OnError.BindLambda([this](ResponseContext& context)
     {
@@ -2853,6 +2852,7 @@ void FDriftBase::GetPlayerInfo()
         playerCounterManager->SetCounterUrl(myPlayer.counter_url);
         messageQueue->SetMessageQueueUrl(myPlayer.messages_url);
         state_ = DriftSessionState::Connected;
+        FetchDriftClientConfigs({});
         BroadcastConnectionStateChange(state_);
 
         // TODO: Let user determine if the name should be set or not
