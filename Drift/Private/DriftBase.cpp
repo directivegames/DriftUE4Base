@@ -3462,6 +3462,8 @@ void FDriftBase::InitServerAuthentication()
         return;
     }
 
+    FString Username;
+    FParse::Value(FCommandLine::Get(), TEXT("-driftUser="), Username);
     FString Password;
     FParse::Value(FCommandLine::Get(), TEXT("-driftPass="), Password);
 
@@ -3474,7 +3476,7 @@ void FDriftBase::InitServerAuthentication()
 
     if (Password.IsEmpty())
     {
-        DRIFT_LOG(Base, Error, TEXT("When not pre-authenticated, credentials must be passed on the command line -driftPass=yyy"));
+        DRIFT_LOG(Base, Error, TEXT("When not pre-authenticated, credentials must be passed on the command line (-driftUser=xxx) -driftPass=yyy"));
 
         Reset();
         return;
@@ -3484,7 +3486,7 @@ void FDriftBase::InitServerAuthentication()
     FUserPassAuthenticationPayload Payload{};
     Payload.provider = SERVER_CREDENTIALS_PROVIDER;
     Payload.automatic_account_creation = false;
-    JsonArchive::AddMember(Payload.provider_details, TEXT("username"), *SERVER_CREDENTIALS_USERNAME);
+    JsonArchive::AddMember(Payload.provider_details, TEXT("username"), *(Username.IsEmpty() ? SERVER_CREDENTIALS_USERNAME : Username));
     JsonArchive::AddMember(Payload.provider_details, TEXT("password"), *Password);
 
     const auto Request = GetRootRequestManager()->Post(driftEndpoints.auth, Payload, HttpStatusCodes::Ok);
