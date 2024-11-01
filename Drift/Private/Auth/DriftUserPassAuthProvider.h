@@ -12,7 +12,7 @@ public:
     FDriftUserPassAuthProvider(int32 instanceIndex, TSharedPtr<ISecureStorage> secureStorage, const FString& Username, const FString& Password, bool bAllowAutomaticAccountCreation);
 
     FString GetProviderName() const override { return TEXT("user+pass"); }
-    void InitCredentials(InitCredentialsCallback callback) override;
+    void InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback) override;
     void GetFriends(GetFriendsCallback callback) override;
     void GetAvatarUrl(GetAvatarUrlCallback callback) override;
     void FillProviderDetails(DetailsAppender appender) const override;

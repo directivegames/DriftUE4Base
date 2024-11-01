@@ -13,7 +13,7 @@ FDriftUuidAuthProvider::FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<I
 }
 
 
-void FDriftUuidAuthProvider::InitCredentials(TFunction<void(bool)> callback)
+void FDriftUuidAuthProvider::InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback)
 {
 	GetDeviceIDCredentials();
     callback(true);

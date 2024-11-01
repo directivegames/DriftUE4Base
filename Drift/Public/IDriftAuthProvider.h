@@ -2,6 +2,7 @@
 #pragma once
 
 class FOnlineFriend;
+struct FAuthenticationSettings;
 
 
 class IDriftAuthProvider : public TSharedFromThis<IDriftAuthProvider>
@@ -14,7 +15,7 @@ public:
     using DetailsAppender = TFunction<void(const FString&, const FString&)>;
 
     virtual FString GetProviderName() const = 0;
-    virtual void InitCredentials(InitCredentialsCallback callback) = 0;
+    virtual void InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback) = 0;
     virtual void GetFriends(GetFriendsCallback callback) = 0;
 	virtual void GetAvatarUrl(GetAvatarUrlCallback callback) = 0;
     virtual void FillProviderDetails(DetailsAppender appender) const = 0;

@@ -14,7 +14,7 @@ FDriftUserPassAuthProvider::FDriftUserPassAuthProvider(int32 instanceIndex, TSha
 }
 
 
-void FDriftUserPassAuthProvider::InitCredentials(TFunction<void(bool)> callback)
+void FDriftUserPassAuthProvider::InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback)
 {
     callback(true);
 }

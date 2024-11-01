@@ -2572,7 +2572,7 @@ void FDriftBase::InitAuthentication(const FAuthenticationSettings& Authenticatio
     	}
     }
 
-    authProvider->InitCredentials([this](bool credentialSuccess)
+    authProvider->InitCredentials(AuthenticationSettings, [this](bool credentialSuccess)
     {
         if (credentialSuccess)
         {
@@ -2973,7 +2973,7 @@ void FDriftBase::AddPlayerIdentity(const FString& credentialType, const FDriftAd
         return;
     }
 
-    provider->InitCredentials([this, provider, progressDelegate](bool credentialSuccess)
+    provider->InitCredentials({}, [this, provider, progressDelegate](bool credentialSuccess)
     {
         if (credentialSuccess)
         {

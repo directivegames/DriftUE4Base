@@ -38,13 +38,15 @@ void FDriftModule::StartupModule()
 	UConsole::RegisterConsoleAutoCompleteEntries.AddStatic(&FDriftModule::PopulateAutoCompleteEntries);
 #endif // ALLOW_CONSOLE
 
-    IModularFeatures::Get().RegisterModularFeature(TEXT("DriftAuthProviderFactory"), &tokenProviderFactory);
+    IModularFeatures::Get().RegisterModularFeature(TEXT("DriftAuthProviderFactory"), &driftTokenProviderFactory);
+    IModularFeatures::Get().RegisterModularFeature(TEXT("DriftAuthProviderFactory"), &externalTokenProviderFactory);
 }
 
 
 void FDriftModule::ShutdownModule()
 {
-    IModularFeatures::Get().UnregisterModularFeature(TEXT("DriftAuthProviderFactory"), &tokenProviderFactory);
+    IModularFeatures::Get().UnregisterModularFeature(TEXT("DriftAuthProviderFactory"), &driftTokenProviderFactory);
+    IModularFeatures::Get().UnregisterModularFeature(TEXT("DriftAuthProviderFactory"), &externalTokenProviderFactory);
     IModularFeatures::Get().UnregisterModularFeature(TEXT("Drift"), &provider);
 }
 

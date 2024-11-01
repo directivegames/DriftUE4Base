@@ -11,13 +11,12 @@
 */
 
 #pragma once
-#include "IDriftAccessTokenSource.h"
 #include "IDriftAuthProvider.h"
 
-class FDriftTokenAuthProvider : public IDriftAuthProvider
+class FExternalTokenAuthProvider : public IDriftAuthProvider
 {
 public:
-    FDriftTokenAuthProvider(const TArray<IDriftAccessTokenSource*>& TokenSources);
+    FExternalTokenAuthProvider();
 
     FString GetProviderName() const override;
     void InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback) override;
@@ -25,9 +24,11 @@ public:
     void GetAvatarUrl(GetAvatarUrlCallback callback) override;
     void FillProviderDetails(DetailsAppender appender) const override;
     FString ToString() const override;
+    bool AllowAutomaticAccountCreation() const override { return bAllowAutomaticAccountCreation; }
 
 private:
-    FString token_;
-    TArray<IDriftAccessTokenSource*> tokenSources_;
+    bool bAllowAutomaticAccountCreation = false;
+    FString TokenProviderName;
+    FString Token;
 };
 

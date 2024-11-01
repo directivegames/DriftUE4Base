@@ -22,7 +22,7 @@ FString FDriftTokenAuthProvider::GetProviderName() const
     return TEXT("jwt");
 }
 
-void FDriftTokenAuthProvider::InitCredentials(InitCredentialsCallback callback)
+void FDriftTokenAuthProvider::InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback)
 {
     for (const auto TokenSource : tokenSources_)
     {

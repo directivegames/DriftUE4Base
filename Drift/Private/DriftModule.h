@@ -16,6 +16,7 @@
 #include "DriftAPI.h"
 #include "DriftProvider.h"
 #include "Auth/DriftTokenAuthProviderFactory.h"
+#include "Auth/ExternalTokenAuthProviderFactory.h"
 
 
 struct FAutoCompleteCommand;
@@ -42,5 +43,6 @@ private:
 
 	FDriftProvider provider;
 
-    FDriftTokenAuthProviderFactory tokenProviderFactory;
+    FDriftTokenAuthProviderFactory driftTokenProviderFactory;
+    FExternalTokenAuthProviderFactory externalTokenProviderFactory;
 };

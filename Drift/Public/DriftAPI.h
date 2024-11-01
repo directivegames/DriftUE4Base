@@ -670,6 +670,11 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftReceivedMessageDelegate, const FDriftM
 
 DECLARE_DELEGATE_OneParam(FDriftFetchClientConfigsComplete, bool /*bSuccess*/);
 
+struct FExternalTokenData
+{
+    FString TokenProviderName;
+    FString Token;
+};
 
 struct FAuthenticationSettings
 {
@@ -697,9 +702,17 @@ struct FAuthenticationSettings
     {
     }
 
+    FAuthenticationSettings(TSharedPtr<FExternalTokenData> ExternalTokenData, bool bAutoCreateAccount)
+        : CredentialsType{ TEXT("externalToken") }
+        , ExternalTokenData{ ExternalTokenData }
+        , bAutoCreateAccount{ bAutoCreateAccount }
+    {
+    }
+
     FString CredentialsType;
     FString Username;
     FString Password;
+    TSharedPtr<FExternalTokenData> ExternalTokenData;
     bool bAutoCreateAccount;
 };
 

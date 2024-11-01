@@ -13,7 +13,7 @@ public:
     FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage);
 
     FString GetProviderName() const override { return TEXT("uuid"); }
-    void InitCredentials(InitCredentialsCallback callback) override;
+    void InitCredentials(const FAuthenticationSettings& AuthenticationSettings, InitCredentialsCallback callback) override;
     void GetFriends(GetFriendsCallback callback) override;
     void GetAvatarUrl(GetAvatarUrlCallback callback) override;
     void FillProviderDetails(DetailsAppender appender) const override;
