@@ -14,10 +14,13 @@
 
 #include "Windows/AllowWindowsPlatformTypes.h"
 	#include "wtypes.h"
+    #include <wincred.h>
+    #include <string>
 #include "Windows/HideWindowsPlatformTypes.h"
 
 #if PLATFORM_WINDOWS
 
+#define WITH_CREDENTIAL_MANAGER 1
 
 WindowsSecureStorage::WindowsSecureStorage(const FString& productName, const FString& serviceName)
 : productName_{ productName }
@@ -28,6 +31,15 @@ WindowsSecureStorage::WindowsSecureStorage(const FString& productName, const FSt
 
 bool WindowsSecureStorage::SaveValue(const FString& key, const FString& value, bool overwrite)
 {
+#if WITH_CREDENTIAL_MANAGER
+    CREDENTIAL Credential = { 0 };
+    Credential.Type = CRED_TYPE_GENERIC;
+    Credential.TargetName = const_cast<LPWSTR>(*key);
+    Credential.CredentialBlob = (LPBYTE)*value;
+    Credential.CredentialBlobSize = (DWORD)value.Len() * sizeof(TCHAR);
+    Credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
+    return CredWrite(&Credential, 0);
+#else
     // TODO: Handle override
     HKEY hkey;
     FString path = FString::Printf(TEXT("SOFTWARE\\%s\\%s"), *serviceName_, *productName_);
@@ -42,11 +54,24 @@ bool WindowsSecureStorage::SaveValue(const FString& key, const FString& value, b
         }
     }
     return false;
+#endif
 }
 
 
 bool WindowsSecureStorage::GetValue(const FString& key, FString& value)
 {
+#if WITH_CREDENTIAL_MANAGER
+    PCREDENTIAL pcred = NULL;
+    if (CredRead(*key, CRED_TYPE_GENERIC, 0, &pcred))
+    {
+        std::wstring secret;
+        secret.assign((TCHAR*)pcred->CredentialBlob, pcred->CredentialBlobSize / sizeof(TCHAR));
+        value = secret.c_str();
+        CredFree(pcred);
+        return true;
+    }
+    return false;
+#else
     HKEY hkey;
     FString path = FString::Printf(TEXT("SOFTWARE\\%s\\%s"), *serviceName_, *productName_);
     if (RegOpenKeyEx(HKEY_CURRENT_USER, *path, NULL, KEY_QUERY_VALUE, &hkey) == ERROR_SUCCESS)
@@ -63,6 +88,7 @@ bool WindowsSecureStorage::GetValue(const FString& key, FString& value)
         }
     }
     return false;
+#endif
 }
 
 
