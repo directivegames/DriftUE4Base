@@ -223,6 +223,7 @@ public:
     int32 GetInstanceIndex() const override { return instanceIndex_; }
 
     void SetForwardedLogLevel(ELogVerbosity::Type Level) override;
+    TSharedPtr<ISecureStorage> GetSecureStorage() const override;
 
     static bool GetResponseError(const ResponseContext& Context, FString& Error);
 

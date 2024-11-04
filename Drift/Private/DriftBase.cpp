@@ -41,6 +41,7 @@
 #include "Internationalization/Internationalization.h"
 #include "Misc/EngineVersionComparison.h"
 #include "GenericPlatform/GenericPlatformOutputDevices.h"
+#include "SecureStorageFactory.h"
 
 #if PLATFORM_APPLE
 #include "Apple/AppleUtility.h"
@@ -4920,6 +4921,11 @@ void FDriftBase::SetForwardedLogLevel(ELogVerbosity::Type Level)
     {
         logForwarder->SetForwardedLogLevel(Level);
     }
+}
+
+TSharedPtr<ISecureStorage> FDriftBase::GetSecureStorage() const
+{
+    return SecureStorageFactory::GetSecureStorage(projectName_, TEXT("Drift"));
 }
 
 #undef LOCTEXT_NAMESPACE

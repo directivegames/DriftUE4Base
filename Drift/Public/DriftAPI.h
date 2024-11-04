@@ -18,6 +18,7 @@
 #include "IDriftMatchPlacementManager.h"
 #include "IDriftSandboxManager.h"
 #include "JsonValueWrapper.h"
+#include "ISecureStorage.h"
 
 #include "DriftAPI.generated.h"
 
@@ -1183,6 +1184,8 @@ public:
 
     /** Set the min level of the forwarded logs */
     virtual void SetForwardedLogLevel(ELogVerbosity::Type Level) = 0;
+
+    virtual TSharedPtr<ISecureStorage> GetSecureStorage() const = 0;
 
     virtual ~IDriftAPI() {}
 };
