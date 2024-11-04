@@ -29,12 +29,19 @@ WindowsSecureStorage::WindowsSecureStorage(const FString& productName, const FSt
 }
 
 
+FString WindowsSecureStorage::MakeUniqueKey(const FString& key)
+{
+    return FString::Printf(TEXT("%s.%s.%s"), *serviceName_, *productName_, *key);
+}
+
+
 bool WindowsSecureStorage::SaveValue(const FString& key, const FString& value, bool overwrite)
 {
 #if WITH_CREDENTIAL_MANAGER
+    const auto UniqueKey = MakeUniqueKey(key);
     CREDENTIAL Credential = { 0 };
     Credential.Type = CRED_TYPE_GENERIC;
-    Credential.TargetName = const_cast<LPWSTR>(*key);
+    Credential.TargetName = const_cast<LPWSTR>(*UniqueKey);
     Credential.CredentialBlob = (LPBYTE)*value;
     Credential.CredentialBlobSize = (DWORD)value.Len() * sizeof(TCHAR);
     Credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
@@ -61,8 +68,9 @@ bool WindowsSecureStorage::SaveValue(const FString& key, const FString& value, b
 bool WindowsSecureStorage::GetValue(const FString& key, FString& value)
 {
 #if WITH_CREDENTIAL_MANAGER
+    const auto UniqueKey = MakeUniqueKey(key);
     PCREDENTIAL pcred = NULL;
-    if (CredRead(*key, CRED_TYPE_GENERIC, 0, &pcred))
+    if (CredRead(*UniqueKey, CRED_TYPE_GENERIC, 0, &pcred))
     {
         std::wstring secret;
         secret.assign((TCHAR*)pcred->CredentialBlob, pcred->CredentialBlobSize / sizeof(TCHAR));

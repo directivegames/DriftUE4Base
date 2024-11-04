@@ -28,6 +28,7 @@ public:
 	bool GetValue(const FString& key, FString& value) override;
 
 private:
+    FString MakeUniqueKey(const FString& key);
 	FString productName_;
 	FString serviceName_;
 };
