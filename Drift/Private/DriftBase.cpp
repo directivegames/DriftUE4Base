@@ -4320,7 +4320,10 @@ FRichPresenceResult FDriftBase::GetRichPresence(int32 playerID) const
 
 void FDriftBase::SetRichPresence(int32 PlayerID, const FRichPresenceResult& Presence)
 {
-    RichPresenceCache[PlayerID] = Presence;
+    if (auto Record = RichPresenceCache.Find(PlayerID); ensure(Record))
+    {
+        *Record = Presence;
+    }
 }
 
 const bool FDriftBase::HasRichPresence(int32 PlayerID) const
