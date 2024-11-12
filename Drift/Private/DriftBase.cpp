@@ -4630,6 +4630,29 @@ void FDriftBase::LoadPlayerAvatarUrl(const FDriftLoadPlayerAvatarUrlDelegate& de
     });
 }
 
+void FDriftBase::GetUserIdentitiesByPlayerIds(const TArray<int32>& PlayerIds, const FDriftGetUserIdentitiesDelegate& delegate)
+{
+    if (driftEndpoints.user_identities.IsEmpty())
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to get user identities with no endpoint"));
+
+        delegate.ExecuteIfBound(false, {});
+        return;
+    }
+
+    TArray<FString> PlayerIdStrings;
+    for (const auto PlayerId : PlayerIds)
+    {
+        PlayerIdStrings.Add(FString::FromInt(PlayerId));
+    }
+
+    DRIFT_LOG(Base, Log, TEXT("Getting get user identities for player ids: '%s'"), *FString::Join(PlayerIdStrings, TEXT(",")));
+
+    auto url = driftEndpoints.user_identities + TEXT("?player_id=") + FString::Join(PlayerIdStrings, TEXT("&player_id="));
+
+    InternalGetUserIdentities(url, delegate);
+}
+
 void FDriftBase::GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUserIdentitiesDelegate& delegate)
 {
     if (driftEndpoints.user_identities.IsEmpty())

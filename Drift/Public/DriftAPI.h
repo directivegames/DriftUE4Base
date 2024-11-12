@@ -998,6 +998,12 @@ public:
     virtual void GetUserIdentitiesByPlayerId(int32 PlayerId, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
 
     /**
+     * Get user-identities that match any playerId in the array
+     * Fires delegate when finished.
+    */
+    virtual void GetUserIdentitiesByPlayerIds(const TArray<int32>& PlayerIds, const FDriftGetUserIdentitiesDelegate& delegate) = 0;
+
+    /**
      * Get user-identities that match any name in names array
      * Fires delegate when finished.
     */
