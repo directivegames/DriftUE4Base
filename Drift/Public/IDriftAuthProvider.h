@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 class FOnlineFriend;
 struct FAuthenticationSettings;
 

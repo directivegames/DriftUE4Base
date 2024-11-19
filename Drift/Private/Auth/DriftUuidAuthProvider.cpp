@@ -3,6 +3,7 @@
 
 #include "IDriftCredentialsFactory.h"
 #include "ISecureStorage.h"
+#include "Misc/CommandLine.h"
 
 
 FDriftUuidAuthProvider::FDriftUuidAuthProvider(int32 instanceIndex, TUniquePtr<IDriftCredentialsFactory> credentialsFactory, TSharedPtr<ISecureStorage> secureStorage)

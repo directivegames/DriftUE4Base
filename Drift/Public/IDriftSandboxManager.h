@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 DECLARE_DELEGATE_TwoParams(FJoinSandboxFinishedDelegate, bool /* bSuccess */, const FString& /* ErrorMessage */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSandboxJoinStatusChangedDelegate, const FString& /* ConnectionString or Error */, bool /* Succeeded */);
 

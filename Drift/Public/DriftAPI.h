@@ -20,6 +20,11 @@
 #include "JsonValueWrapper.h"
 #include "ISecureStorage.h"
 
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+#include "Serialization/JsonSerializable.h"
+#include "Serialization/JsonSerializerMacros.h"
+#endif
+
 #include "DriftAPI.generated.h"
 
 struct FRichPresence;

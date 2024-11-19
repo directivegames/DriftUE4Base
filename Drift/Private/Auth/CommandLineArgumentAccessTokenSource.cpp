@@ -11,6 +11,8 @@
 */
 
 #include "CommandLineArgumentAccessTokenSource.h"
+#include "Misc/CommandLine.h"
+
 
 FCommandLineArgumentAccessTokenSource::FCommandLineArgumentAccessTokenSource(const FString& CommandLineSwitch)
     : CommandLineSwitch_{ FString::Format(TEXT("-{0}="), {*CommandLineSwitch}) }

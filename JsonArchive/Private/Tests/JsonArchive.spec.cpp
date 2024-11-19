@@ -32,7 +32,12 @@ struct FWithOptionalProperty
 
 #if WITH_DEV_AUTOMATION_TESTS
 
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+BEGIN_DEFINE_SPEC(DriftJsonArchiveSpec, "Game.Drift.JsonArchive", EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+#else
 BEGIN_DEFINE_SPEC(DriftJsonArchiveSpec, "Game.Drift.JsonArchive", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+#endif
+
 END_DEFINE_SPEC(DriftJsonArchiveSpec)
 
 void DriftJsonArchiveSpec::Define()

@@ -11,6 +11,8 @@
 */
 
 #pragma once
+
+#include "CoreMinimal.h"
 #include "Features/IModularFeature.h"
 
 class IDriftAccessTokenSource : public IModularFeature

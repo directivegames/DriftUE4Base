@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 class ISecureStorage
 {
