@@ -11,6 +11,7 @@
 */
 
 #include "JsonArchive.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #include "Misc/AutomationTest.h"
 #if WITH_EDITOR
