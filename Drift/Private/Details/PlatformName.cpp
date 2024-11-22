@@ -36,6 +36,8 @@ const TCHAR* GetPlatformName()
 	return TEXT("HoloLens");
 #elif PLATFORM_SWITCH
 	return TEXT("Switch");
+#elif PLATFORM_PS5
+    return TEXT("PS5");
 #else
 #error Unknown Platform
 #endif
