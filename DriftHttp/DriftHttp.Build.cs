@@ -16,8 +16,10 @@ public class DriftHttp : ModuleRules
 {
     public DriftHttp(ReadOnlyTargetRules TargetRules) : base(TargetRules)
     {
+        bAllowConfidentialPlatformDefines = true;
+
 #if UE_4_24_OR_LATER
-		bUseUnity = false;
+        bUseUnity = false;
 #else
         bFasterWithoutUnity = true;
 #endif

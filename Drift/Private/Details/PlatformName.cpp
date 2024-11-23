@@ -13,6 +13,10 @@
 #define PLATFORM_XBOXONE 0
 #endif
 
+#ifndef PLATFORM_PS5
+#define PLATFORM_PS5 0
+#endif
+
 namespace details
 {
 
