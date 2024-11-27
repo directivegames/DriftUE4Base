@@ -4226,6 +4226,12 @@ void FDriftBase::MakeFriendsGroup(const FDriftFriendsListLoadedDelegate& delegat
 
 void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
 {
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to call CacheFriendInfos without being connected"));
+        return;
+    }
+
     auto url = driftEndpoints.players;
     internal::UrlHelper::AddUrlOption(url, TEXT("player_group"), TEXT("friends"));
     auto request = GetGameRequestManager()->Get(url);
@@ -4258,6 +4264,12 @@ void FDriftBase::CacheFriendInfos(const TFunction<void(bool)>& delegate)
 
 void FDriftBase::UpdateFriendOnlineInfos()
 {
+    if (state_ != DriftSessionState::Connected)
+    {
+        DRIFT_LOG(Base, Warning, TEXT("Attempting to call UpdateFriendOnlineInfos without being connected"));
+        return;
+    }
+
     if (driftEndpoints.players.IsEmpty())
     {
         return;
