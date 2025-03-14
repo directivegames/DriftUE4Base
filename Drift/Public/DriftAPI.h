@@ -631,6 +631,7 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FDriftPlayerGameStateLoadedDelegate, ELoa
 DECLARE_MULTICAST_DELEGATE_TwoParams(FDriftPlayerGameStateSavedDelegate, bool, const FString&);
 DECLARE_DELEGATE_TwoParams(FDriftLeaderboardLoadedDelegate, bool, const FString&);
 DECLARE_DELEGATE_OneParam(FDriftFriendsListLoadedDelegate, bool);
+DECLARE_DELEGATE_ThreeParams(FDriftStaticDataCallback, bool /*bSuccess*/, const FString& /*Name*/, const FString& /*Data*/)
 
 DECLARE_DELEGATE_ThreeParams(FDriftIssueFriendTokenDelegate, bool /* bSuccess */, const FString& /* Token */, const FString& /* Error */);
 DECLARE_DELEGATE_ThreeParams(FDriftAcceptFriendRequestDelegate, bool /* bSuccess */, int32 /* Friend Id */, const FString& /* Error */);
@@ -857,7 +858,7 @@ public:
      * Fires OnStaticDataProgress() to report progress.
      * Fires OnStaticDataLoaded() when finished.
      */
-    virtual void LoadStaticData(const FString& name, const FString& ref) = 0;
+    virtual void LoadStaticData(const FString& name, const FString& ref, FDriftStaticDataCallback callback = {}) = 0;
 
     /**
      * Cache the currently authenticated player's stats.

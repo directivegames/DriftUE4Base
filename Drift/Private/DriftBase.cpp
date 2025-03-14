@@ -640,12 +640,13 @@ TStatId FDriftBase::GetStatId() const
 }
 
 
-void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
+void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftStaticDataCallback callback)
 {
     if (driftEndpoints.static_data.IsEmpty())
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to load static data before static routes have been initialized"));
 
+        callback.ExecuteIfBound(false, name, TEXT(""));
         onStaticDataLoaded.Broadcast(false, TEXT(""));
         return;
     }
@@ -661,18 +662,20 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
     auto url = driftEndpoints.static_data;
     internal::UrlHelper::AddUrlOption(url, TEXT("static_data_ref"), *pin);
     auto request = GetRootRequestManager()->Get(url);
-    request->OnResponse.BindLambda([this, name, pin](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, name, pin, callback](ResponseContext& context, JsonDocument& doc)
     {
         FStaticDataResponse static_data;
         if (!JsonArchive::LoadObject(doc, static_data))
         {
             context.error = TEXT("Failed to parse static data response");
+            callback.ExecuteIfBound(false, name, TEXT(""));
             return;
         }
 
         if (static_data.static_data_urls.Num() == 0)
         {
             context.error = TEXT("No static data entries found");
+            callback.ExecuteIfBound(false, name, TEXT(""));
             return;
         }
 
@@ -685,12 +688,12 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
             int32 bytesRead = 0;
         };
 
-        auto commit = static_data.static_data_urls[0].commit_id;
+        const auto& commit = static_data.static_data_urls[0].commit_id;
         auto index_sent = context.sent;
         auto index_received = context.received;
         TSharedPtr<StaticDataSync> sync = MakeShareable(new StaticDataSync);
 
-        const auto loader = [this, commit, pin, index_sent, index_received, sync](const FString& data_url, const FString& data_name, const FString& cdn_name)
+        const auto loader = [this, commit, pin, index_sent, index_received, sync, callback](const FString& data_url, const FString& data_name, const FString& cdn_name)
         {
             auto data_request = GetRootRequestManager()->Get(data_url + data_name);
             data_request->OnRequestProgress().BindLambda([this, data_name, sync](FHttpRequestPtr req, int32 bytesWritten, int32 bytesRead)
@@ -708,7 +711,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
                     }
                 }
             });
-            data_request->OnResponse.BindLambda([this, data_name, commit, pin, cdn_name, index_sent, index_received, sync](ResponseContext& data_context, JsonDocument& data_doc)
+            data_request->OnResponse.BindLambda([this, data_name, commit, pin, cdn_name, index_sent, index_received, sync, callback](ResponseContext& data_context, JsonDocument& data_doc)
             {
                 DRIFT_LOG(Base, Log, TEXT("Download of static data file: '%s' done"), *data_name);
 
@@ -717,6 +720,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
                 {
                     sync->succeeded = true;
                     auto data = data_context.response->GetContentAsString();
+                    callback.ExecuteIfBound(true, data_name, data);
                     onStaticDataLoaded.Broadcast(true, data);
                 }
 
@@ -731,7 +735,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
                 event->Add(TEXT("total_time"), (data_context.received - index_sent).GetTotalSeconds());
                 AddAnalyticsEvent(MoveTemp(event));
             });
-            data_request->OnError.BindLambda([this, data_name, commit, pin, cdn_name, sync](ResponseContext& data_context)
+            data_request->OnError.BindLambda([this, data_name, commit, pin, cdn_name, sync, callback](ResponseContext& data_context)
             {
                 sync->remaining -= 1;
                 if (!sync->succeeded && sync->remaining <= 0)
@@ -739,6 +743,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
                     FString Error;
                     data_context.errorHandled = GetResponseError(data_context, Error);
                     DRIFT_LOG(Base, Error, TEXT("Failed to download static data file: '%s'. Error: %s"), *data_name, *Error);
+                    callback.ExecuteIfBound(false, data_name, TEXT(""));
                     onStaticDataLoaded.Broadcast(false, TEXT(""));
                 }
 
@@ -766,11 +771,12 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref)
             }
         }
     });
-    request->OnError.BindLambda([this](ResponseContext& context)
+    request->OnError.BindLambda([this, name, callback](ResponseContext& context)
     {
         FString Error;
         context.errorHandled = GetResponseError(context, Error);
         DRIFT_LOG(Base, Error, TEXT("Failed to get static data endpoints. Error: %s"), *Error);
+        callback.ExecuteIfBound(false, name, TEXT(""));
         onStaticDataLoaded.Broadcast(false, TEXT(""));
     });
     request->Dispatch();
@@ -4503,6 +4509,11 @@ FString FDriftBase::GetApiKeyHeader() const
     if (!versionedApiKey.IsEmpty())
     {
         return versionedApiKey;
+    }
+
+    if (apiKey.IsEmpty())
+    {
+        return TEXT("");
     }
     return FString::Printf(TEXT("%s:%s"), *apiKey, IsRunningAsServer() ? TEXT("service") : *gameVersion);
 }
