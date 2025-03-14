@@ -640,13 +640,13 @@ TStatId FDriftBase::GetStatId() const
 }
 
 
-void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftStaticDataCallback callback, const TOptional<FString>& skipCommitId)
+void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftStaticDataCallback callback)
 {
     if (driftEndpoints.static_data.IsEmpty())
     {
         DRIFT_LOG(Base, Warning, TEXT("Attempting to load static data before static routes have been initialized"));
 
-        callback.ExecuteIfBound(EFetchStaticDataResult::Failure, name, TEXT(""), TEXT(""));
+        callback.ExecuteIfBound(false, name, TEXT(""));
         onStaticDataLoaded.Broadcast(false, TEXT(""));
         return;
     }
@@ -662,20 +662,20 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftS
     auto url = driftEndpoints.static_data;
     internal::UrlHelper::AddUrlOption(url, TEXT("static_data_ref"), *pin);
     auto request = GetRootRequestManager()->Get(url);
-    request->OnResponse.BindLambda([this, name, pin, callback, skipCommitId](ResponseContext& context, JsonDocument& doc)
+    request->OnResponse.BindLambda([this, name, pin, callback](ResponseContext& context, JsonDocument& doc)
     {
         FStaticDataResponse static_data;
         if (!JsonArchive::LoadObject(doc, static_data))
         {
             context.error = TEXT("Failed to parse static data response");
-            callback.ExecuteIfBound(EFetchStaticDataResult::Failure, name, TEXT(""), TEXT(""));
+            callback.ExecuteIfBound(false, name, TEXT(""));
             return;
         }
 
         if (static_data.static_data_urls.Num() == 0)
         {
             context.error = TEXT("No static data entries found");
-            callback.ExecuteIfBound(EFetchStaticDataResult::Failure, name, TEXT(""), TEXT(""));
+            callback.ExecuteIfBound(false, name, TEXT(""));
             return;
         }
 
@@ -689,14 +689,6 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftS
         };
 
         const auto& commit = static_data.static_data_urls[0].commit_id;
-        if (skipCommitId.IsSet() && commit == *skipCommitId)
-        {
-            DRIFT_LOG(Base, Log, TEXT("Skip downloading static data file: '%s', due to commit id identical to skipCommitId: %s"), *name, **skipCommitId);
-            callback.ExecuteIfBound(EFetchStaticDataResult::Skipped, name, commit, TEXT(""));
-            return;
-        }
-
-
         auto index_sent = context.sent;
         auto index_received = context.received;
         TSharedPtr<StaticDataSync> sync = MakeShareable(new StaticDataSync);
@@ -728,7 +720,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftS
                 {
                     sync->succeeded = true;
                     auto data = data_context.response->GetContentAsString();
-                    callback.ExecuteIfBound(EFetchStaticDataResult::Success, data_name, commit, data);
+                    callback.ExecuteIfBound(true, data_name, data);
                     onStaticDataLoaded.Broadcast(true, data);
                 }
 
@@ -751,7 +743,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftS
                     FString Error;
                     data_context.errorHandled = GetResponseError(data_context, Error);
                     DRIFT_LOG(Base, Error, TEXT("Failed to download static data file: '%s'. Error: %s"), *data_name, *Error);
-                    callback.ExecuteIfBound(EFetchStaticDataResult::Failure, data_name, commit, TEXT(""));
+                    callback.ExecuteIfBound(false, data_name, TEXT(""));
                     onStaticDataLoaded.Broadcast(false, TEXT(""));
                 }
 
@@ -784,7 +776,7 @@ void FDriftBase::LoadStaticData(const FString& name, const FString& ref, FDriftS
         FString Error;
         context.errorHandled = GetResponseError(context, Error);
         DRIFT_LOG(Base, Error, TEXT("Failed to get static data endpoints. Error: %s"), *Error);
-        callback.ExecuteIfBound(EFetchStaticDataResult::Failure, name, TEXT(""), TEXT(""));
+        callback.ExecuteIfBound(false, name, TEXT(""));
         onStaticDataLoaded.Broadcast(false, TEXT(""));
     });
     request->Dispatch();
