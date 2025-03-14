@@ -104,7 +104,7 @@ public:
     void AddAnalyticsEvent(const FString& eventName, const TArray<FAnalyticsEventAttribute>& attributes) override;
     void AddAnalyticsEvent(TUniquePtr<IDriftEvent> event) override;
 
-    void LoadStaticData(const FString& name, const FString& ref) override;
+    void LoadStaticData(const FString& name, const FString& ref, FDriftStaticDataCallback callback = {}, const TOptional<FString>& skipCommitId = {}) override;
 
     void LoadPlayerStats() override;
 
