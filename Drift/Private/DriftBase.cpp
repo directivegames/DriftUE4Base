@@ -2935,6 +2935,39 @@ void FDriftBase::SetPlayerName(const FString& name)
     request->Dispatch();
 }
 
+void FDriftBase::GetPlayerName(int32 PlayerId, FDriftFetchPlayerNameComplete Callback)
+{
+    FString url = driftEndpoints.players;
+    internal::UrlHelper::AddUrlOption(url, TEXT("player_id"), FString::Printf(TEXT("%d"), PlayerId));
+    auto request = GetGameRequestManager()->Get(url);
+    request->OnResponse.BindLambda([this, PlayerId, Callback](ResponseContext& context, JsonDocument& doc)
+        {
+            TArray<FDriftPlayerResponse> info;
+            if (!JsonArchive::LoadObject(doc, info))
+            {
+                context.error = TEXT("Failed to parse player info response");
+                return;
+            }
+            if (info.Num() != 1)
+            {
+                context.error = FString::Printf(TEXT("Expected a single player info, but got %d"), info.Num());
+                return;
+            }
+            auto playerInfo = info[0];
+            const auto& playerName = playerInfo.player_name;
+
+            DRIFT_LOG(Base, Verbose, TEXT("Server fetched player name: %s (%d)"), *playerInfo.player_name, playerInfo.player_id);
+            Callback.ExecuteIfBound(true, PlayerId, playerName);
+        });
+    request->OnError.BindLambda([this, PlayerId, Callback](ResponseContext& context)
+        {
+            FString Error;
+            context.errorHandled = GetResponseError(context, Error);
+            DRIFT_LOG(Base, Error, TEXT("Failed to find player name for player id: %d. Error: %s"), PlayerId, *Error);
+            Callback.ExecuteIfBound(false, PlayerId, TEXT(""));
+        });
+    request->Dispatch();
+}
 
 FString FDriftBase::GetAuthProviderName() const
 {

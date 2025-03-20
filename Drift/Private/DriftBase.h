@@ -84,6 +84,7 @@ public:
     int32 GetPlayerID() override;
     FString GetPlayerUUID() override;
     void SetPlayerName(const FString& name) override;
+    void GetPlayerName(int32 PlayerId, FDriftFetchPlayerNameComplete Callback) override;
     FString GetAuthProviderName() const override;
     void AddPlayerIdentity(const FString& authProvider, const FDriftAddPlayerIdentityProgressDelegate& progressDelegate) override;
 

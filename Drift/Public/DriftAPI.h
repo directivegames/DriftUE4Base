@@ -678,6 +678,8 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FDriftReceivedMessageDelegate, const FDriftM
 
 DECLARE_DELEGATE_OneParam(FDriftFetchClientConfigsComplete, bool /*bSuccess*/);
 
+DECLARE_DELEGATE_ThreeParams(FDriftFetchPlayerNameComplete, bool /*bSucces*/, int32 /*PlayerId*/, const FString& /*PlayerName*/);
+
 struct FExternalTokenData
 {
     FString TokenProviderName;
@@ -771,6 +773,12 @@ public:
      * Fires OnPlayerNameSet() when finished.
      */
     virtual void SetPlayerName(const FString& name) = 0;
+
+
+    /**
+     * Get the player's name by ID
+     */
+    virtual void GetPlayerName(int32 PlayerId, FDriftFetchPlayerNameComplete Callback) = 0;
 
     /**
      * Return the name of the current auth provider
