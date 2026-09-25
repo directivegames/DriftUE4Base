@@ -255,7 +255,7 @@ public:
     // !IHttpResponse
 
     // IHttpBase
-    FString GetURL() const override;
+    const FString& GetURL() const override;
     FString GetURLParameter(const FString& ParameterName) const override;
     FString GetHeader(const FString& HeaderName) const override;
     TArray<FString> GetAllHeaders() const override;

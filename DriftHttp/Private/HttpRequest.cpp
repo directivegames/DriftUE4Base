@@ -579,7 +579,7 @@ FString FFakeHttpResponse::GetContentAsString() const
 }
 
 
-FString FFakeHttpResponse::GetURL() const
+const FString& FFakeHttpResponse::GetURL() const
 {
     return url_;
 }
