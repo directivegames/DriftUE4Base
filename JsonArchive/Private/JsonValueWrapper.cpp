@@ -339,7 +339,7 @@ TMap<FString, JsonValue> JsonValue::GetObject() const
 	{
 		for (const auto& Itr : JsonObject->Values)
 		{
-			Values.Add(Itr.Key, JsonValue(Itr.Value));
+			Values.Add(FString(*Itr.Key), JsonValue(Itr.Value));
 		}
 	}
 	

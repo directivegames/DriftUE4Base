@@ -13,6 +13,7 @@
 
 #include "DriftUtils.h"
 #include "Engine.h"
+#include "Engine/GameInstance.h"
 
 #include "DriftProvider.h"
 

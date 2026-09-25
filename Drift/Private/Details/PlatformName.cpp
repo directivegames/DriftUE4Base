@@ -36,8 +36,6 @@ const TCHAR* GetPlatformName()
     return TEXT("Android");
 #elif PLATFORM_LINUX
     return TEXT("Linux");
-#elif PLATFORM_HOLOLENS
-	return TEXT("HoloLens");
 #elif PLATFORM_SWITCH
 	return TEXT("Switch");
 #elif PLATFORM_PS5

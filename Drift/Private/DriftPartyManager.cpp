@@ -660,7 +660,7 @@ void FDriftPartyManager::HandlePartyNotification(const FMessageQueueEntry& Messa
 
 	const auto EventName = EventField.GetString();
 
-	UE_LOG(LogDriftParties, Verbose, TEXT("Received party notification (%d): %s"), *Message.message_id, *EventName);
+	UE_LOG(LogDriftParties, Verbose, TEXT("Received party notification (%s): %s"), *Message.message_id, *EventName);
 
 	if (EventName == TEXT("invite"))
 	{

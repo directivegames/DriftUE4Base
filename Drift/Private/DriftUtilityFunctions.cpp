@@ -3,6 +3,8 @@
 
 #include "DriftUtilityFunctions.h"
 
+#include "Misc/ConfigCacheIni.h"
+
 
 TArray<FString> UDriftUtilityFunctions::GetGameVersionStringSplit()
 {
