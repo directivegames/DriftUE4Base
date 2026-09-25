@@ -21,7 +21,7 @@ CachedHttpResponse::CachedHttpResponse()
 }
 
 
-FString CachedHttpResponse::GetURL() IS_CONST
+const FString& CachedHttpResponse::GetURL() const
 {
     return url;
 }
@@ -88,4 +88,16 @@ FString CachedHttpResponse::GetContentAsString() IS_CONST
     TArray<uint8> zeroTerminatedPayload(GetContent());
     zeroTerminatedPayload.Add(0);
     return UTF8_TO_TCHAR(zeroTerminatedPayload.GetData());
+}
+
+
+TArray<uint8> CachedHttpResponse::TakeContent()
+{
+    return MoveTemp(payload);
+}
+
+
+FUtf8StringView CachedHttpResponse::GetContentAsUtf8StringView() const
+{
+    return FUtf8StringView(reinterpret_cast<const UTF8CHAR*>(payload.GetData()), payload.Num());
 }

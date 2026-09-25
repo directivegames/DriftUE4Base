@@ -579,6 +579,18 @@ FString FFakeHttpResponse::GetContentAsString() const
 }
 
 
+TArray<uint8> FFakeHttpResponse::TakeContent()
+{
+    return MoveTemp(contentBytes_);
+}
+
+
+FUtf8StringView FFakeHttpResponse::GetContentAsUtf8StringView() const
+{
+    return FUtf8StringView(reinterpret_cast<const UTF8CHAR*>(contentBytes_.GetData()), contentBytes_.Num());
+}
+
+
 const FString& FFakeHttpResponse::GetURL() const
 {
     return url_;

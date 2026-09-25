@@ -252,6 +252,8 @@ public:
     // IHttpResponse
     int32 GetResponseCode() const override;
     FString GetContentAsString() const override;
+    TArray<uint8> TakeContent() override;
+    FUtf8StringView GetContentAsUtf8StringView() const override;
     // !IHttpResponse
 
     // IHttpBase

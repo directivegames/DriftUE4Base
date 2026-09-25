@@ -28,7 +28,7 @@ public:
 #endif // WITH_ENGINE_VERSION_MACROS
 
     // IHttpBase API
-    FString GetURL() IS_CONST override;
+    const FString& GetURL() const override;
     FString GetURLParameter(const FString& ParameterName) IS_CONST override;
     FString GetHeader(const FString& HeaderName) IS_CONST  override;
     TArray<FString> GetAllHeaders() IS_CONST  override;
@@ -44,6 +44,8 @@ public:
     // IHttpResponse API
     int32 GetResponseCode() IS_CONST  override;
     FString GetContentAsString() IS_CONST  override;
+    TArray<uint8> TakeContent() override;
+    FUtf8StringView GetContentAsUtf8StringView() const override;
 
 #if !UE_VERSION_OLDER_THAN(5, 4, 0)
     const FString& GetEffectiveURL() const override { return url; }
